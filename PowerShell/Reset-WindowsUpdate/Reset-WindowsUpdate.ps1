@@ -4,8 +4,8 @@
 .DESCRIPTION
     Detects and resets a corrupted windows update component.
     Detection is done by testing the eventlog with the specified parameters.
-    Reset is performed by reseting the windows update component to its initial state.
-    The specified eventlog is backed up and cleared in order not to triger the detection again before the reset step.
+    Reset is performed by resetting the windows update component to its initial state.
+    The specified eventlog is backed up and cleared in order not to trigger the detection again before the reset step.
     The backup of the specified eventlog is stored in 'SystemRoot\Temp' folder.
     Defaults are configured for the ESENT '623' error.
 .PARAMETER Action
