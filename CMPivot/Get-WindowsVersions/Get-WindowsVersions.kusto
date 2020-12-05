@@ -1,0 +1,40 @@
+//.SYNOPSIS
+//    Summarizes Windows 10 versions.
+//.DESCRIPTION
+//    Summarizes Windows 10 versions and renders a barchart with the results.
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+OperatingSystem
+| where Caption like 'Microsoft Windows%'
+| project Caption, Version=case(
+    BuildNumber == '10240', '(1507)'
+    , BuildNumber == '10586', '(1511)'
+    , BuildNumber == '14393', '(1607)'
+    , BuildNumber == '15063', '(1703)'
+    , BuildNumber == '16299', '(1709)'
+    , BuildNumber == '17134', '(1803)'
+    , BuildNumber == '17763', '(1809)'
+    , BuildNumber == '18362', '(1903)'
+    , BuildNumber == '18363', '(1909)'
+    , BuildNumber == '19041', '(2004)'
+    , BuildNumber == '19042', '(20H2)'
+    , ''
+)
+| order by Version
+| summarize count() by substring( strcat(Caption, ' ', Version), 10 )
+| render barchart with (title='Windows Version Summarization', xtitle='Versions', ytitle='Number of Devices')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
