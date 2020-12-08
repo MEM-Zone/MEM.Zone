@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-    Runs a script in the MEMCM run script feature.
+    Invokes a script in the MEMCM run script feature.
 .DESCRIPTION
-    Runs a string input in the MEMCM run script feature b y converting it to a script block and using Invoke-Command.
+    Invokes a string input script in the MEMCM run script feature by converting it to a script block and using Invoke-Command.
 .PARAMETER Script
     Specifies the script to run.
 .EXAMPLE
-    Run-CMScript.ps1 -Script 'Get-BCStatus | Select-Object -Property BranchCacheIsEnabled, BranchCacheServiceStatus'
+    Invoke-CMScript.ps1 -Script 'Get-BCStatus | Select-Object -Property BranchCacheIsEnabled, BranchCacheServiceStatus'
 .INPUTS
     System.String.
 .OUTPUTS
