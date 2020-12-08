@@ -12,7 +12,7 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Clean-WindowsImage-CREDIT (@mikael_nystrom [Deplyment Bunny] - Original VB Script)
+    https://deploymentbunny.com (@mikael_nystrom [Deplyment Bunny] - Original VB Script)
 .LINK
     https://MEM.Zone/Clean-WindowsImage
 .LINK
