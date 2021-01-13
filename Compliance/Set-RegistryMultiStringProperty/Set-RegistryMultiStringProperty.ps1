@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-    Sets a registry MultiString value if it is not detcted.
+    Sets a registry MultiString value if it is not detected.
 .DESCRIPTION
-    Sets a registry MultiString value to a specified value if it is not detcted.
+    Sets a registry MultiString value to a specified value if it is not detected.
 .PARAMETER Path
     Specifies the registry key path.
 .PARAMETER Name
@@ -14,11 +14,11 @@
     '"1"="[*.]somedomain.dk"'
     '"2"="[*.]somedomain.com"'
     )
-    Detect-RegistryMultiStringProperty -Path 'HKLM:\\SOFTWARE\Policies\Microsoft\Edge' -Name 'LegacySameSiteCookieBehaviorEnabledForDomainList' -Value $Value
+    Set-RegistryMultiStringProperty -Path 'HKLM:\\SOFTWARE\Policies\Microsoft\Edge' -Name 'LegacySameSiteCookieBehaviorEnabledForDomainList' -Value $Value
 .INPUTS
     System.String.
 .OUTPUTS
-    System.String. Retunrs 'Compliant' or 'NonCompliant'
+    System.String. Returns 'Compliant' or 'NonCompliant'
 .NOTES
     Created by Ioan Popovici
 .LINK
