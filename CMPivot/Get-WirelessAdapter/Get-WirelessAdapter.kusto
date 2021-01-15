@@ -1,0 +1,30 @@
+//.SYNOPSIS
+//    Gets the Wireless Adapter.
+//.DESCRIPTION
+//    Gets the Wireless Adapter physical information.
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+File('%WinDir%\\system32\\drivers\\*')
+| project Device, FileName, Version, LastWriteTime, MD5Hash
+| join SystemDrivers
+| where Caption like '%Wireless Adapter%' and PathName == FileName
+| project Device, Name, FileName, Version, LastWriteTime, MD5Hash
+| join NetworkAdapter
+| where ServiceName == Name
+| project Device, ProductName, AdapterType, MACAddress, Installed, Manufacturer, FileName, Version, LastWriteTime, MD5Hash
+| order by ProductName, AdapterType, Version, LastWriteTime
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
