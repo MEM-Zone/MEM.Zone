@@ -1,7 +1,7 @@
 //.SYNOPSIS
 //    Summarizes devices with corrupted local policy.
 //.DESCRIPTION
-//    Summarizes devices with corrupted local policy and renders a barchart with the results.
+//    Summarizes devices with corrupted local group policy and renders a barchart with the results.
 //.NOTES
 //    Created by Ioan Popovici.
 //    v1.0.0
@@ -22,7 +22,7 @@ WinEvent('System', 1d)
 | where ID != 1096
 | join OS
 | summarize count() by substring( strcat(Caption, ' ', Version), 10 )
-| render barchart with (title='Local Policy Corrupt', xtitle='OS', ytitle='Number of Devices')
+| render barchart with (title='Local Group Policy Corrupt', xtitle='OS', ytitle='Number of Devices')
 
 //#endregion
 //*=============================================

@@ -1,7 +1,7 @@
 //.SYNOPSIS
-//    Summarizes device lockout timeout.
+//    Summarizes inactivity lockout timeout.
 //.DESCRIPTION
-//    Summarizes device lockout timeout in seconds and renders a barchart with the results.
+//    Summarizes inactivity lockout timeout in seconds and renders a barchart with the results.
 //.NOTES
 //    Created by Ioan Popovici.
 //    v1.0.0
@@ -21,7 +21,7 @@ Registry('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System'
 | where Property == 'InactivityTimeoutSecs'
 | order by Value
 | summarize count() by Seconds=Value
-| render barchart with (title='Lockout Time Summarization', xtitle='Seconds', ytitle='Number of Devices')
+| render barchart with (title='Inactivity Lockout Timeout Summarization', xtitle='Seconds', ytitle='Number of Devices')
 
 //#endregion
 //*=============================================

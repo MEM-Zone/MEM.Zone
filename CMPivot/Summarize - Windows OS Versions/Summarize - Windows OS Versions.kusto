@@ -35,7 +35,7 @@ OperatingSystem
 )
 | order by Version
 | summarize count() by substring( strcat(OSName, ' ', Version), 10 )
-| render barchart with (title='Windows Version Summarization', xtitle='Versions', ytitle='Number of Devices')
+| render barchart with (title='Windows OS Version Summarization', xtitle='Versions', ytitle='Number of Devices')
 
 //#endregion
 //*=============================================
