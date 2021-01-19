@@ -2,6 +2,9 @@
 //    Summarizes Windows 10 versions.
 //.DESCRIPTION
 //    Summarizes Windows 10 versions and renders a barchart with the results.
+//.NOTES
+//    Created by Ioan Popovici.
+//    v1.0.0
 //.LINK
 //    https://MEM.Zone/
 //.LINK
@@ -16,7 +19,7 @@
 
 OperatingSystem
 | where Caption like 'Microsoft Windows%'
-| project Caption, Version=case(
+| project OSName=Caption, Version=case(
     BuildNumber == '10240', '(1507)'
     , BuildNumber == '10586', '(1511)'
     , BuildNumber == '14393', '(1607)'
@@ -31,7 +34,7 @@ OperatingSystem
     , ''
 )
 | order by Version
-| summarize count() by substring( strcat(Caption, ' ', Version), 10 )
+| summarize count() by substring( strcat(OSName, ' ', Version), 10 )
 | render barchart with (title='Windows Version Summarization', xtitle='Versions', ytitle='Number of Devices')
 
 //#endregion

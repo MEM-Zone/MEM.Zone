@@ -20,7 +20,7 @@
 Registry('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System')
 | where Property == 'InactivityTimeoutSecs'
 | order by Value
-| summarize count() by Seconds = Value
+| summarize count() by Seconds=Value
 | render barchart with (title='Lockout Time Summarization', xtitle='Seconds', ytitle='Number of Devices')
 
 //#endregion

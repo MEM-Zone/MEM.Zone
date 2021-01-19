@@ -1,9 +1,10 @@
 //.SYNOPSIS
-//    Gets the Wireless Adapter.
+//    Gets the wireless adapter information.
 //.DESCRIPTION
-//    Gets the Wireless Adapter physical information.
+//    Gets the wireless adapter physical information.
 //.NOTES
-//    Created by Ioan Popovici
+//    Created by Ioan Popovici.
+//    v1.0.0
 //.LINK
 //    https://MEM.Zone/
 //.LINK

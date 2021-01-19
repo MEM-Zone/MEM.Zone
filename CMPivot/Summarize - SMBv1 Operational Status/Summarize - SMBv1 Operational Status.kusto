@@ -1,7 +1,7 @@
 //.SYNOPSIS
-//    Summarizes the SMBv1 installation status.
+//    Summarizes the SMBv1 status.
 //.DESCRIPTION
-//    Summarizes the SMBv1 installation status and renders a barchart with the results.
+//    Summarizes the SMBv1 protocol operational status and renders a barchart with the results.
 //.NOTES
 //    Created by Ioan Popovici.
 //    v1.0.0
@@ -18,9 +18,11 @@
 //#region ScriptBody
 
 OptionalFeature
-| where Name == 'smb1protocol'
-| summarize NumberOfDevices=count() by Enabled=iif( InstallState == 1, 'Installed', 'NotInstalled' )
-| render barchart with (title='SMBv1 Installation Status', xtitle='Status', ytitle='Number of Devices')
+| where Name == 'smb1protocol' and InstallState == 1
+| join SMBConfig
+| summarize Enabled=countif(EnableSMB1Protocol == true) by Device
+| summarize NumberOfDevices=count() by iif(Enabled==1, 'Enabled', 'Disabled')
+| render barchart with (title='SMBv1 Operational Status', xtitle='Status', ytitle='Number of Devices')
 
 //#endregion
 //*=============================================

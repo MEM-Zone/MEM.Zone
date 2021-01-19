@@ -22,7 +22,7 @@ EventLog('EventLogName', 5d)
 | where eventid == EventIDNumber
 | order by Device, DateTime desc
 | summarize dcount(Device) by Device
-| join (EventLog('EventLogName', 5d) | where  eventid == EventIDNumber | top 1 by DateTime)
+| join ( EventLog('EventLogName', 5d) | where  eventid == EventIDNumber | top 1 by DateTime )
 | project Device, DateTime, Message
 
 //#endregion
