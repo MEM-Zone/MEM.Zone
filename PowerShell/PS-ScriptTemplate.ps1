@@ -1,12 +1,12 @@
 <#
 .SYNOPSIS
-    --.
+    ShortDescription.
 .DESCRIPTION
-    --.
+    LongDescription.
 .PARAMETER
-    --.
+    ParameterName.
 .EXAMPLE
-    --.ps1
+    ApprovedVerb-WhatItDoes(Use Singular).ps1
 .INPUTS
     None.
 .OUTPUTS
