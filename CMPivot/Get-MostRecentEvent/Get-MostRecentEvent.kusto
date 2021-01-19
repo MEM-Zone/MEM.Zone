@@ -1,0 +1,31 @@
+//.SYNOPSIS
+//    Gets the most recent event.
+//.DESCRIPTION
+//    Gets the most recent event within the last 5 days from the EventLog.
+//.NOTES
+//    Created by Ioan Popovici
+//    v1.0.0
+//    Replace all 4 'EventLogName' and EventIDNumber entries with your desired values before running.
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+EventLog('EventLogName', 5d)
+| where eventid == EventIDNumber
+| order by Device, DateTime desc
+| summarize dcount(Device) by Device
+| join (EventLog('EventLogName', 5d) | where  eventid == EventIDNumber | top 1 by DateTime)
+| project Device, DateTime, Message
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
