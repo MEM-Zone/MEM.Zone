@@ -1,9 +1,10 @@
 //.SYNOPSIS
 //    Summarizes the SMBv1 installation status.
 //.DESCRIPTION
-//    Summarizes the SMBv1 installation status and returns 'Installed'/'NotInstalled'.
+//    Summarizes the SMBv1 installation status and renders a barchart with the results.
 //.NOTES
-//    Created by Ioan Popovici
+//    Created by Ioan Popovici.
+//    v1.0.0
 //.LINK
 //    https://MEM.Zone/
 //.LINK
