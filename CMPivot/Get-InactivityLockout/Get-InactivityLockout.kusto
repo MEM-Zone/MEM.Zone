@@ -1,0 +1,29 @@
+//.SYNOPSIS
+//    Summarizes device lockout timeout.
+//.DESCRIPTION
+//    Summarizes device lockout timeout in seconds and renders a barchart with the results.
+//.NOTES
+//    Created by Ioan Popovici.
+//    v1.0.0
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+Registry('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System')
+| where Property == 'InactivityTimeoutSecs'
+| order by Value
+| summarize count() by Seconds = Value
+| render barchart with (title='Lockout Time Summarization', xtitle='Seconds', ytitle='Number of Devices')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
