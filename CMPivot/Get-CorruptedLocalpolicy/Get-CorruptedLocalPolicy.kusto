@@ -1,0 +1,30 @@
+//.SYNOPSIS
+//    Summarizes devices with corrupted local policy.
+//.DESCRIPTION
+//    Summarizes devices with corrupted local policy and renders a barchart with the results.
+//.NOTES
+//    Created by Ioan Popovici.
+//    v1.0.0
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+WinEvent('System', 1d)
+| summarize dcount(Device) by ID, Device
+| where ID != 1096
+| join OS
+| summarize count() by substring( strcat(Caption, ' ', Version), 10 )
+| render barchart with (title='Local Policy Corrupt', xtitle='OS', ytitle='Number of Devices')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
