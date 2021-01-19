@@ -1,0 +1,27 @@
+//.SYNOPSIS
+//    Summarizes the SMBv1 installation status.
+//.DESCRIPTION
+//    Summarizes the SMBv1 installation status and returns 'Installed'/'NotInstalled'.
+//.NOTES
+//    Created by Ioan Popovici
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+OptionalFeature
+| where Name == 'smb1protocol'
+| summarize NumberOfDevices=count() by Enabled=iif( InstallState == 1, 'Installed', 'NotInstalled' )
+| render barchart with (title='SMBv1 Installation Status', xtitle='Status', ytitle='Number of Devices')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
