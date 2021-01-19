@@ -1,10 +1,11 @@
 //.SYNOPSIS
 //    Summarizes the SMBv1 configuration status.
 //.DESCRIPTION
-//    Summarizes the SMBv1 configuration status and returns 'Enabled'/'Disabled'.
+//    Summarizes the SMBv1 configuration status and renders a barchart with the results.
 //.NOTES
 //    Created by Ioan Popovici.
 //    Credit to @0daydorpher, original script.
+//    v1.0.0
 //.LINK
 //    https://MEM.Zone/
 //.LINK
