@@ -14,13 +14,16 @@
 .INPUTS
     None.
 .OUTPUTS
-    None.
+    System.Array
 .NOTES
     Created by Ioan Popovici
+    This script can be called directly.
 .LINK
-    https://MEM.Zone
+    https://MEM.Zone/Get-AzStorageContent
 .LINK
-    https://MEM.Zone/GIT
+    https://MEM.Zone/Get-AzStorageContent-CHANGELOG
+.LINK
+    https://MEM.Zone/Get-AzStorageContent-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -39,15 +42,15 @@
 
 ## Get script parameters
 Param (
-    [Parameter(Mandatory=$false,HelpMessage="Share URL:",Position=0)]
+    [Parameter(Mandatory=$true,HelpMessage="Share URL:",Position=0)]
     [ValidateNotNullorEmpty()]
     [Alias('Location')]
     [string]$Url,
-    [Parameter(Mandatory=$false,HelpMessage="Share SAS Token:",Position=1)]
+    [Parameter(Mandatory=$true,HelpMessage="Share SAS Token:",Position=1)]
     [ValidateNotNullorEmpty()]
     [Alias('Sas')]
     [string]$SasToken,
-    [Parameter(Mandatory=$false,HelpMessage="Local Download Path:",Position=2)]
+    [Parameter(Mandatory=$true,HelpMessage="Local Download Path:",Position=2)]
     [ValidateNotNullorEmpty()]
     [Alias('Destination')]
     [string]$Path
@@ -79,7 +82,7 @@ Function Get-AzureStorageFile {
 .INPUTS
     None.
 .OUTPUTS
-    None.
+    System.Array.
 .NOTES
     This is an internal script function and should typically not be called directly.
     Credit to Roger Zander
@@ -184,7 +187,7 @@ Function Get-AzureStorageFileContent {
 .INPUTS
     None.
 .OUTPUTS
-    None.
+    System.Array.
 .NOTES
     This is an internal script function and should typically not be called directly.
     Credit to Roger Zander
@@ -197,7 +200,7 @@ Function Get-AzureStorageFileContent {
 ..COMPONENT
     Azure File Storage Rest API
 .FUNCTIONALITY
-    List Items
+    Copies to local storage
 #>
     [CmdletBinding()]
     Param (
@@ -222,25 +225,35 @@ Function Get-AzureStorageFileContent {
     Process {
         Try {
 
-            ## Get file list
+            ## Get azure file list
             $AzureFileList = Get-AzureStorageFile -Url $Url -Sas $SasToken
+
+            ## Get local file list
+            $LocalFileList = Get-ChildItem -Path $Path -File | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($_.Length / 1KB)}}
 
             ## Create destination folder
             New-Item -Path $Path -ItemType 'Directory' -ErrorAction 'SilentlyContinue' | Out-Null
 
             ## Process files one by one
             $CopiedFileList = ForEach ($File in $AzureFileList) {
-                #  Assemble Destination and URI
+
+                ## If the file is already present and the same size, set the 'Skip' flag.
+                [psobject]$LocalFileLookup = $LocalFileList | Where-Object { $_.Name -eq $File.Name -and $_.'Size(KB)' -eq $File.'Size(KB)' | Select-Object -Property 'Name' }
+                [boolean]$SkipFile = [boolean](-not [string]::IsNullOrEmpty($LocalFileLookup))
+
+                ## Assemble Destination and URI
                 [string]$Destination = Join-Path -Path $Path -ChildPath $File.Name
                 [string]$Uri = '{0}?{1}' -f ($File.Url, $SasToken)
-                #  Tansfer file using BITS
-                Start-BitsTransfer -Source $uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url
-                #  Build output object
+
+                ## Tansfer file using BITS
+                If (-not $SkipFile) { Start-BitsTransfer -Source $uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url }
+
+                ##  Build output object
                 [pscustomobject]@{
                     'Name'      = $File.Name
-                    'Size(KB)'  = '{0:N2}' -f ($File.Properties.'Content-Length' / 1KB)
+                    'Size(KB)'  = '{0:N2}' -f ($File.'Size(KB)')
                     'Url'       = '{0}/{1}' -f ($Url, $File.Name)
-                    'Operation' = If (-not $ErrorMessage) { 'Successful' } Else { $ErrorMessage }
+                    'Operation' = If ($ErrorMessage) { $ErrorMessage } ElseIf ($SkipFile) { 'Skipped'} Else { 'Successful' }
                 }
             }
         }
