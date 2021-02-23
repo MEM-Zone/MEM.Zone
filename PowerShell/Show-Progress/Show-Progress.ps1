@@ -28,6 +28,9 @@ Function Show-Progress {
 .OUTPUTS
     None.
 .NOTES
+    Created by Ioan Popovici.
+    v1.0.0 - 2021.01.01
+
     This is an private function should tipically not be called directly.
     Credit to Adam Bertram.
 
