@@ -1,7 +1,7 @@
 //.SYNOPSIS
 //    Summarizes the PowerShellv2 installation status.
 //.DESCRIPTION
-//    SSummarizes the PowerShellv2 installation status and renders a barchart with the results.
+//    Summarizes the PowerShellv2 installation status and renders a barchart with the results.
 //.NOTES
 //    Created by Ioan Popovici.
 //    Credit to @0daydorpher, original script.
