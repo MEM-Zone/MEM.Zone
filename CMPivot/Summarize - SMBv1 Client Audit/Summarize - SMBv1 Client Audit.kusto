@@ -1,0 +1,28 @@
+//.SYNOPSIS
+//    Summarizes the SMBv1 Client audit.
+//.DESCRIPTION
+//    Summarizes the SMBv1 Client audit and renders a barchart with the results.
+//.NOTES
+//    Created by Ioan Popovici.
+//    v1.0.0
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+WinEvent('Microsoft-Windows-SmbClient/Audit', 30d)
+| where ID == 32002
+| summarize count() by Device
+| render barchart with (kind=stacked, title='SMB1 Events', ytitle='Events')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
