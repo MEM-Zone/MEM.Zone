@@ -28,17 +28,18 @@ Function Import-Win32IDesktopAPI {
     ## Wallpaper Command
     $Command = New-Object -TypeName 'MEMZone.WallpaperCommand'
 
-    $Command::SetWallpaper($DisplayIndex, $WallpaperPath, $WallpaperPosition)
     $Command::GetWallpaper($DisplayIndex)
+    $Command::GetBackgroundColor()
+    $Command::GetSlideshowStatus()
     $Command::GetWallpaperPosition()
+    $Command::SetWallpaper($DisplayIndex, $WallpaperPath, $WallpaperPosition)
     $Command::SetWallpaperPosition($WallpaperPosition)
     $Command::SetBackgroundColor(0)
-    $Command::GetBackgroundColor()
-    $Command::AdvanceSlideshow(0, $SlideshowDirection)
-    $Command::EnableWallpaper(0)
-    $Command::GetSlideshowStatus()
     $Command::SetSlideshowOptions('EnableShuffle', 600)
     $Command::SetSlideshowPath($WallpaperFolder)
+    $Command::AdvanceSlideshow(0, $SlideshowDirection)
+    $Command::EnableWallpaper(0)
+
 
     ## File System Command
     $Command = New-Object -TypeName 'MEMZone.FileSystemCommand'
