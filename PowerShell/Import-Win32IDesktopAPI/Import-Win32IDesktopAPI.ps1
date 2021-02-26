@@ -8,7 +8,6 @@ Function Import-Win32IDesktopAPI {
 .EXAMPLE
     Import-Win32IDesktopAPI
 .EXAMPLE
-
     [string]$SlideshowDirection = 'Forward'
     [string]$WallpaperPath = 'SomePath\SomeImage.jpg'
     [string]$WallpaperPosition = 'Stretch'
@@ -56,23 +55,23 @@ Function Import-Win32IDesktopAPI {
 
     This is an private function should tipically not be called directly.
 .LINK
+    https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-idesktopwallpaper
+.LINK
     https://gist.github.com/LGM-AdrianHum/5dd61cd64377e725393a6b5b62b1d431
 .LINK
     https://github.com/federico-paolillo/set-wallpaper
 .LINK
-    https://MEM.Zone/Import-Win32IDesktopInterface
+    https://MEM.Zone/Import-Win32IDesktopAPI
 .LINK
-    https://MEM.Zone/PS-Template-CHANGELOG
+    https://MEM.Zone/Import-Win32IDesktopAPI-CHANGELOG
 .LINK
-    https://MEM.Zone/PS-Template-GIT
+    https://MEM.Zone/Import-Win32IDesktopAPI-GIT
 .LINK
     https://MEM.Zone/Issues
-.LINK
-    https://docs.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-idesktopwallpaper
 .COMPONENT
     Win32 API
 .FUNCTIONALITY
-    Import API
+    Import IDesktop API
 #>
     [CmdletBinding()]
     Param ()
