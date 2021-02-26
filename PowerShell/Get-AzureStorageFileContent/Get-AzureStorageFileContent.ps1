@@ -182,6 +182,8 @@ Function Get-AzureStorageFileContent {
     Specifies the azure share SAS security token.
 .PARAMETER Path
     Specifies the destination path.
+.PARAMETER Force
+    Owerwrites the existing file even if it has the same name and size. I can't think why this would be needed but I added it anyway.
 .EXAMPLE
     Get-AzureStorageFile -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken' -Path 'D:\Temp'
 .INPUTS
@@ -189,6 +191,8 @@ Function Get-AzureStorageFileContent {
 .OUTPUTS
     System.Array.
 .NOTES
+    If the file is already present and has the same size, Operation will retun 'Skipped'.
+    If the file is already present and has the same size, but 'Force' parameter has been specified, Operation will retun 'Overwritten'.
     This is an internal script function and should typically not be called directly.
     Credit to Roger Zander
 .LINK
@@ -214,7 +218,9 @@ Function Get-AzureStorageFileContent {
         [string]$SasToken,
         [Parameter(Mandatory=$true,HelpMessage="Local Download Path:",Position=2)]
         [Alias('Destination')]
-        [string]$Path
+        [string]$Path,
+        [Alias('Overwrite')]
+        [switch]$Force
     )
 
     Begin {
@@ -229,7 +235,7 @@ Function Get-AzureStorageFileContent {
             $AzureFileList = Get-AzureStorageFile -Url $Url -Sas $SasToken
 
             ## Get local file list
-            $LocalFileList = Get-ChildItem -Path $Path -File | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($_.Length / 1KB)}}
+            $LocalFileList = Get-ChildItem -Path $Path -File -ErrorAction 'SilentlyContinue' | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($_.Length / 1KB)}}
 
             ## Create destination folder
             New-Item -Path $Path -ItemType 'Directory' -ErrorAction 'SilentlyContinue' | Out-Null
@@ -244,16 +250,23 @@ Function Get-AzureStorageFileContent {
                 ## Assemble Destination and URI
                 [string]$Destination = Join-Path -Path $Path -ChildPath $File.Name
                 [string]$Uri = '{0}?{1}' -f ($File.Url, $SasToken)
+                [boolean]$Overwite = $Force -and $SkipFile
 
                 ## Tansfer file using BITS
-                If (-not $SkipFile) { Start-BitsTransfer -Source $uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url }
+                If (-not $SkipFile -or $Force) { Start-BitsTransfer -Source $uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url }
 
                 ##  Build output object
                 [pscustomobject]@{
                     'Name'      = $File.Name
                     'Size(KB)'  = '{0:N2}' -f ($File.'Size(KB)')
                     'Url'       = '{0}/{1}' -f ($Url, $File.Name)
-                    'Operation' = If ($ErrorMessage) { $ErrorMessage } ElseIf ($SkipFile) { 'Skipped'} Else { 'Successful' }
+                    'Path'      = $Path
+                    'Operation' = Switch ($true) {
+                        $ErrorMessage { $ErrorMessage ; break }
+                        $Overwite     { 'Overwritten'; break }
+                        $SkipFile     { 'Skipped' ; break }
+                        Default       { 'Downloaded' }
+                    }
                 }
             }
         }
