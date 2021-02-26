@@ -238,7 +238,7 @@ Function Get-AzureStorageFileContent {
             $CopiedFileList = ForEach ($File in $AzureFileList) {
 
                 ## If the file is already present and the same size, set the 'Skip' flag.
-                [psobject]$LocalFileLookup = $LocalFileList | Where-Object { $_.Name -eq $File.Name -and $_.'Size(KB)' -eq $File.'Size(KB)' | Select-Object -Property 'Name' }
+                [psobject]$LocalFileLookup = $LocalFileList | Where-Object { $_.Name -eq $File.Name -and $_.'Size(KB)' -eq $File.'Size(KB)' } | Select-Object -Property 'Name'
                 [boolean]$SkipFile = [boolean](-not [string]::IsNullOrEmpty($LocalFileLookup))
 
                 ## Assemble Destination and URI
