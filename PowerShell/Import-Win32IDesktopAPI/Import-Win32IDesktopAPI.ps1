@@ -78,6 +78,9 @@ Function Import-Win32IDesktopAPI {
 
     Begin {
 
+        ##*=============================================
+        ##* VARIABLE DECLARATION
+        ##*=============================================
         #region VariableDeclaration
 
         [string[]]$ReferencedAssemblies = @('System.Windows.Forms','System.Drawing', 'System.Management', 'System.Management.Automation')
@@ -836,6 +839,9 @@ Function Import-Win32IDesktopAPI {
         }
 '@
         #endregion
+        ##*=============================================
+        ##* END FUNCTION LISTINGS
+        ##*=============================================
     }
     Process {
 
