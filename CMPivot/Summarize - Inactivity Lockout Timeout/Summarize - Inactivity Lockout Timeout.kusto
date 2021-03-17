@@ -4,7 +4,7 @@
 //    Summarizes inactivity lockout timeout in seconds and renders a barchart with the results.
 //.NOTES
 //    Created by Ioan Popovici.
-//    v1.0.0
+//    v1.1.0 - 2021-03-17
 //.LINK
 //    https://MEM.Zone/
 //.LINK
@@ -17,10 +17,11 @@
 //*=============================================
 //#region ScriptBody
 
-Registry('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System')
-| where Property == 'InactivityTimeoutSecs'
-| order by Value
-| summarize count() by Seconds=Value
+Registry('HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System') | where Property == 'InactivityTimeoutSecs'
+// Perform a full outer join to add devices where the registry key is not present
+| join kind=fullouter (OS | project Device)
+| summarize NumberOfDevices=count() by Seconds=iif(isnotnull(Value), Value, 'NotDetected')
+| order by Seconds
 | render barchart with (title='Inactivity Lockout Timeout Summarization', xtitle='Seconds', ytitle='Number of Devices')
 
 //#endregion
