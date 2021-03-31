@@ -42,15 +42,15 @@
 
 ## Get script parameters
 Param (
-    [Parameter(Mandatory=$true,HelpMessage="Share URL:",Position=0)]
+    [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
     [ValidateNotNullorEmpty()]
     [Alias('Location')]
     [string]$Url,
-    [Parameter(Mandatory=$true,HelpMessage="Share SAS Token:",Position=1)]
+    [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=1)]
     [ValidateNotNullorEmpty()]
     [Alias('Sas')]
     [string]$SasToken,
-    [Parameter(Mandatory=$true,HelpMessage="Local Download Path:",Position=2)]
+    [Parameter(Mandatory=$true,HelpMessage='Local Download Path:',Position=2)]
     [ValidateNotNullorEmpty()]
     [Alias('Destination')]
     [string]$Path
@@ -99,11 +99,11 @@ Function Get-AzureStorageFile {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage="Share URL:",Position=0)]
+        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$true,HelpMessage="Share SAS Token:",Position=1)]
+        [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=1)]
         [ValidateNotNullorEmpty()]
         [Alias('Sas')]
         [string]$SasToken
@@ -129,11 +129,11 @@ Function Get-AzureStorageFile {
                 [string]$Uri = '{0}?{1}' -f ($Url, $SasToken)
                 #  Invoke REST API
                 $File = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
-                #  Buitd the output object
+                #  Build the output object
                 $AzureFileList = [pscustomobject]@{
                     'Name'     = $FileName
                     'Size(KB)' = '{0:N2}' -f ($File.Headers.'Content-Length' / 1KB)
-                    'Url'      = '{0}/{1}' -f ($Url, $FileName)
+                    'Url'      = $Url
                 }
             }
 
@@ -142,7 +142,7 @@ Function Get-AzureStorageFile {
                 #  Build URI
                 [string]$Uri = '{0}/?{1}&{2}' -f ($Url, 'restype=directory&comp=list', $SasToken)
                 #  Invoke REST API
-                $Response = Invoke-RestMethod -Uri $Uri -Method 'Get'
+                $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
                 #  Cleanup response and convert to XML
                 $Xml = [xml]$Response.Substring($Response.IndexOf('<'))
                 #  Get the file objects
@@ -158,7 +158,7 @@ Function Get-AzureStorageFile {
             }
         }
         Catch {
-            Throw $_
+            $PSCmdlet.ThrowTerminatingError($PSItem)
         }
         Finally {
             Write-Output -InputObject $AzureFileList
@@ -183,7 +183,7 @@ Function Get-AzureStorageFileContent {
 .PARAMETER Path
     Specifies the destination path.
 .PARAMETER Force
-    Owerwrites the existing file even if it has the same name and size. I can't think why this would be needed but I added it anyway.
+    Overwrites the existing file even if it has the same name and size. I can't think why this would be needed but I added it anyway.
 .EXAMPLE
     Get-AzureStorageFile -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken' -Path 'D:\Temp'
 .INPUTS
@@ -191,8 +191,8 @@ Function Get-AzureStorageFileContent {
 .OUTPUTS
     System.Array.
 .NOTES
-    If the file is already present and has the same size, Operation will retun 'Skipped'.
-    If the file is already present and has the same size, but 'Force' parameter has been specified, Operation will retun 'Overwritten'.
+    If the file is already present and has the same size, Operation will return 'Skipped'.
+    If the file is already present and has the same size, but 'Force' parameter has been specified, Operation will return 'Overwritten'.
     This is an internal script function and should typically not be called directly.
     Credit to Roger Zander
 .LINK
@@ -201,6 +201,8 @@ Function Get-AzureStorageFileContent {
     https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
+.LINK
+    https://MEM.Zone/ISSUES
 ..COMPONENT
     Azure File Storage Rest API
 .FUNCTIONALITY
@@ -208,15 +210,15 @@ Function Get-AzureStorageFileContent {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage="Share URL:",Position=0)]
+        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$true,HelpMessage="Share SAS Token:",Position=1)]
+        [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=1)]
         [ValidateNotNullorEmpty()]
         [Alias('Sas')]
         [string]$SasToken,
-        [Parameter(Mandatory=$true,HelpMessage="Local Download Path:",Position=2)]
+        [Parameter(Mandatory=$true,HelpMessage='Local Download Path:',Position=2)]
         [Alias('Destination')]
         [string]$Path,
         [Alias('Overwrite')]
@@ -253,26 +255,28 @@ Function Get-AzureStorageFileContent {
                 [boolean]$Overwite = $Force -and $SkipFile
 
                 ## Tansfer file using BITS
-                If (-not $SkipFile -or $Force) { Start-BitsTransfer -Source $uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url }
+                If (-not $SkipFile -or $Force) { Start-BitsTransfer -Source $uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url -ErrorAction 'Stop' }
 
-                ##  Build output object
+                ## Check if last operation was successful and set error message
+                [boolean]$ShowError = If ($?) { $false; $ErrorMessage = $null } else { $true; $ErrorMessage = -join ('Error: ', $Error[0].Exception.Message) };
+
+                ## Build output object
                 [pscustomobject]@{
                     'Name'      = $File.Name
                     'Size(KB)'  = '{0:N2}' -f ($File.'Size(KB)')
-                    'Url'       = '{0}/{1}' -f ($Url, $File.Name)
+                    'Url'       = $File.Url
                     'Path'      = $Path
                     'Operation' = Switch ($true) {
-                        $ErrorMessage { $ErrorMessage ; break }
-                        $Overwite     { 'Overwritten'; break }
-                        $SkipFile     { 'Skipped' ; break }
-                        Default       { 'Downloaded' }
+                        $ShowError { $ErrorMessage; break }
+                        $Overwite  { 'Overwritten'; break }
+                        $SkipFile  { 'Skipped' ; break }
+                        Default    { 'Downloaded' }
                     }
                 }
             }
         }
         Catch {
-            $ErrorMessage = (Get-Error).Message
-            Write-Error -Message $ErrorMessage
+            $PSCmdlet.ThrowTerminatingError($PSItem)
         }
         Finally {
             Write-Output -InputObject $CopiedFileList
