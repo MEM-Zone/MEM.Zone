@@ -28,18 +28,17 @@ Function Import-Win32IDesktopAPI {
     ## Wallpaper Command
     $Command = New-Object -TypeName 'MEMZone.WallpaperCommand'
 
-    $Command::GetWallpaper($DisplayIndex)
-    $Command::GetBackgroundColor()
-    $Command::GetSlideshowStatus()
-    $Command::GetWallpaperPosition()
     $Command::SetWallpaper($DisplayIndex, $WallpaperPath, $WallpaperPosition)
+    $Command::GetWallpaper($DisplayIndex)
+    $Command::GetWallpaperPosition()
     $Command::SetWallpaperPosition($WallpaperPosition)
     $Command::SetBackgroundColor(0)
-    $Command::SetSlideshowOptions('EnableShuffle', 600)
-    $Command::SetSlideshowPath($WallpaperFolder)
+    $Command::GetBackgroundColor()
     $Command::AdvanceSlideshow(0, $SlideshowDirection)
     $Command::EnableWallpaper(0)
-
+    $Command::GetSlideshowStatus()
+    $Command::SetSlideshowOptions('EnableShuffle', 600)
+    $Command::SetSlideshowPath($WallpaperFolder)
 
     ## File System Command
     $Command = New-Object -TypeName 'MEMZone.FileSystemCommand'
@@ -79,11 +78,7 @@ Function Import-Win32IDesktopAPI {
 
     Begin {
 
-        ##*=============================================
-        ##* VARIABLE DECLARATION
-        ##*=============================================
         #region VariableDeclaration
-
         [string[]]$ReferencedAssemblies = @('System.Windows.Forms','System.Drawing', 'System.Management', 'System.Management.Automation')
         [string]$TypeDefinition =
 @'
@@ -92,6 +87,7 @@ Function Import-Win32IDesktopAPI {
         using System.IO;
         using System.Text;
         using System.Drawing;
+        using System.Globalization;
         using System.Windows.Forms;
         using System.Runtime.InteropServices;
         using System.Management;
@@ -374,7 +370,7 @@ Function Import-Win32IDesktopAPI {
 
                     // Get number of monitors
                     monitorsCount = desktopWallpaper.GetMonitorDevicePathCount();
-                    Console.WriteLine("Found {0} monitors.", monitorsCount);
+                    // Console.WriteLine("Found {0} monitors.", monitorsCount);
 
                     // Query all monitors if no monitor index is provided
                     if (monitorIndex == 99) {
@@ -521,7 +517,7 @@ Function Import-Win32IDesktopAPI {
 
                         // Get number of monitors
                         monitorsCount = MonitorCommand.GetMonitorCount();
-                        Console.WriteLine("Found {0} monitors.", monitorsCount);
+                        // Console.WriteLine("Found {0} monitors.", monitorsCount);
 
                         // Cycle trough all monitors and get monitor info
                         foreach (Screen screen in Screen.AllScreens) {
@@ -529,7 +525,7 @@ Function Import-Win32IDesktopAPI {
                             // Get monitor ID
                             string monitorID = MonitorCommand.GetMonitorID(monitorIndex);
 
-                            // Get wallapaper path
+                            // Get wallpaper path
                             string wallpaperPath = desktopWallpaper.GetWallpaper(monitorID);
 
                             // Get wallpaper position
@@ -553,7 +549,7 @@ Function Import-Win32IDesktopAPI {
                         // Get monitor ID
                         string monitorID = MonitorCommand.GetMonitorID(monitorIndex);
 
-                        // Get wallapaper path
+                        // Get wallpaper path
                         string wallpaperPath = desktopWallpaper.GetWallpaper(monitorID);
 
                         // Get wallpaper position
@@ -605,13 +601,13 @@ Function Import-Win32IDesktopAPI {
                     desktopWallpaper = (IDesktopWallpaper) new DesktopWallpaper();
 
                     // Get background color
-                    uint backgroundCollor = desktopWallpaper.GetBackgroundColor();
+                    uint backgroundColor = desktopWallpaper.GetBackgroundColor();
 
                     // Release COM object
                     Marshal.ReleaseComObject(desktopWallpaper);
 
-                    // Write backgroundCollor value
-                    return backgroundCollor;
+                    // Write backgroundColor value
+                    return backgroundColor;
                 }
 
                 // <summary>
@@ -655,7 +651,7 @@ Function Import-Win32IDesktopAPI {
                     Marshal.ReleaseComObject(desktopWallpaper);
 
                     // Write info to console
-                    Console.WriteLine("MonitorIndex: {0}\nMonitorID: {1}\nWallpaperPath: {2}", monitorIndex, monitorID, wallpaperPath);
+                    // Console.WriteLine("MonitorIndex: {0}\nMonitorID: {1}\nWallpaperPath: {2}", monitorIndex, monitorID, wallpaperPath);
 
                     // Return hResult
                     return hResult;
@@ -669,8 +665,11 @@ Function Import-Win32IDesktopAPI {
                     // Assign variables
                     IDesktopWallpaper desktopWallpaper = null;
                     desktopWallpaper = (IDesktopWallpaper) new DesktopWallpaper();
+                    TextInfo txtInfo = new CultureInfo("en-us", false).TextInfo;
                     HRESULT hResult;
 
+                    // Convert position to titlecase
+                    wallpaperPosition = txtInfo.ToTitleCase(wallpaperPosition);
 
                     // Get wallpaper position enum number value
                     WallpaperPosition wallpaperPositionValue = (WallpaperPosition)Enum.Parse(typeof(WallpaperPosition), wallpaperPosition);
@@ -682,7 +681,7 @@ Function Import-Win32IDesktopAPI {
                     Marshal.ReleaseComObject(desktopWallpaper);
 
                     // Write info to console
-                    Console.WriteLine("Position: {0}", wallpaperPositionValue);
+                    // Console.WriteLine("Position: {0}", wallpaperPositionValue);
 
                     // Return hResult
                     return hResult;
@@ -806,7 +805,7 @@ Function Import-Win32IDesktopAPI {
                     // Create shell item object
                     hResult = FileSystemCommand.SHCreateItemFromParsingName(path, IntPtr.Zero, typeof(IShellItem).GUID, out pShellItem);
 
-                    // Create shell item objectarray
+                    // Create shell item object array
                     hResult = FileSystemCommand.SHCreateShellItemArrayFromShellItem(pShellItem, typeof(IShellItemArray).GUID, out pShellItemArray);
 
                     // Set slideshow folder
@@ -840,22 +839,20 @@ Function Import-Win32IDesktopAPI {
         }
 '@
         #endregion
-        ##*=============================================
-        ##* END FUNCTION LISTINGS
-        ##*=============================================
     }
     Process {
-
         Try {
             $Win32API = Add-Type -TypeDefinition $TypeDefinition -ReferencedAssemblies $ReferencedAssemblies -ErrorAction 'Stop'
-            Write-Verbose -Message 'Succesfully imported in32 IDesktop API.'
+            Write-Verbose -Message 'Successfully imported Win32 IDesktop API.'
         }
         Catch {
-            Throw (New-Object System.Exception("Could not import Win32 IDesktop API! $($_.Exception.Message)", $_.Exception))
+            $PSCmdlet.ThrowTerminatingError($PSItem)
         }
         Finally {
             Write-Output -InputObject $Win32API
         }
+    }
+    End {
     }
 }
 #endregion
