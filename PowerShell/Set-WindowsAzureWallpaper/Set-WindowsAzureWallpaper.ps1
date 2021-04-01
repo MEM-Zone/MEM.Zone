@@ -17,7 +17,7 @@
     Overwrite the existing wallpaper even if it is already assigned.
 .EXAMPLE
     [hashtable]$Parameters = @{
-        Path = Join-Path -Path $env:APPDATA -ChildPath 'SomeCompany\Wallpapers'
+        Path = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
         DefaultWallpaper = 'img0_1920x1200.jpg'
         Url = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
         SasToken = ''?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
@@ -32,6 +32,7 @@
 .NOTES
     Created by Ioan Popovici
     If you have MEMCM you can run the SQL query linked below (Set-WindowsAzureWallpaper-SQL) in order to get the most common resolutions used in your environment.
+    You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
     https://MEM.Zone/Set-WindowsAzureWallpaper
 .LINK
@@ -56,7 +57,8 @@
 ##*=============================================
 #region VariableDeclaration
 
-## Get script parameters
+## !! Comment the reqion below if using in-script parameter values. You can set the parameters in the SCRIPT BODY region at the end of the script !!
+#region ScriptParameters
 Param (
     [Parameter(Mandatory=$true,HelpMessage='Destination Path:',Position=0)]
     [ValidateNotNullorEmpty()]
@@ -80,10 +82,7 @@ Param (
     [Alias('Overwrite')]
     [switch]$Force
 )
-
-## Default Wallpaper paths
-[string]$DefaultWallpaperUrl = -join ($Url, '/', $DefaultWallpaper)
-[string]$DefaultWallpaperPath = Join-Path -Path $Path -ChildPath $DefaultWallpaper
+#endregion
 
 #endregion
 ##*=============================================
@@ -1275,7 +1274,7 @@ Function Import-Win32IDesktopAPI {
 }
 #endregion
 
-#region Function Set-WindowsWallpaper
+#region Function Set-WindowsAzureWallpaper
 Function Set-WindowsAzureWallpaper {
 <#
 SYNOPSIS
@@ -1296,7 +1295,7 @@ SYNOPSIS
     Overwrites the existing wallpaper even if it is already assigned.
 .EXAMPLE
     [hashtable]$Parameters = @{
-        Path = Join-Path -Path $env:APPDATA -ChildPath 'SomeCompany\Wallpapers'
+        Path = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
         DefaultWallpaper = 'img0_1920x1200.jpg'
         Url = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
         SasToken = '?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
@@ -1441,7 +1440,9 @@ SYNOPSIS
 #region ScriptBody
 
 Try {
-    ## Set parameters
+
+    ## Set parameters according to script parameters.
+    ## !! Add parameters values here if using in-script parameters. Don't forget to comment the script parameter section !!
     [hashtable]$Parameters = @{
         Path = $Path
         DefaultWallpaper = $DefaultWallpaper
@@ -1451,11 +1452,15 @@ Try {
         Force = $Force
     }
 
-    ## Set wallpaper with declared parameters
+    ## Declare default wallpaper paths
+    [string]$DefaultWallpaperUrl = -join ($Url, '/', $DefaultWallpaper)
+    [string]$DefaultWallpaperPath = Join-Path -Path $Path -ChildPath $DefaultWallpaper
+
+    ## Run Set-WindowsAzureWallpaper with declared parameters
     Set-WindowsAzureWallpaper @Parameters
 }
 Catch {
-    $PSCmdlet.ThrowTerminatingError($PSItem)
+    Throw $PSItem
 }
 
 #endregion
