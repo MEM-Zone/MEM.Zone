@@ -1453,8 +1453,9 @@ Try {
     }
 
     ## Declare default wallpaper paths
-    [string]$DefaultWallpaperUrl = -join ($Url, '/', $DefaultWallpaper)
-    [string]$DefaultWallpaperPath = Join-Path -Path $Path -ChildPath $DefaultWallpaper
+    [string]$DefaultWallpaperUrl = -join ($Parameters.Url, '/', $Parameters.DefaultWallpaper)
+    [string]$DefaultWallpaperPath = Join-Path -Path $Parameters.Path -ChildPath $Parameters.DefaultWallpaper
+
 
     ## Run Set-WindowsAzureWallpaper with declared parameters
     Set-WindowsAzureWallpaper @Parameters
