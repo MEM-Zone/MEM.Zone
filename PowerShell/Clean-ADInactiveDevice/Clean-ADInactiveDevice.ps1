@@ -83,22 +83,21 @@ Param (
 )
 
 ## Get script path and name
-[string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
-[string]$ScriptName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Definition)
-[string]$ScriptFullName = Join-Path -Path $ScriptPath -ChildPath $ScriptName
+[string]$ScriptName     = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
+[string]$ScriptFullName = [System.IO.Path]::GetFullPath($MyInvocation.MyCommand.Definition)
 
 ## Set script global variables
-$script:LoggingOptions = @('Host', 'File', 'EventLog')
-$script:LogName = 'Active Directory Scripts'
-$script:LogSource = $ScriptName
+$script:LoggingOptions   = @('Host', 'File', 'EventLog')
+$script:LogName          = 'Active Directory Scripts'
+$script:LogSource        = $ScriptName
 $script:LogDebugMessages = $false
 
 ## Get Show-Progress steps
 $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Command' -and $_.Content -eq 'Show-Progress' }).Count)
-$ForEachSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Keyword' -and $_.Content -eq 'ForEach' }).Count)
+$ForEachSteps  = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Keyword' -and $_.Content -eq 'ForEach' }).Count)
 ## Set Show-Progress steps
 $Script:Steps = $ProgressSteps - $ForEachSteps
-$Script:Step = 0
+$Script:Step  = 0
 
 #endregion
 ##*=============================================
@@ -328,7 +327,7 @@ Function Write-Log {
                 }
                 Try {
                     #  Write to event log
-                    Write-EventLog -LogName $LogName -Source $Source -EventId $EventID -EntryType $EventType -Category '0' -Message $ConsoleLogLine -ErrorAction 'Stop'
+                    Write-EventLog -LogName $LogName -Source $Source -EventId $EventID -EntryType $EventType -Category '0' -Message $EventLogLine -ErrorAction 'Stop'
                 }
                 Catch {
                     [boolean]$ExitLoggingFunction = $true
@@ -371,6 +370,7 @@ Function Write-Log {
             ## If the message is not $null or empty, create the log entry for the different logging methods
             [string]$CMTraceMsg = ''
             [string]$ConsoleLogLine = ''
+            [string]$EventLogLine = ''
             [string]$LegacyTextLogLine = ''
             If ($Msg) {
                 #  Create the CMTrace log message
@@ -380,6 +380,7 @@ Function Write-Log {
                 [string]$LegacyMsg = "[$LogDate $LogTime]"
                 If ($ScriptSectionDefined) { [string]$LegacyMsg += " [$ScriptSection]" }
                 If ($Source) {
+                    [string]$EventLogLine = $Msg
                     [string]$ConsoleLogLine = "$LegacyMsg [$Source] :: $Msg"
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [$Source] [Error] :: $Msg" }
@@ -389,6 +390,7 @@ Function Write-Log {
                 }
                 Else {
                     [string]$ConsoleLogLine = "$LegacyMsg :: $Msg"
+                    [string]$EventLogLine = $Msg
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [Error] :: $Msg" }
                         2 { [string]$LegacyTextLogLine = "$LegacyMsg [Warning] :: $Msg" }
@@ -683,7 +685,7 @@ Try {
 
     ## Process inactive devices
     ForEach ($InactiveDevice in $InactiveDevices) {
-        $Identity = $InactiveDevice.DistinguishedNam
+        $Identity = $InactiveDevice.DistinguishedName
 
         ## Check if the 'ListOnly' switch was specified
         If ($ListOnly) { Add-Member -InputObject $InactiveDevice -NotePropertyName 'Operation' -NotePropertyValue 'ListOnly' }
@@ -715,14 +717,17 @@ Try {
         }
     }
 
+
     ## Convert result to CSV
-    If ($InactiveDevices) { $InactiveDevicesCSV = ConvertTo-Csv -InputObject $InactiveDevices -Delimiter ';' -NoTypeInformation | Out-String }
+    If ($InactiveDevices) { $InactiveDevicesCSV = "`n$($InactiveDevices | ConvertTo-Csv -NoTypeInformation | Out-String)" }
     Else { $InactiveDevices = "No devices with an inactivity threshold larger than $DaysInactive days found!" }
 }
 Catch {
     Write-Error -Message $_.Exception
 }
 Finally {
+
+    ## Write to log
     Write-Log -Message $InactiveDevicesCSV -LogType 'Legacy'
 
     ## Show progress
