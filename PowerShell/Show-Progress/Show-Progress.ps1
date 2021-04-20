@@ -12,7 +12,7 @@ Function Show-Progress {
 .PARAMETER CurrentOperation
     Specifies the current operation.
 .PARAMETER Step
-    Specifies the progress step. Default: $Global:Step ++.
+    Specifies the progress step. Default: $Script:Step ++.
 .PARAMETER ID
     Specifies the progress bar id.
 .PARAMETER Delay
