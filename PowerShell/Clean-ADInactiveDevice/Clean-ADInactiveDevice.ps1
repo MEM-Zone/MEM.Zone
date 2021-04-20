@@ -29,7 +29,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone
+    https://MEM.Zone/Clean-ADInactiveDevice
+.LINK
+    https://MEM.Zone/Clean-ADInactiveDevice/CHANGELOG
+.LINK
+    https://MEM.Zone/Clean-ADInactiveDevice/GIT
 .LINK
     https://MEM.Zone/Issues
 .COMPONENT
