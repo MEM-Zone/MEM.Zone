@@ -1,5 +1,9 @@
 # Get-AzureStorageFileContent release history
 
+## 1.0.4 - 2021-07-01
+
+    * Added get file content support
+
 ## 1.0.3 - 2021-03-31
 
     * Fix `Url` duplicate bug
