@@ -1,0 +1,34 @@
+//.SYNOPSIS
+//    Summarizes the software update compliance.
+//.DESCRIPTION
+//    Summarizes the software update compliance status and renders a barchart with the results.
+//.NOTES
+//    Created by Ioan Popovici.
+//    v1.0.0, 2021-04-21
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+SoftwareUpdate
+// You can use the KBArticleIDs or the Title. Pick one!
+// | where KBArticleIDs == 'KB5001406'
+// | where Title contains '2021-04'
+
+// Perform a full outer join to add devices where the registry key is not present
+| join kind=fullouter (OS | project Device)
+| summarize NumberOfDevices=count() by Status=iif(isnotnull(Title), 'NotInstalled', 'Installed')
+| order by Status
+| render barchart with (title='Software Update Compliance Summarization', xtitle='Status', ytitle='Number of Devices')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
