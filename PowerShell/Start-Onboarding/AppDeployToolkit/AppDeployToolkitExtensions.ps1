@@ -46,7 +46,7 @@ Function Get-AdsiComputer {
 .PARAMETER ComputerName
     Specifies the name(s) of the Computer(s) to query
 .PARAMETER SizeLimit
-    Specifies the number of objects to output. Default is 100.
+    Specifies the number of objects to output. Default is 100000.
 .PARAMETER DomainDN
     Specifies the path of the Domain to query.
     Examples:   "FX.LAB"
@@ -92,7 +92,7 @@ Function Get-AdsiComputer {
         [Alias('Computer')]
         [String[]]$ComputerName,
         [Alias('ResultLimit', 'Limit')]
-        [int]$SizeLimit='100',
+        [int]$SizeLimit='100000',
         [Parameter(ValueFromPipelineByPropertyName=$true)]
         [Alias('Domain')]
         [String]$DomainDN=$(([adsisearcher]"").Searchroot.path),
