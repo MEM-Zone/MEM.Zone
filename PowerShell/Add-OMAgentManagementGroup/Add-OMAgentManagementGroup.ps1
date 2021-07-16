@@ -106,16 +106,6 @@ Function  Add-OMAgentManagementGroup {
 .FUNCTIONALITY
     Adds Operations Manager management group
 #>
-
-## Set script requirements
-#Requires -Version 3.0
-
-##*=============================================
-##* VARIABLE DECLARATION
-##*=============================================
-#region VariableDeclaration
-
-## Get script parameters
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$false,HelpMessage='Management server',Position=0)]

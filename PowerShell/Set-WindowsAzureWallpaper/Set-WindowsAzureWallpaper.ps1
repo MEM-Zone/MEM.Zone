@@ -297,7 +297,7 @@ Function Get-AzureStorageFile {
 }
 #endregion
 
-#region Function Get-RestAzureStorageFileContent
+#region Function Get-AzureStorageFileContent
 Function Get-AzureStorageFileContent {
 <#
 .SYNOPSIS
