@@ -1,16 +1,18 @@
-#region Function Get-AzureStorageFile
-Function Get-AzureStorageFile {
+#region Function Get-AzureBlobStorageItem
+Function Get-AzureBlobStorageItem {
 <#
 .SYNOPSIS
-    Lists directories and files for a path.
+    Lists blobs for an azure blob storage path.
 .DESCRIPTION
-    Lists directories and files for a path storage using REST API.
+    Lists blobs for an azure blob storage path using REST API.
 .PARAMETER Url
     Specifies the azure share URL.
 .PARAMETER SasToken
     Specifies the azure share SAS token.
 .EXAMPLE
-    Get-AzureStorageFile -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -Sas 'SomeAccessToken'
+    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>' -Sas 'SomeAccessToken'
+.EXAMPLE
+    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>/<blob>' -Sas 'SomeAccessToken'
 .INPUTS
     None.
 .OUTPUTS
@@ -24,10 +26,10 @@ Function Get-AzureStorageFile {
     https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
-..COMPONENT
-    Azure File Storage Rest API
+.COMPONENT
+    Azure Blob Storage Rest API
 .FUNCTIONALITY
-    List Items
+    List Blob Items
 #>
     [CmdletBinding()]
     Param (
@@ -47,24 +49,24 @@ Function Get-AzureStorageFile {
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
         ## Set file name regex pattern
-        [regex]$RegexPattern = '[\w]+\.[A-Za-z0-9]{1,3}$'
+        [regex]$RegexPattern = '[\w]+\.[A-Za-z0-9]*$'
     }
     Process {
         Try {
 
-            ## Extract file name from the URL if it exist
-            $FileName = $($Url | Select-String -AllMatches -Pattern $RegexPattern | Select-Object -ExpandProperty 'Matches').Value
+            ## Extract blob name from the URL if it exist
+            $BlobName = $($Url | Select-String -AllMatches -Pattern $RegexPattern | Select-Object -ExpandProperty 'Matches').Value
 
-            ## If URL is a file, get the properties
-            If (-not [string]::IsNullOrEmpty($FileName)) {
+            ## If URL is a single blob, get the properties
+            If (-not [string]::IsNullOrEmpty($BlobName)) {
                 #  Build URI
                 [string]$Uri = '{0}?{1}' -f ($Url, $SasToken)
                 #  Invoke REST API
-                $File = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
+                $Blob = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
                 #  Build the output object
-                $AzureFileList = [pscustomobject]@{
-                    'Name'     = $FileName
-                    'Size(KB)' = '{0:N2}' -f ($File.Headers.'Content-Length' / 1KB)
+                $AzureBlobList = [pscustomobject]@{
+                    'Name'     = $BlobName
+                    'Size(KB)' = '{0:N2}' -f ($Blob.Headers.'Content-Length' / 1KB)
                     'Url'      = $Url
                 }
             }
@@ -72,19 +74,19 @@ Function Get-AzureStorageFile {
             ## Else list the directory content
             Else {
                 #  Build URI
-                [string]$Uri = '{0}/?{1}&{2}' -f ($Url, 'restype=directory&comp=list', $SasToken)
+                [string]$Uri = '{0}?{1}&{2}' -f ($Url, 'restype=container&comp=list', $SasToken)
                 #  Invoke REST API
                 $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
                 #  Cleanup response and convert to XML
                 $Xml = [xml]$Response.Substring($Response.IndexOf('<'))
                 #  Get the file objects
-                $Files = $Xml.ChildNodes.Entries.File
+                $Blobs = $Xml.ChildNodes.Blobs.Blob
                 #  Build the output object
-                $AzureFileList = ForEach ($File in $Files) {
+                $AzureBlobList = ForEach ($Blob in $Blobs) {
                     [pscustomobject]@{
-                        'Name'     = $File.Name
-                        'Size(KB)' = '{0:N2}' -f ($File.Properties.'Content-Length' / 1KB)
-                        'Url'      = '{0}/{1}' -f ($Url, $File.Name)
+                        'Name'     = $Blob.Name
+                        'Size(KB)' = '{0:N2}' -f ($Blob.Properties.'Content-Length' / 1KB)
+                        'Url'      = '{0}/{1}' -f ($Url, $Blob.Name)
                     }
                 }
             }
@@ -93,7 +95,7 @@ Function Get-AzureStorageFile {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
         Finally {
-            Write-Output -InputObject $AzureFileList
+            Write-Output -InputObject $AzureBlobList
         }
     }
     End {

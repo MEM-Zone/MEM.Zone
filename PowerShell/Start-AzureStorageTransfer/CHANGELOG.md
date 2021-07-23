@@ -1,4 +1,12 @@
-# Get-AzureStorageFileContent release history
+# Start-AzureStorageTransfer release history
+
+## 2.0.0 - 2021-07-23
+
+    * Renamed script to `Start-AzureStorageTransfer`
+    * Renamed functions for better verb compliance
+    * Added support for both azure blob and file storage
+    * Added support for listing the content of a blob or file
+    * Re-wrote and optimized some of the code
 
 ## 1.0.4 - 2021-07-01
 
