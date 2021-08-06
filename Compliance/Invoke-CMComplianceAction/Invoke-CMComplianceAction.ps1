@@ -123,7 +123,6 @@ Function Get-RegistryItem {
     )
 
     Begin {
-        $ErrorActionPreference = 'SilentlyContinue'
         [string]$Result = 'NotDetected'
     }
     Process {
@@ -134,14 +133,14 @@ Function Get-RegistryItem {
             If (-not $Name -and $PathExists) { $Result = 'Detected' }
 
             ## Get the registry property value
-            Else { $RegistryItem = Get-ItemProperty -Path $Path -Name $Name }
+            Else { $RegistryItem = Get-ItemProperty -Path $Path -Name $Name -ErrorAction 'SilentlyContinue' }
 
-            ## If $value was specified check if the specified value and registry values are the same
-            If ($Value -and $Value -eq $RegistryItem.$Name) { $Result = 'Detected' }
-
+            ## If value was specified check if it matches the registry value, else check if the reigistry item was found
+            If (-not [string]::IsNullOrWhiteSpace($Value) -and $Value -eq $RegistryItem.$Name) { $Result = 'Detected' }
+            ElseIf (-not [string]::IsNullOrWhiteSpace($RegistryItem)) { $Result = 'Detected' }
         }
         Catch {
-            Throw "Could not Get property [$Path][$Name]. $($_.Exception.Message)"
+            Throw "Could not Get property [$Path][$Name].`n$($_.Exception.Message)"
         }
         Finally {
             Write-Verbose -Message $Result
@@ -149,7 +148,6 @@ Function Get-RegistryItem {
         }
     }
     End {
-        $ErrorActionPreference = 'Continue'
     }
 }
 #endregion
@@ -206,23 +204,23 @@ Function Set-RegistryItem {
     )
 
     Begin {
-        $ErrorActionPreference = 'SilentlyContinue'
     }
     Process {
         Try {
 
             ## Create the key if it does not exist
-            If (-not (Test-Path -Path $Path)) { New-Item -$Path -Name $Name -Force }
+            If (-not (Test-Path -Path $Path)) { New-Item -Path $Path -Force -ErrorAction 'Stop' }
 
             ## Set the item property name and value
-            If ($Name) { Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force }
+            If ($Name) { Set-ItemProperty -Path $Path -Name $Name -Value $Value -Type $Type -Force -ErrorAction 'Stop' }
 
             ## Return Result
             $Result = 'Succesfully set registry item.'
 
         }
         Catch {
-            Throw "Could not set registry item [$Path][$Name][$Value][$Type]. $($_.Exception.Message)"
+            $Result = "Could not set registry item [$Path][$Name][$Value][$Type].`n$($_.Exception.Message)"
+            Throw $Result
         }
         Finally {
             Write-Verbose -Message $Result
@@ -230,7 +228,6 @@ Function Set-RegistryItem {
         }
     }
     End {
-        $ErrorActionPreference = 'Continue'
     }
 }
 #endregion
@@ -276,23 +273,23 @@ Function Remove-RegistryItem {
     )
 
     Begin {
-        $ErrorActionPreference = 'SilentlyContinue'
     }
     Process {
         Try {
 
-            ## Remove the key if it exists and not property name has been specified
-            If (-not $Name -and (Test-Path -Path $Path)) { Remove-Item -Path $Path -Force }
-
             ## Remove the item property
-            If ($Name) { Remove-ItemProperty -Path $Path -Name $Name -Force }
+            If ($Name) { Remove-ItemProperty -Path $Path -Name $Name -Force -ErrorAction 'SilentlyContinue' }
+
+            ## Remove the key if it exists and not property name has been specified
+            If (-not $Name -and (Test-Path -Path $Path)) { Remove-Item -Path $Path -Force -ErrorAction 'SilentlyContinue' }
 
             ## Return Result
             $Result = 'Succesfully removed registry item.'
 
         }
         Catch {
-            Throw "Could not remove registry item [$Path][$Name]. $($_.Exception.Message)"
+            $Result = "Could not remove registry item [$Path][$Name].`n$($_.Exception.Message)"
+            Throw $Result
         }
         Finally {
             Write-Verbose -Message $Result
@@ -300,7 +297,6 @@ Function Remove-RegistryItem {
         }
     }
     End {
-        $ErrorActionPreference = 'Continue'
     }
 }
 #endregion
@@ -374,10 +370,9 @@ Function Invoke-ComplianceAction {
     )
 
     Begin {
-        $ErrorActionPreference = 'SilentlyContinue'
-        If ([string]::IsNullOrEmpty($ComplianceRule)) { $ComplianceRule = 'Detected' }
-        If ([string]::IsNullOrEmpty($Provider)) { $Provider = 'Registry' }
-        If ([string]::IsNullOrEmpty($Type)) { $Type = 'DWord' }
+        If ([string]::IsNullOrWhiteSpace($ComplianceRule)) { $ComplianceRule = 'Detected' }
+        If ([string]::IsNullOrWhiteSpace($Provider)) { $Provider = 'Registry' }
+        If ([string]::IsNullOrWhiteSpace($Type)) { $Type = 'DWord' }
     }
     Process {
         Try {
@@ -413,6 +408,7 @@ Function Invoke-ComplianceAction {
             }
         }
         Catch {
+            Write-Verbose $($_.Exception.Message)
             Throw "Remediation failed. `n$($_.Exception.Message)"
         }
         Finally {
@@ -421,7 +417,6 @@ Function Invoke-ComplianceAction {
         }
     }
     End {
-        $ErrorActionPreference = 'Continue'
     }
 }
 #endregion
