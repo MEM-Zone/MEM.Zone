@@ -1,0 +1,29 @@
+//.SYNOPSIS
+//    Summarizes PowerShell versions.
+//.DESCRIPTION
+//    Summarizes PowerShell versions and renders a barchart with the results.
+//.NOTES
+//    Created by Ioan Popovici on 2021-08-09.
+//    v1.0.0
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+Registry('hklm:\SOFTWARE\Microsoft\Powershell\3\PowershellEngine')
+| where Property == 'PowerShellVersion'
+| summarize NumberOfDevices=count() by PowerShellVersion=substring(Value, 0, 3)
+| order by NumberOfDevices asc
+| render barchart with (title='Powershell Version Status', xtitle='Status', ytitle='Number of Devices')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
