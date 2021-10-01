@@ -802,16 +802,20 @@ $ComputerModel = Get-CimInstance -ClassName 'Win32_ComputerSystemProduct' | Wher
 ## Check for Compatible TPM
 [boolean]$CompatibleTpm = If ($TpmIsPresent -and $TpmIs20) { $true } ElseIf ($IsVirtual -and $TpmIsPresent) { $true } Else { $false }
 
-## Set result props
-$Result = [ordered]@{
+## Build result object
+$Result = [PScustomObject]@{
     'CompatibleTPM'       = $CompatibleTpm
     'CompatibleProcessor' = $CompatibleProcessor
     '64 Bit OS'           = [Environment]::Is64BitOperatingSystem
 }
 
-## Filter result
-If ($Result.Values -notContains $false) { $Result = 'Windows 11 Compatible' }
-Else { $Result = $Result.GetEnumerator() | Where-Object -Property 'Value' -eq $false  }
+## Return 'Compatible' if all checks have passed ($true) or Return only failed checks ($false) by removing all passed checks from the result object
+If ($Result.PSObject.Properties.Value -notContains $false) { $Result = 'Windows 11 Compatible' }
+Else {
+    ForEach ($Member in $Result.PsObject.Members) {
+        If ($Member.MemberType -eq 'NoteProperty' -and $Member.Value -eq $True) { $Result.PsObject.Members.Remove($Member.Name) }
+    }
+}
 
 ## Return result
 Write-Output -InputObject $Result
