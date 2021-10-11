@@ -871,7 +871,7 @@ Function Start-WindowsCleanup {
             [string]$StartWindowsCleanup = $null
 
             ## Get Machine Operating System
-            [string]$RegistryExPattern = '(Windows\ (?:7|8\.1|8|10|Server\ (?:2008\ R2|2012\ R2|2012|2016|2019)))'
+            [string]$RegistryExPattern = '(Windows\ (?:7|8\.1|8|10|11|Server\ (?:2008\ R2|2012\ R2|2012|2016|2019|2022)))'
             [string]$MachineOS = (Get-WmiObject -Class 'Win32_OperatingSystem' | Select-Object -ExpandProperty 'Caption' | Select-String -AllMatches -Pattern $RegistryExPattern | Select-Object -ExpandProperty 'Matches').Value
 
             ## Get volume info before cleanup
@@ -921,6 +921,10 @@ Function Start-WindowsCleanup {
                             Break;
                         }
                         'Windows Server 2019' {
+                            $CleanupOptions = @('updCacheCleanup', 'comCacheCleanup', 'ccmCacheCleanup')
+                            Break;
+                        }
+                        'Windows Server 2022' {
                             $CleanupOptions = @('updCacheCleanup', 'comCacheCleanup', 'ccmCacheCleanup')
                             Break;
                         }
