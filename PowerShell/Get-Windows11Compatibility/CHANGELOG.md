@@ -1,5 +1,9 @@
 # Get-Windows11Compatibility release history
 
+## 1.1.0 - 2021-10-14
+
+* Added summarization parameter.
+
 ## 1.0.1 - 2021-10-01
 
 * Fixed JSON result duplication using the `RunScript` feature.
