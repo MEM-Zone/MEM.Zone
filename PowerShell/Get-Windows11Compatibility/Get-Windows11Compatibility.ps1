@@ -3,6 +3,12 @@
     Gets the Windows 11 compatibility.
 .DESCRIPTION
     Gets the Windows 11 upgrade compatibility information.
+.PARAMETER Summarization
+    Specify if the result will be summarized to "Yes" or "No" instead of the full result.
+    Avalaible values:
+        - "On"
+        - "Off"
+    Default value: "Off"
 .EXAMPLE
     Get-Windows11Compatibility.ps1
 .INPUTS
@@ -35,7 +41,12 @@
 
 ## Get script parameters
 [CmdletBinding()]
-Param ()
+Param (
+    [Parameter(Mandatory=$false,Position=0)]
+    [ValidateNotNullorEmpty()]
+    [Alias('Sum')]
+    [string]$Summarization = "Off"
+)
 
 ## Set supported processor models
 $SupportedModels = @'
@@ -810,7 +821,7 @@ $Result = [PScustomObject]@{
 }
 
 ## Return 'Compatible' if all checks have passed ($true) or Return only failed checks ($false) by removing all passed checks from the result object
-If ($Result.PSObject.Properties.Value -notContains $false) { $Result = 'Windows 11 Compatible' }
+If ($Result.PSObject.Properties.Value -notContains $false) { $Result = 'Compatible' }
 Else {
     ForEach ($Member in $Result.PsObject.Members) {
         If ($Member.MemberType -eq 'NoteProperty' -and $Member.Value -eq $True) { $Result.PsObject.Members.Remove($Member.Name) }
@@ -818,6 +829,7 @@ Else {
 }
 
 ## Return result
+If ($Summarization -eq 'On') { If ($Result -eq 'Compatible') { $Result = 'Yes' } Else { $Result = 'No' } }
 Write-Output -InputObject $Result
 
 #endregion
