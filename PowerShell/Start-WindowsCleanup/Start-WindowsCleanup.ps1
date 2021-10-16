@@ -1039,7 +1039,7 @@ Function Start-WindowsCleanup {
 
                                 ## Remove orphaned cache items
                                 Show-Progress -Activity 'Running CCM Cache Cleanup...' -Status "Removing 'orphaned' CCM cache items" -Loop
-                                $null = Remove-Item -Path $(Join-Path -Path $DiskCachePath -ChildPathth '\*') -Recurse -Force
+                                $null = Remove-Item -Path $(Join-Path -Path $DiskCachePath -ChildPath '\*') -Recurse -Force
                             }
                             Else { Write-Warning -Message 'CCM Client is not installed! Skipping CCM Cache Cleanup...' }
                         }
