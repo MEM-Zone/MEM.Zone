@@ -1,5 +1,11 @@
 # Clean-WindowsImage release history
 
+## 3.0.1 - 2021-11-19
+
+* Fixed a typo in the `childpath` parameter form the `Remove orphaned CCM cache items` @asg2ki (Pull Request)
+* Fixed `Windows 11` omission in the regex match @asg2ki (Pull Request)
+* Added `Windows Server 2022` support @asg2ki (Pull Request)
+
 ## 3.0.0 - 2021-09-02
 
 * Added `CM RunScript` support
