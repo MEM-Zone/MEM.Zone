@@ -222,10 +222,17 @@ Function Get-InstalledApplication {
 
 Try {
     $Result = $null
-    $IsAppDetected = Get-InstalledApplication -Name $Name -Exact | Select-Object -First 1
-    [version]$InstalledVersion = $IsAppDetected.DisplayVersion
+    [boolean]$VersionMatch = $false
+
+    ## Get all installed applications that match the specified name
+    $IsAppDetected = Get-InstalledApplication -Name $Name -Exact
+
+    ## Check if the application version is installed for each detected application
+    ForEach ($Application in $IsAppDetected) { If ([version]$Application.DisplayVersion -ge $Version) { $VersionMatch = $true } }
+
+    ## If the application version is installed, or only the application name is specified, return 'Detected'
     If ($IsAppDetected -and $Version) {
-        If ($InstalledVersion -ge $Version) { $Result = 'Detected' }
+        If ($VersionMatch) { $Result = 'Detected' }
     }
     ElseIf ($IsAppDetected) { $Result = 'Detected' }
 }
