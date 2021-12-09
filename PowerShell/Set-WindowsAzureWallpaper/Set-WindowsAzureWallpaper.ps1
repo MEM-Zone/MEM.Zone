@@ -426,42 +426,44 @@ Function Import-Win32IDesktopAPI {
     Import-Win32IDesktopAPI
 .EXAMPLE
     [string]$SlideshowDirection = 'Forward'
-    [string]$WallpaperPath = 'SomePath\SomeImage.jpg'
+    [string]$WallpaperPath = 'C:\Windows\Web\Screen'
     [string]$WallpaperPosition = 'Stretch'
     [string]$WallpaperFolder = 'SomePath'
+    [string]$SlideshowOptions = 'EnableShuffle'
     [int]$DisplayIndex = 0
+    [int]$AdvanceIntervalInSeconds = 1800
     [array]$ShellItemArray = $null
 
     Import-Win32IDesktopAPI
 
     ## Monitor Command
-    $Command = New-Object -TypeName 'MEMZone.MonitorCommand'
+    $MonitorCommand = New-Object -TypeName 'MEMZone.MonitorCommand'
 
-    $Command::GetMonitor()
-    $Command::GetMonitorCount()
-    $Command::GetMonitorID($DisplayIndex)
-    $Command::GetMonitorRECT($DisplayIndex)
+    $MonitorCommand::GetMonitor()
+    $MonitorCommand::GetMonitorCount()
+    $MonitorCommand::GetMonitorID($DisplayIndex)
+    $MonitorCommand::GetMonitorRECT($DisplayIndex)
 
     ## Wallpaper Command
-    $Command = New-Object -TypeName 'MEMZone.WallpaperCommand'
+    $WallpaperCommand = New-Object -TypeName 'MEMZone.WallpaperCommand'
 
-    $Command::SetWallpaper($DisplayIndex, $WallpaperPath, $WallpaperPosition)
-    $Command::GetWallpaper($DisplayIndex)
-    $Command::GetWallpaperPosition()
-    $Command::SetWallpaperPosition($WallpaperPosition)
-    $Command::SetBackgroundColor(0)
-    $Command::GetBackgroundColor()
-    $Command::AdvanceSlideshow(0, $SlideshowDirection)
-    $Command::EnableWallpaper(0)
-    $Command::GetSlideshowStatus()
-    $Command::SetSlideshowOptions('EnableShuffle', 600)
-    $Command::SetSlideshowPath($WallpaperFolder)
+    $WallpaperCommand::SetWallpaper($DisplayIndex, $WallpaperPath, $WallpaperPosition)
+    $WallpaperCommand::GetWallpaper($DisplayIndex)
+    $WallpaperCommand::GetWallpaperPosition()
+    $WallpaperCommand::SetWallpaperPosition($WallpaperPosition)
+    $WallpaperCommand::SetBackgroundColor(0)
+    $WallpaperCommand::GetBackgroundColor()
+    $WallpaperCommand::AdvanceSlideshow(0, $SlideshowDirection)
+    $WallpaperCommand::EnableWallpaper(0)
+    $WallpaperCommand::GetSlideshowStatus()
+    $WallpaperCommand::SetSlideshowOptions($SlideshowOptions, $AdvanceIntervalInSeconds)
+    $WallpaperCommand::SetSlideshowPath($WallpaperFolder)
 
-    ## File System Command
-    $Command = New-Object -TypeName 'MEMZone.FileSystemCommand'
+    ## File System Command (Not applicable to the SetSlideshowPath method, as it already has this built-in)
+    $FileSystemCommand = New-Object -TypeName 'MEMZone.FileSystemCommand'
 
-    $Command::ILCreateFromPath($WallpaperFolder)
-    $Command::SHCreateShellItemArrayFromIDLists(1, $Command::ILCreateFromPath($WallpaperFolder), [ref]$ShellItemArray)
+    $FileSystemCommand::ILCreateFromPath($WallpaperFolder)
+    $FileSystemCommand::SHCreateShellItemArrayFromIDLists(1, $FileSystemCommand::ILCreateFromPath($WallpaperFolder), [ref]$ShellItemArray)
 .INPUTS
     None.
 .OUTPUTS
@@ -684,18 +686,20 @@ Function Import-Win32IDesktopAPI {
                 [return: MarshalAs(UnmanagedType.I4)]
                 WallpaperPosition GetPosition();
 
-                HRESULT GetSlideshowOptions(out SlideshowOptions slideshowOptions, out uint slideshowTick);
-
                 HRESULT SetSlideshow(IShellItemArray items);
+
+                IShellItemArray GetSlideshow();
+
+                HRESULT SetSlideshowOptions(SlideshowOptions slideshowOptions, uint slideshowTick);
+
+                [PreserveSig]
+                HRESULT GetSlideshowOptions(out SlideshowOptions slideshowOptions, out uint slideshowTick);
 
                 HRESULT AdvanceSlideshow([MarshalAs(UnmanagedType.LPWStr)] string monitorID, [MarshalAs(UnmanagedType.I4)] SlideshowDirection direction);
 
-                HRESULT Enable([MarshalAs(UnmanagedType.Bool)] bool enable);
-
-                [PreserveSig]
-                HRESULT SetSlideshowOptions([MarshalAs(UnmanagedType.I4)] SlideshowOptions options, [MarshalAs(UnmanagedType.I4)] uint slideshowTick);
-
                 SlideshowState GetStatus();
+
+                HRESULT Enable([MarshalAs(UnmanagedType.Bool)] bool enable);
             }
 
             [ComImport]
@@ -1129,7 +1133,6 @@ Function Import-Win32IDesktopAPI {
 
                 // <summary>
                 //     Sets the wallpaper state to enabled or disabled.
-                //     !! Not Working Yet !! If someone has a solution please submit a pull request.
                 // </summary>
                 public static HRESULT EnableWallpaper(bool enable) {
 
@@ -1153,26 +1156,28 @@ Function Import-Win32IDesktopAPI {
 
                 // <summary>
                 //     Sets the wallpaper slideshow image shuffle and speed.
-                //     !! Not Working Yet !! If someone has a solution please submit a pull request.
                 // </summary>
-                public static HRESULT SetSlideshowOptions(SlideshowOptions slideshowOptions, uint slideshowTick) {
+                public static HRESULT SetSlideshowOptions(string slideshowOptions, uint slideshowTick) {
 
                     // Assign variables
                     IDesktopWallpaper desktopWallpaper = null;
                     desktopWallpaper = (IDesktopWallpaper) new DesktopWallpaper();
                     HRESULT hResult;
 
-                    // Aet slideshow options enum number value
-                    var slideshowOptionsValue = SlideshowOptions.EnableShuffle;
+                    // Set slideshow options enum number value
+                    SlideshowOptions slideshowOptionsValue = (SlideshowOptions)Enum.Parse(typeof(SlideshowOptions), slideshowOptions);
+
+                    // Convert slideshowTick from seconds to milliseconds
+                    uint slideshowTickValue = slideshowTick * 1000;
 
                     // Set slideshow options
-                    hResult = desktopWallpaper.SetSlideshowOptions(slideshowOptionsValue, slideshowTick);
+                    hResult = desktopWallpaper.SetSlideshowOptions(slideshowOptionsValue, slideshowTickValue);
 
                     // Release COM object
                     Marshal.ReleaseComObject(desktopWallpaper);
 
                     // Write info to console
-                    Console.WriteLine("Set slideshow options:\nShuffleImages: {0}\nIntervalInSeconds: {1}", slideshowOptions, slideshowTick);
+                    Console.WriteLine("Set slideshow options:\nShuffleImages: {0}\nIntervalInSconds: {1}", slideshowOptions, slideshowTick);
 
                     // Return hResult
                     return hResult;
@@ -1193,9 +1198,12 @@ Function Import-Win32IDesktopAPI {
 
                     // Get slideshow direction enum number value
                     SlideshowDirection slideshowDirectionValue = (SlideshowDirection)Enum.Parse(typeof(SlideshowDirection), slideshowDirection);
+                    Console.WriteLine("Slideshow direction value: {0}", slideshowDirectionValue);
 
-                    // Advance slideshow
-                    hResult = desktopWallpaper.AdvanceSlideshow(monitorID, slideshowDirectionValue);
+                    // Advance slideshow. I've put 'null' for the monitorID parameter because specifying a monitorID does not wrk anymore.
+                    // With the 'null' as the monitorid parameter, the slideshow advances on the first index monitor.
+                    // Will fix this if microsoft updates this method
+                    hResult = desktopWallpaper.AdvanceSlideshow(null, slideshowDirectionValue);
 
                     // Release COM object
                     Marshal.ReleaseComObject(desktopWallpaper);
