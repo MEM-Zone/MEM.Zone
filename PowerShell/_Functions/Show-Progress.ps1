@@ -93,7 +93,14 @@ Function Show-Progress {
     )
     Begin {
         If ($Loop) { $Script:Steps ++ }
+        If ($Script:Steps -eq 0) { $Script:Steps ++ }
+
         $PercentComplete = $($($Step / $Steps) * 100)
+
+        ## Debug information
+        Write-Debug -Message "Percent Step: $Step"
+        Write-Debug -Message "Percent Steps: $Steps"
+        Write-Debug -Message "Percent Complete: $PercentComplete"
     }
     Process {
         Try {
