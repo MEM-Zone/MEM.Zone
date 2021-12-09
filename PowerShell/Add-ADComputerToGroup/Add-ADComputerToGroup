@@ -1,0 +1,1359 @@
+<#
+.SYNOPSIS
+    Adds Active Directory devices to a group.
+.DESCRIPTION
+    Adds Active Directory devices to a group, if they match a specified criteria and are not already part of the group.
+.PARAMETER LogFilePath
+    Specifies to save the matching device list to specified log folder. Default is 'WindowsRoot\Logs\ScriptName.log'.
+.PARAMETER ConfigFilePath
+    Specifies the script configuration json file path.
+    Default is: 'ScriptPath\ScriptName.json'.
+.PARAMETER NewConfigFile
+    Specifies to create a new json configuraiton file. This switch must be used in conjunction with the 'ConfigFilePath' parameter.
+.EXAMPLE
+    Add-ADComputerToGroup.ps1 -ConfigFilePath 'C:\Scripts\Add-ADComputerToGroup.json'
+.EXAMPLE
+    Add-ADComputerToGroup.ps1 -ConfigFilePath 'C:\Scripts\Add-ADComputerToGroup.json' -NewConfigFile
+.INPUTS
+    None.
+.OUTPUTS
+    System.IO
+    System.String
+.NOTES
+    Created by Ioan Popovici
+.LINK
+    https://MEM.Zone/Add-ADComputerToGroup
+.LINK
+    https://MEM.Zone/Add-ADComputerToGroup/CHANGELOG
+.LINK
+    https://MEM.Zone/Add-ADComputerToGroup/GIT
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    Active Directory
+.FUNCTIONALITY
+    Adds Computers to a group.
+#>
+
+## Set script requirements
+#Requires -Version 5.0
+
+##*=============================================
+##* VARIABLE DECLARATION
+##*=============================================
+#region VariableDeclaration
+
+## Get script parameters
+[CmdletBinding()]
+Param (
+    [Parameter(Mandatory=$false,HelpMessage='Specify script json config file path.',Position=0)]
+    [ValidateNotNullorEmpty()]
+    [Alias('Config')]
+    [string]$ConfigFilePath = $null,
+    [Parameter(Mandatory=$false,HelpMessage='Specify to create a new config json file.',Position=1)]
+    [ValidateScript({ If ([string]::IsNullOrEmpty($ConfigFilePath)) { Throw 'ConfigFilePath parameter is mandatory, when using this switch!' } })]
+    [Alias('NewConfig')]
+    [switch]$NewConfigFile,
+    [Parameter(Mandatory=$false,HelpMessage='Specify a log file path.',Position=3)]
+    [ValidateNotNullorEmpty()]
+    [Alias('Log')]
+    [string]$LogFilePath = $null
+)
+
+## Get script path, name and configuration file path
+[string]$ScriptName       = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
+[string]$ScriptFullName   = [System.IO.Path]::GetFullPath($MyInvocation.MyCommand.Definition)
+If ([string]::IsNullOrEmpty($ConfigFilePath)) { $ConfigFilePath = $ScriptFullName.Replace('.ps1', '.json') }
+
+## Get Show-Progress steps
+$ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Command' -and $_.Content -eq 'Show-Progress' }).Count)
+## Set Show-Progress steps
+$Script:Steps = $ProgressSteps
+$Script:Step  = 0
+
+## Set script global variables
+$Script:LoggingOptions   = @('Host', 'File', 'EventLog')
+$Script:LogName          = 'Endpoint Management Scripts'
+$Script:LogSource        = $ScriptName
+$Script:LogDebugMessages = $false
+$Script:LogFileDirectory = If ([string]::IsNullOrEmpty($LogFilePath)) { $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $Script:LogName)) } Else { Join-Path -Path $LogFilePath -ChildPath $Script:LogName }
+
+## Specify new table headers
+$NewTableHeaders = [ordered]@{
+    'Security Identifier' = 'SID'
+    'Device Name'         = 'Name'
+    'Domain'              = 'Server'
+    'Destination Group'   = 'Group'
+    'Operating System'    = 'OperatingSystem'
+    'Path (DN)'           = 'DistinguishedName'
+    'Operation Result'    = 'Operation'
+    'Date'                = 'Date'
+    'Time'                = 'Time'
+}
+
+#endregion
+##*=============================================
+##* END VARIABLE DECLARATION
+##*=============================================
+
+##*=============================================
+##* FUNCTION LISTINGS
+##*=============================================
+#region FunctionListings
+
+#region Function Resolve-Error
+Function Resolve-Error {
+<#
+.SYNOPSIS
+    Enumerate error record details.
+.DESCRIPTION
+    Enumerate an error record, or a collection of error record, properties. By default, the details for the last error will be enumerated.
+.PARAMETER ErrorRecord
+    The error record to resolve. The default error record is the latest one: $global:Error[0]. This parameter will also accept an array of error records.
+.PARAMETER Property
+    The list of properties to display from the error record. Use "*" to display all properties.
+    Default list of error properties is: Message, FullyQualifiedErrorId, ScriptStackTrace, PositionMessage, InnerException
+.PARAMETER GetErrorRecord
+    Get error record details as represented by $_.
+.PARAMETER GetErrorInvocation
+    Get error record invocation information as represented by $_.InvocationInfo.
+.PARAMETER GetErrorException
+    Get error record exception details as represented by $_.Exception.
+.PARAMETER GetErrorInnerException
+    Get error record inner exception details as represented by $_.Exception.InnerException. Will retrieve all inner exceptions if there is more than one.
+.EXAMPLE
+    Resolve-Error
+.EXAMPLE
+    Resolve-Error -Property *
+.EXAMPLE
+    Resolve-Error -Property InnerException
+.EXAMPLE
+    Resolve-Error -GetErrorInvocation:$false
+.NOTES
+.LINK
+    http://psappdeploytoolkit.com
+#>
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$false,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        [AllowEmptyCollection()]
+        [array]$ErrorRecord,
+        [Parameter(Mandatory=$false,Position=1)]
+        [ValidateNotNullorEmpty()]
+        [string[]]$Property = ('Message','InnerException','FullyQualifiedErrorId','ScriptStackTrace','PositionMessage'),
+        [Parameter(Mandatory=$false,Position=2)]
+        [switch]$GetErrorRecord = $true,
+        [Parameter(Mandatory=$false,Position=3)]
+        [switch]$GetErrorInvocation = $true,
+        [Parameter(Mandatory=$false,Position=4)]
+        [switch]$GetErrorException = $true,
+        [Parameter(Mandatory=$false,Position=5)]
+        [switch]$GetErrorInnerException = $true
+    )
+
+    Begin {
+        ## If function was called without specifying an error record, then choose the latest error that occurred
+        If (-not $ErrorRecord) {
+            If ($global:Error.Count -eq 0) {
+                #Write-Warning -Message "The `$Error collection is empty"
+                Return
+            }
+            Else {
+                [array]$ErrorRecord = $global:Error[0]
+            }
+        }
+
+        ## Allows selecting and filtering the properties on the error object if they exist
+        [scriptblock]$SelectProperty = {
+            Param (
+                [Parameter(Mandatory=$true)]
+                [ValidateNotNullorEmpty()]
+                $InputObject,
+                [Parameter(Mandatory=$true)]
+                [ValidateNotNullorEmpty()]
+                [string[]]$Property
+            )
+
+            [string[]]$ObjectProperty = $InputObject | Get-Member -MemberType '*Property' | Select-Object -ExpandProperty 'Name'
+            ForEach ($Prop in $Property) {
+                If ($Prop -eq '*') {
+                    [string[]]$PropertySelection = $ObjectProperty
+                    Break
+                }
+                ElseIf ($ObjectProperty -contains $Prop) {
+                    [string[]]$PropertySelection += $Prop
+                }
+            }
+            Write-Output -InputObject $PropertySelection
+        }
+
+        #  Initialize variables to avoid error if 'Set-StrictMode' is set
+        $LogErrorRecordMsg = $null
+        $LogErrorInvocationMsg = $null
+        $LogErrorExceptionMsg = $null
+        $LogErrorMessageTmp = $null
+        $LogInnerMessage = $null
+    }
+    Process {
+        If (-not $ErrorRecord) { Return }
+        ForEach ($ErrRecord in $ErrorRecord) {
+            ## Capture Error Record
+            If ($GetErrorRecord) {
+                [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrRecord -Property $Property
+                $LogErrorRecordMsg = $ErrRecord | Select-Object -Property $SelectedProperties
+            }
+
+            ## Error Invocation Information
+            If ($GetErrorInvocation) {
+                If ($ErrRecord.InvocationInfo) {
+                    [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrRecord.InvocationInfo -Property $Property
+                    $LogErrorInvocationMsg = $ErrRecord.InvocationInfo | Select-Object -Property $SelectedProperties
+                }
+            }
+
+            ## Capture Error Exception
+            If ($GetErrorException) {
+                If ($ErrRecord.Exception) {
+                    [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrRecord.Exception -Property $Property
+                    $LogErrorExceptionMsg = $ErrRecord.Exception | Select-Object -Property $SelectedProperties
+                }
+            }
+
+            ## Display properties in the correct order
+            If ($Property -eq '*') {
+                #  If all properties were chosen for display, then arrange them in the order the error object displays them by default.
+                If ($LogErrorRecordMsg) { [array]$LogErrorMessageTmp += $LogErrorRecordMsg }
+                If ($LogErrorInvocationMsg) { [array]$LogErrorMessageTmp += $LogErrorInvocationMsg }
+                If ($LogErrorExceptionMsg) { [array]$LogErrorMessageTmp += $LogErrorExceptionMsg }
+            }
+            Else {
+                #  Display selected properties in our custom order
+                If ($LogErrorExceptionMsg) { [array]$LogErrorMessageTmp += $LogErrorExceptionMsg }
+                If ($LogErrorRecordMsg) { [array]$LogErrorMessageTmp += $LogErrorRecordMsg }
+                If ($LogErrorInvocationMsg) { [array]$LogErrorMessageTmp += $LogErrorInvocationMsg }
+            }
+
+            If ($LogErrorMessageTmp) {
+                $LogErrorMessage = 'Error Record:'
+                $LogErrorMessage += "`n-------------"
+                $LogErrorMsg = $LogErrorMessageTmp | Format-List | Out-String
+                $LogErrorMessage += $LogErrorMsg
+            }
+
+            ## Capture Error Inner Exception(s)
+            If ($GetErrorInnerException) {
+                If ($ErrRecord.Exception -and $ErrRecord.Exception.InnerException) {
+                    $LogInnerMessage = 'Error Inner Exception(s):'
+                    $LogInnerMessage += "`n-------------------------"
+
+                    $ErrorInnerException = $ErrRecord.Exception.InnerException
+                    $Count = 0
+
+                    While ($ErrorInnerException) {
+                        [string]$InnerExceptionSeperator = '~' * 40
+
+                        [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrorInnerException -Property $Property
+                        $LogErrorInnerExceptionMsg = $ErrorInnerException | Select-Object -Property $SelectedProperties | Format-List | Out-String
+
+                        If ($Count -gt 0) { $LogInnerMessage += $InnerExceptionSeperator }
+                        $LogInnerMessage += $LogErrorInnerExceptionMsg
+
+                        $Count++
+                        $ErrorInnerException = $ErrorInnerException.InnerException
+                    }
+                }
+            }
+
+            If ($LogErrorMessage) { $Output = $LogErrorMessage }
+            If ($LogInnerMessage) { $Output += $LogInnerMessage }
+
+            Write-Output -InputObject $Output
+
+            If (Test-Path -LiteralPath 'variable:Output') { Clear-Variable -Name 'Output' }
+            If (Test-Path -LiteralPath 'variable:LogErrorMessage') { Clear-Variable -Name 'LogErrorMessage' }
+            If (Test-Path -LiteralPath 'variable:LogInnerMessage') { Clear-Variable -Name 'LogInnerMessage' }
+            If (Test-Path -LiteralPath 'variable:LogErrorMessageTmp') { Clear-Variable -Name 'LogErrorMessageTmp' }
+        }
+    }
+    End {
+    }
+}
+#endregion
+
+#region Function Write-Log
+Function Write-Log {
+<#
+.SYNOPSIS
+    Write messages to a log file in CMTrace.exe compatible format or Legacy text file format.
+.DESCRIPTION
+    Write messages to a log file in CMTrace.exe compatible format or Legacy text file format and optionally display in the console.
+.PARAMETER Message
+    The message to write to the log file or output to the console.
+.PARAMETER Severity
+    Defines message type. When writing to console or CMTrace.exe log format, it allows highlighting of message type.
+    Options: 1 = Information (default), 2 = Warning (highlighted in yellow), 3 = Error (highlighted in red)
+.PARAMETER Source
+    The source of the message being logged. Also used as the event log source.
+.PARAMETER ScriptSection
+    The heading for the portion of the script that is being executed. Default is: $Script:installPhase.
+.PARAMETER LogType
+    Choose whether to write a CMTrace.exe compatible log file or a Legacy text log file.
+.PARAMETER LoggingOptions
+    Choose where to log 'Console', 'File', 'EventLog' or 'None'. You can choose multiple options.
+.PARAMETER LogFileDirectory
+    Set the directory where the log file will be saved.
+.PARAMETER LogFileName
+    Set the name of the log file.
+.PARAMETER MaxLogFileSizeMB
+    Maximum file size limit for log file in megabytes (MB). Default is 10 MB.
+.PARAMETER LogName
+    Set the name of the event log.
+.PARAMETER EventID
+    Set the event id for the event log entry.
+.PARAMETER WriteHost
+    Write the log message to the console.
+.PARAMETER ContinueOnError
+    Suppress writing log message to console on failure to write message to log file. Default is: $true.
+.PARAMETER PassThru
+    Return the message that was passed to the function
+.PARAMETER VerboseMessage
+    Specifies that the message is a debug message. Verbose messages only get logged if -LogDebugMessage is set to $true.
+.PARAMETER DebugMessage
+    Specifies that the message is a debug message. Debug messages only get logged if -LogDebugMessage is set to $true.
+.PARAMETER LogDebugMessage
+    Debug messages only get logged if this parameter is set to $true in the config XML file.
+.EXAMPLE
+    Write-Log -Message "Installing patch MS15-031" -Source 'Add-Patch' -LogType 'CMTrace'
+.EXAMPLE
+    Write-Log -Message "Script is running on Windows 8" -Source 'Test-ValidOS' -LogType 'Legacy'
+.NOTES
+    Slightly modified version of the PSADT logging cmdlet. I did not write the original cmdlet, please do not credit me for it.
+.LINK
+    https://psappdeploytoolkit.com
+#>
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory = $true, Position = 0, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyCollection()]
+        [Alias('Text')]
+        [string[]]$Message,
+        [Parameter(Mandatory = $false, Position = 1)]
+        [ValidateRange(1, 3)]
+        [int16]$Severity = 1,
+        [Parameter(Mandatory = $false, Position = 2)]
+        [ValidateNotNullorEmpty()]
+        [string]$Source = $Script:LogSource,
+        [Parameter(Mandatory = $false, Position = 3)]
+        [ValidateNotNullorEmpty()]
+        [string]$ScriptSection = $Script:RunPhase,
+        [Parameter(Mandatory = $false, Position = 4)]
+        [ValidateSet('CMTrace', 'Legacy')]
+        [string]$LogType = 'CMTrace',
+        [Parameter(Mandatory = $false, Position = 5)]
+        [ValidateSet('Host', 'File', 'EventLog', 'None')]
+        [string[]]$LoggingOptions = $Script:LoggingOptions,
+        [Parameter(Mandatory = $false, Position = 6)]
+        [ValidateNotNullorEmpty()]
+        [string]$LogFileDirectory = $Script:LogFileDirectory,
+        [Parameter(Mandatory = $false, Position = 7)]
+        [ValidateNotNullorEmpty()]
+        [string]$LogFileName = $($Script:LogSource + '.log'),
+        [Parameter(Mandatory = $false, Position = 8)]
+        [ValidateNotNullorEmpty()]
+        [int]$MaxLogFileSizeMB = '4',
+        [Parameter(Mandatory = $false, Position = 9)]
+        [ValidateNotNullorEmpty()]
+        [string]$LogName = $Script:LogName,
+        [Parameter(Mandatory = $false, Position = 10)]
+        [ValidateNotNullorEmpty()]
+        [int32]$EventID = 1,
+        [Parameter(Mandatory = $false, Position = 11)]
+        [ValidateNotNullorEmpty()]
+        [boolean]$ContinueOnError = $false,
+        [Parameter(Mandatory = $false, Position = 12)]
+        [switch]$PassThru = $false,
+        [Parameter(Mandatory = $false, Position = 13)]
+        [switch]$VerboseMessage = $false,
+        [Parameter(Mandatory = $false, Position = 14)]
+        [switch]$DebugMessage = $false,
+        [Parameter(Mandatory = $false, Position = 15)]
+        [boolean]$LogDebugMessage = $Script:LogDebugMessages
+    )
+
+    Begin {
+        ## Get the name of this function
+        [string]${CmdletName} = $PSCmdlet.MyInvocation.MyCommand.Name
+
+        ## Logging Variables
+        #  Log file date/time
+        [string]$LogTime = (Get-Date -Format 'HH:mm:ss.fff').ToString()
+        [string]$LogDate = (Get-Date -Format 'MM-dd-yyyy').ToString()
+        If (-not (Test-Path -LiteralPath 'variable:LogTimeZoneBias')) { [int32]$Script:LogTimeZoneBias = [timezone]::CurrentTimeZone.GetUtcOffset([datetime]::Now).TotalMinutes }
+        [string]$LogTimePlusBias = $LogTime + '-' + $Script:LogTimeZoneBias
+        #  Initialize variables
+        [boolean]$WriteHost = $false
+        [boolean]$WriteFile = $false
+        [boolean]$WriteEvent = $false
+        [boolean]$DisableLogging = $false
+        [boolean]$ExitLoggingFunction = $false
+        If (('Host' -in $LoggingOptions) -and (-not ($VerboseMessage -or $DebugMessage))) { $WriteHost = $true }
+        If ('File' -in $LoggingOptions) { $WriteFile = $true }
+        If ('EventLog' -in $LoggingOptions) { $WriteEvent = $true }
+        If ('None' -in $LoggingOptions) { $DisableLogging = $true }
+        #  Check if the script section is defined
+        [boolean]$ScriptSectionDefined = [boolean](-not [string]::IsNullOrEmpty($ScriptSection))
+        #  Check if the source is defined
+        [boolean]$SourceDefined = [boolean](-not [string]::IsNullOrEmpty($Source))
+        #  Check if the event log and event source exit
+        [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
+        [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
+
+        ## Create script block for generating CMTrace.exe compatible log entry
+        [scriptblock]$CMTraceLogString = {
+            Param (
+                [string]$lMessage,
+                [string]$lSource,
+                [int16]$lSeverity
+            )
+            "<![LOG[$lMessage]LOG]!>" + "<time=`"$LogTimePlusBias`" " + "date=`"$LogDate`" " + "component=`"$lSource`" " + "context=`"$([Security.Principal.WindowsIdentity]::GetCurrent().Name)`" " + "type=`"$lSeverity`" " + "thread=`"$PID`" " + "file=`"$Source`">"
+        }
+
+        ## Create script block for writing log entry to the console
+        [scriptblock]$WriteLogLineToHost = {
+            Param (
+                [string]$lTextLogLine,
+                [int16]$lSeverity
+            )
+            If ($WriteHost) {
+                #  Only output using color options if running in a host which supports colors.
+                If ($Host.UI.RawUI.ForegroundColor) {
+                    Switch ($lSeverity) {
+                        3 { Write-Host -Object $lTextLogLine -ForegroundColor 'Red' -BackgroundColor 'Black' }
+                        2 { Write-Host -Object $lTextLogLine -ForegroundColor 'Yellow' -BackgroundColor 'Black' }
+                        1 { Write-Host -Object $lTextLogLine }
+                    }
+                }
+                #  If executing "powershell.exe -File <filename>.ps1 > log.txt", then all the Write-Host calls are converted to Write-Output calls so that they are included in the text log.
+                Else {
+                    Write-Output -InputObject $lTextLogLine
+                }
+            }
+        }
+
+        ## Create script block for writing log entry to the console as verbose or debug message
+        [scriptblock]$WriteLogLineToHostAdvanced = {
+            Param (
+                [string]$lTextLogLine
+            )
+            #  Only output using color options if running in a host which supports colors.
+            If ($Host.UI.RawUI.ForegroundColor) {
+                If ($VerboseMessage) {
+                    Write-Verbose -Message $lTextLogLine
+                }
+                Else {
+                    Write-Debug -Message $lTextLogLine
+                }
+            }
+            #  If executing "powershell.exe -File <filename>.ps1 > log.txt", then all the Write-Host calls are converted to Write-Output calls so that they are included in the text log.
+            Else {
+                Write-Output -InputObject $lTextLogLine
+            }
+        }
+
+        ## Create script block for event writing log entry
+        [scriptblock]$WriteToEventLog = {
+            If ($WriteEvent) {
+                $EventType = Switch ($Severity) {
+                    3 { 'Error' }
+                    2 { 'Warning' }
+                    1 { 'Information' }
+                }
+
+                If ($LogNameNotExists -and (-not $LogSourceNotExists)) {
+                    Try {
+                        #  Delete event source if the log does not exist
+                        $null = [System.Diagnostics.EventLog]::DeleteEventSource($Source)
+                        $LogSourceNotExists = $true
+                    }
+                    Catch {
+                        [boolean]$ExitLoggingFunction = $true
+                        #  If error deleting event source, write message to console
+                        If (-not $ContinueOnError) {
+                            Write-Host -Object "[$LogDate $LogTime] [${CmdletName}] $ScriptSection :: Failed to create the event log source [$Source]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                        }
+                    }
+                }
+                If ($LogNameNotExists -or $LogSourceNotExists) {
+                    Try {
+                        #  Create event log
+                        $null = New-EventLog -LogName $LogName -Source $Source -ErrorAction 'Stop'
+                    }
+                    Catch {
+                        [boolean]$ExitLoggingFunction = $true
+                        #  If error creating event log, write message to console
+                        If (-not $ContinueOnError) {
+                            Write-Host -Object "[$LogDate $LogTime] [${CmdletName}] $ScriptSection :: Failed to create the event log [$LogName`:$Source]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                        }
+                    }
+                }
+                Try {
+                    #  Write to event log
+                    Write-EventLog -LogName $LogName -Source $Source -EventId $EventID -EntryType $EventType -Category '0' -Message $EventLogLine -ErrorAction 'Stop'
+                }
+                Catch {
+                    [boolean]$ExitLoggingFunction = $true
+                    #  If error creating directory, write message to console
+                    If (-not $ContinueOnError) {
+                        Write-Host -Object "[$LogDate $LogTime] [${CmdletName}] $ScriptSection :: Failed to write to event log [$LogName`:$Source]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                    }
+                }
+            }
+        }
+
+        ## Exit function if it is a debug message and logging debug messages is not enabled in the config XML file
+        If (($DebugMessage -or $VerboseMessage) -and (-not $LogDebugMessage)) { [boolean]$ExitLoggingFunction = $true; Return }
+        ## Exit function if logging to file is disabled and logging to console host is disabled
+        If (($DisableLogging) -and (-not $WriteHost)) { [boolean]$ExitLoggingFunction = $true; Return }
+        ## Exit Begin block if logging is disabled
+        If ($DisableLogging) { Return }
+
+        ## Create the directory where the log file will be saved
+        If (-not (Test-Path -LiteralPath $LogFileDirectory -PathType 'Container')) {
+            Try {
+                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop'
+            }
+            Catch {
+                [boolean]$ExitLoggingFunction = $true
+                #  If error creating directory, write message to console
+                If (-not $ContinueOnError) {
+                    Write-Host -Object "[$LogDate $LogTime] [${CmdletName}] $ScriptSection :: Failed to create the log directory [$LogFileDirectory]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                }
+                Return
+            }
+        }
+
+        ## Assemble the fully qualified path to the log file
+        [string]$LogFilePath = Join-Path -Path $LogFileDirectory -ChildPath $LogFileName
+    }
+    Process {
+
+        ForEach ($Msg in $Message) {
+            ## If the message is not $null or empty, create the log entry for the different logging methods
+            [string]$CMTraceMsg = ''
+            [string]$ConsoleLogLine = ''
+            [string]$EventLogLine = ''
+            [string]$LegacyTextLogLine = ''
+            If ($Msg) {
+                #  Create the CMTrace log message
+                If ($ScriptSectionDefined) { [string]$CMTraceMsg = "[$ScriptSection] :: $Msg" }
+
+                #  Create a Console and Legacy "text" log entry
+                [string]$LegacyMsg = "[$LogDate $LogTime]"
+                If ($ScriptSectionDefined) { [string]$LegacyMsg += " [$ScriptSection]" }
+                If ($Source) {
+                    [string]$EventLogLine = $Msg
+                    [string]$ConsoleLogLine = "$LegacyMsg [$Source] :: $Msg"
+                    Switch ($Severity) {
+                        3 { [string]$LegacyTextLogLine = "$LegacyMsg [$Source] [Error] :: $Msg" }
+                        2 { [string]$LegacyTextLogLine = "$LegacyMsg [$Source] [Warning] :: $Msg" }
+                        1 { [string]$LegacyTextLogLine = "$LegacyMsg [$Source] [Info] :: $Msg" }
+                    }
+                }
+                Else {
+                    [string]$ConsoleLogLine = "$LegacyMsg :: $Msg"
+                    [string]$EventLogLine = $Msg
+                    Switch ($Severity) {
+                        3 { [string]$LegacyTextLogLine = "$LegacyMsg [Error] :: $Msg" }
+                        2 { [string]$LegacyTextLogLine = "$LegacyMsg [Warning] :: $Msg" }
+                        1 { [string]$LegacyTextLogLine = "$LegacyMsg [Info] :: $Msg" }
+                    }
+                }
+            }
+
+            ## Execute script block to write the log entry to the console as verbose or debug message
+            & $WriteLogLineToHostAdvanced -lTextLogLine $ConsoleLogLine -lSeverity $Severity
+
+            ## Exit function if logging is disabled
+            If ($ExitLoggingFunction) { Return }
+
+            ## Execute script block to create the CMTrace.exe compatible log entry
+            [string]$CMTraceLogLine = & $CMTraceLogString -lMessage $CMTraceMsg -lSource $Source -lSeverity $lSeverity
+
+            ## Choose which log type to write to file
+            If ($LogType -ieq 'CMTrace') {
+                [string]$LogLine = $CMTraceLogLine
+            }
+            Else {
+                [string]$LogLine = $LegacyTextLogLine
+            }
+
+            ## Write the log entry to the log file and event log if logging is not currently disabled
+            If (-not $DisableLogging -and $WriteFile) {
+                ## Write to file log
+                Try {
+                    $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop'
+                }
+                Catch {
+                    If (-not $ContinueOnError) {
+                        Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                    }
+                }
+                ## Write to event log
+                Try {
+                    & $WriteToEventLog -lMessage $ConsoleLogLine -lName $LogName -lSource $Source -lSeverity $Severity
+                }
+                Catch {
+                    If (-not $ContinueOnError) {
+                        Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                    }
+                }
+            }
+
+            ## Execute script block to write the log entry to the console if $WriteHost is $true and $LogLogDebugMessage is not $true
+            & $WriteLogLineToHost -lTextLogLine $ConsoleLogLine -lSeverity $Severity
+        }
+    }
+    End {
+        ## Archive log file if size is greater than $MaxLogFileSizeMB and $MaxLogFileSizeMB > 0
+        Try {
+            If ((-not $ExitLoggingFunction) -and (-not $DisableLogging)) {
+                [IO.FileInfo]$LogFile = Get-ChildItem -LiteralPath $LogFilePath -ErrorAction 'Stop'
+                [decimal]$LogFileSizeMB = $LogFile.Length / 1MB
+                If (($LogFileSizeMB -gt $MaxLogFileSizeMB) -and ($MaxLogFileSizeMB -gt 0)) {
+                    ## Change the file extension to "lo_"
+                    [string]$ArchivedOutLogFile = [IO.Path]::ChangeExtension($LogFilePath, 'lo_')
+                    [hashtable]$ArchiveLogParams = @{ ScriptSection = $ScriptSection; Source = ${CmdletName}; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; WriteHost = $WriteHost; ContinueOnError = $ContinueOnError; PassThru = $false }
+
+                    ## Log message about archiving the log file
+                    $ArchiveLogMessage = "Maximum log file size [$MaxLogFileSizeMB MB] reached. Rename log file to [$ArchivedOutLogFile]."
+                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+
+                    ## Archive existing log file from <filename>.log to <filename>.lo_. Overwrites any existing <filename>.lo_ file. This is the same method SCCM uses for log files.
+                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop'
+
+                    ## Start new log file and Log message about archiving the old log file
+                    $NewLogMessage = "Previous log file was renamed to [$ArchivedOutLogFile] because maximum log file size of [$MaxLogFileSizeMB MB] was reached."
+                    Write-Log -Message $NewLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                }
+            }
+        }
+        Catch {
+            ## If renaming of file fails, script will continue writing to log file even if size goes over the max file size
+        }
+        Finally {
+            If ($PassThru) { Write-Output -InputObject $Message }
+        }
+    }
+}
+#endregion
+
+#region Function Show-Progress
+Function Show-Progress {
+<#
+.SYNOPSIS
+    Displays progress info.
+.DESCRIPTION
+    Displays progress info and maximizes code reuse by automatically calculating the progress steps.
+.PARAMETER Actity
+    Specifies the progress activity. Default: 'Running Cleanup Please Wait...'.
+.PARAMETER Status
+    Specifies the progress status.
+.PARAMETER CurrentOperation
+    Specifies the current operation.
+.PARAMETER Step
+    Specifies the progress step. Default: $Script:Step ++.
+.PARAMETER ID
+    Specifies the progress bar id.
+.PARAMETER Delay
+    Specifies the progress delay in milliseconds. Default: 0.
+.PARAMETER Loop
+    Specifies if the call comes from a loop.
+.EXAMPLE
+    Show-Progress -Activity 'Running Install Please Wait' -Status 'Uploading Report' -Step ($Step++) -Delay 200
+.EXAMPLE
+    Show-Progress -Status "Downloading [$File.Name] --> [$($RSDataSource.Name)]" -Loop
+.INPUTS
+    None.
+.OUTPUTS
+    None.
+.NOTES
+    Created by Ioan Popovici.
+    v1.0.0 - 2021-01-01
+
+    This is an private function should tipically not be called directly.
+    Credit to Adam Bertram.
+
+    ## !! IMPORTANT !! ##
+    #  You need to tokenize the scripts steps at the begining of the script in order for Show-Progress to work:
+
+    ## Get script path and name
+    [string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
+    [string]$ScriptName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Definition)
+    [string]$ScriptFullName = Join-Path -Path $ScriptPath -ChildPath $ScriptName
+    #  Get progress steps
+    $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Command' -and $_.Content -eq 'Show-Progress' }).Count)
+    $ForEachSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Keyword' -and $_.Content -eq 'ForEach' }).Count)
+    #  Set progress steps
+    $Script:Steps = $ProgressSteps - $ForEachSteps
+    $Script:Step = 0
+.LINK
+    https://adamtheautomator.com/building-progress-bar-powershell-scripts/
+.LINK
+    https://MEM.Zone/
+.LINK
+    https://MEM.Zone/GIT
+.LINK
+    https://MEM.Zone/ISSUES
+.COMPONENT
+    Powershell
+.FUNCTIONALITY
+    Show Progress
+#>
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$false,Position=0)]
+        [ValidateNotNullorEmpty()]
+        [Alias('act')]
+        [string]$Activity = 'Running Active Directory Maintenance, Please Wait...',
+        [Parameter(Mandatory=$true,Position=1)]
+        [ValidateNotNullorEmpty()]
+        [Alias('sta')]
+        [string]$Status,
+        [Parameter(Mandatory=$false,Position=2)]
+        [ValidateNotNullorEmpty()]
+        [Alias('cro')]
+        [string]$CurrentOperation,
+        [Parameter(Mandatory=$false,Position=3)]
+        [ValidateNotNullorEmpty()]
+        [Alias('pid')]
+        [int]$ID = 0,
+        [Parameter(Mandatory=$false,Position=4)]
+        [ValidateNotNullorEmpty()]
+        [Alias('ste')]
+        [int]$Step = $Script:Step ++,
+        [Parameter(Mandatory=$false,Position=5)]
+        [ValidateNotNullorEmpty()]
+        [Alias('del')]
+        [string]$Delay = 0,
+        [Parameter(Mandatory=$false,Position=5)]
+        [ValidateNotNullorEmpty()]
+        [Alias('lp')]
+        [switch]$Loop
+    )
+    Begin {
+        If ($Loop) { $Script:Steps ++ }
+        If ($Script:Steps -eq 0) { $Script:Steps ++ }
+
+        $PercentComplete = $($($Step / $Steps) * 100)
+
+        ## Debug information
+        Write-Debug -Message "Percent Step: $Step"
+        Write-Debug -Message "Percent Steps: $Steps"
+        Write-Debug -Message "Percent Complete: $PercentComplete"
+    }
+    Process {
+        Try {
+            ##  Show progress
+            Write-Progress -Activity $Activity -Status $Status -CurrentOperation $CurrentOperation -ID $ID -PercentComplete $PercentComplete
+            Start-Sleep -Milliseconds $Delay
+        }
+        Catch {
+            Throw (New-Object System.Exception("Could not Show progress status [$Status]! $($_.Exception.Message)", $_.Exception))
+        }
+    }
+}
+#endregion
+
+#region  New-JsonConfigurationFile
+Function New-JsonConfigurationFile {
+<#
+.SYNOPSIS
+    Creates a json configuration file.
+.DESCRIPTION
+    Creates a new json configuration file in a specified location.
+.PARAMETER Path
+    Specifies the output path.
+.EXAMPLE
+    New-JsonConfigurationFile -Path 'C:\Temp\Config.json'
+.INPUTS
+    None
+.OUTPUTS
+    System.Object
+.NOTES
+    Created Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    Configuration
+.FUNCTIONALITY
+    Create Json Configuration File
+#>
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
+        [pscustomobject]$Path
+    )
+    Begin {
+        [string]$Configuration = @'
+{
+    "HTMLReportConfig":  {
+        "ReportName":    "Report for AD Certificate Autoenrollment",
+        "ReportHeader":  "Devices added to certificate autoenrollment groups",
+        "ReportFooter":  "For more information write to: \u003ci\u003e\u003ca href = \u0027mailto:servicedesk@company.com\u0027\u003eit-servicedesk@company.com\u003c/a\u003e\u003c/i\u003e"
+    },
+    "DomainConfig":  {
+            "ULBSDomainConfig":  {
+            "Description":  "Company Devices",
+            "Server":       "companydomain.com",
+            "Group":        "US-CertificateAutoenrollment",
+            "SearchBase":   [
+                "OU=Computers,OU=DEPARTMENT,OU=DIVISION,OU=COMPANY ROOT,DC=company,DC=com",
+                "OU=Special Computers,OU=DEPARTMENT,OU=DIVISION,OU=COMPANY ROOT,DC=company,DC=com"
+            ],
+            "Filter":  "operatingSystem -notlike \"*server*\" -and objectClass -eq \"computer\"",
+            "SkipOSCheck":  false
+        }
+    }
+}
+'@
+    }
+    Process {
+        Out-File -Path $Path -Encoding 'UTF8' -Content $Configuration -ErrorAction 'Stop'
+    }
+}
+#endregion
+
+#region  ConvertTo-HashtableFromPsCustomObject
+Function ConvertTo-HashtableFromPsCustomObject {
+<#
+.SYNOPSIS
+    Converts a custom object to a hashtable.
+.DESCRIPTION
+    Converts a custom powershell object to a hashtable.
+.PARAMETER PsCustomObject
+    Specifies the custom object to be converted.
+.EXAMPLE
+    ConvertTo-HashtableFromPsCustomObject -PsCustomObject $PsCustomObject
+.EXAMPLE
+    $PsCustomObject | ConvertTo-HashtableFromPsCustomObject
+.INPUTS
+    System.Object
+.OUTPUTS
+    System.Object
+.NOTES
+    Created Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    Conversion
+.FUNCTIONALITY
+    Convert custom object to hashtable
+#>
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
+        [pscustomobject]$PsCustomObject
+    )
+    Begin {
+        [hashtable]$Output = [ordered]@{}
+    }
+    Process {
+        [object]$ObjectProperties = Get-Member -InputObject $PsCustomObject -MemberType 'NoteProperty'
+        ForEach ($Property in $ObjectProperties) { $Output.Add($Property.Name, $PsCustomObject.$($Property.Name)) }
+        Write-Output -InputObject $Output
+    }
+}
+#endregion
+
+#region  Set-HtmlTableAlternatingRow
+Function Set-HtmlTableAlternatingRow {
+<#
+.SYNOPSIS
+    Sets an alternating css class for a each row in a specified html array object.
+.DESCRIPTION
+    Sets an alternating css class for a each row in a specified html array object by alternatively replacing two css classes for each new row.
+    The object must be piped (IEnumerable) or a for-each must be used.
+.PARAMETER Line
+    Specifies the Line to parse. Supports pipeline input.
+.PARAMETER CSSEvenClass
+    Specifies the css class name to be used for 'even' replacement.
+.PARAMETER CSSOddClass
+    Specifies the css class name to be used for 'odd' replacements.
+.EXAMPLE
+    HTMLArrayObject | Set-HtmlTableAlternatingRow -CSSEvenClass 'Even' -CSSOddClass 'Odd'
+.INPUTS
+    System.Object
+.OUTPUTS
+    System.Object
+.NOTES
+    Created by Rob Sheppard
+    Addapted by Ioan Popovici
+.LINK
+    https://github.com/MEM-Zone/MEM.Zone/issues/3
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    HTML
+.FUNCTIONALITY
+    Sets alternating html table row class
+#>
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+        [ValidateNotNullorEmpty()]
+        [string]$Line,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [string]$CSSEvenClass,
+        [Parameter(Mandatory=$true)]
+        [ValidateNotNullorEmpty()]
+        [string]$CSSOddClass
+    )
+    Begin {
+        [string]$ClassName = $CSSEvenClass
+    }
+    Process {
+        If ($Line.Contains('<tr><td>')) {
+            $Line = $Line.Replace('<tr>',"<tr class=""$ClassName"">")
+            If ($ClassName -eq $CSSEvenClass) { $ClassName = $CSSOddClass }
+            Else { $ClassName = $CSSEvenClass }
+        }
+        Write-Output -InputObject $Line
+    }
+}
+#endregion
+
+#region Function Format-HTMLReport
+Function Format-HTMLReport {
+<#
+.SYNOPSIS
+    Formats a provided object to an HTML report.
+.DESCRIPTION
+    Formats a provided object to an HTML report, by formating table headers, html head and body.
+.PARAMETER ReportContent
+    Specifies the report content object to format. Supports pipeline input.
+    Default value is an empty string.
+.PARAMETER HTMLHeader
+    Specifies the HTML Head. Optional, should not be used if you don't know what you are doing.
+.PARAMETER HTMLBody
+    Specifies the HTML Body. Optional, should not be used if you don't know what you are doing.
+.PARAMETER ReportName
+    Specifies the HTML page name header.
+.PARAMETER ReportHeader
+    Specifies the HTML page header paragraph.
+.PARAMETER ReportFooter
+    Specifies the HTML pager footer paragraph.
+.PARAMETER NewTableHeaders
+    Specifies new table headers if desired. Default is: Original object property names are used as table headers.
+.EXAMPLE
+    [string]$ReportName = 'Report from AD Inactive Device Maintenance'
+    [string]$ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
+    [string]$ReportFooter = "For more information write to: <i><a href = 'mailto:servicedesk@company.com'>it-servicedesk@company.com</a></i>"
+    [hashtable]$NewTableHeaders = [ordered]@{
+        'Last Logon (Days)' = DaysSinceLastLogon
+        'Last Logon (Date)' = LastLogonDate
+        'Path (DN)'         = DistinguishedName
+    }
+    Format-HTMLReport -ReportName $ReportName -ReportHeader $ReportHeader -ReportFooter $ReportFooter -NewTableHeaders $NewTableHeaders
+.INPUTS
+    System.Object
+.OUTPUTS
+    System.String
+.NOTES
+    Created by Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    HTML
+.FUNCTIONALITY
+    Formats object to HTML
+#>
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$true,ParameterSetName='CustomTemplate',Position=1)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Head')]
+        [string]$HTMLHeader,
+        [Parameter(Mandatory=$true,ParameterSetName='CustomTemplate',Position=2)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Body')]
+        [string]$HTMLBody,
+        [Parameter(Mandatory=$false,ParameterSetName='CustomTemplate',ValueFromPipeline = $true,Position=0)]
+        [Parameter(Mandatory=$false,ParameterSetName='DefaultTemplate',ValueFromPipeline = $true,Position=0)]
+        [Alias('Input')]
+        [object]$ReportContent = '',
+        [Parameter(Mandatory=$true,ParameterSetName='DefaultTemplate',HelpMessage='Specify the report name',Position=1)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Name')]
+        [string]$ReportName,
+        [Parameter(Mandatory=$true,ParameterSetName='DefaultTemplate',HelpMessage='Specify the report header',Position=2)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Header')]
+        [string]$ReportHeader,
+        [Parameter(Mandatory=$false,ParameterSetName='DefaultTemplate',HelpMessage='Specify the report footer',Position=3)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Footer')]
+        [string]$ReportFooter = $null,
+        [Parameter(Mandatory=$false,ParameterSetName='DefaultTemplate',HelpMessage='Specify the new table headers as a hashtable',Position=3)]
+        [Alias('NewTH')]
+        [System.Collections.Specialized.OrderedDictionary]$NewTableHeaders = $null
+    )
+    Begin {
+
+        ## Check if we need to use a custom template, else use the default
+        If ($($PSCmdlet.ParameterSetName) -eq 'CustomTemplate') {
+            [string]$Head = $HTMLHeader
+            [string]$Body = $HTMLBody
+        }
+        Else {
+
+            ## Get current date and time using ISO 8601
+            [string]$CurrentDateTime = Get-Date -Format 'yyyy-MM-dd'
+
+            ## Set default head
+            [string]$Head = $('
+            <style>
+                body {
+                    background-color: #ffffff;
+                    color: #000000;
+                    font-family: Arial;
+                }
+
+                h1 {
+                    color: #0C71C3
+                }
+
+                p {
+                    font-size: 120%;
+                    font-family: Calibri;
+                    border-left: 4px solid #1a75ff;
+                    padding-left: 5px;
+                }
+
+                a {
+                    color: blue;
+                }
+
+                table {
+                    cellpadding: 5px;
+                    font-family: "Verdana";
+                    font-size: 100%;
+                    margin-left: 10px;
+                    border: 1px solid DimGray;
+                    border-collapse: collapse;
+                }
+
+                th {
+                    padding: 5px;
+                    font-weight: normal;
+                    border: 1px solid DimGray;
+                    border-collapse: collapse;
+                    background-color: #2ECC71;
+                    color: #ffffff;
+                }
+
+                td {
+                    text-align: center;
+                    padding-left: 10px;
+                    padding-right: 10px;
+                    border: 1px solid DimGray;
+                    border-collapse: collapse;
+                }
+
+                .even {
+                    font-family: "Lucida Console", Courier, monospace;
+                    font-size: 80%;
+                    background-color: white;
+                    color: black;
+                }
+
+                .odd {
+                    font-family: "Lucida Console", Courier, monospace;
+                    font-size: 80%;
+                    background-color: lightgrey;
+                    color: black;
+                }
+
+
+                #success {
+                    background-color: #2ECC71;
+                    color: #ffffff;
+                }
+
+                #failed {
+                    background-color: #FF0000;
+                    color: #ffffff;
+                }
+            </style>
+            ')
+
+            ## Set default body
+            [string]$Body = ("
+                <h1>$ReportName</h1>
+                <p>Report as of $CurrentDateTime from <b>$Env:ComputerName</b> - $ReportHeader </p>
+            ")
+
+            ## Set report footer
+            [string]$Footer = ("<p>$ReportFooter</p>")
+        }
+    }
+    Process {
+        Try {
+
+            ## Set new table headers if specified
+            If (-not [string]::IsNullOrWhiteSpace($NewTableHeaders)) {
+                ForEach ($TableHeader in $NewTableHeaders.GetEnumerator()) {
+                    $ReportContent | Add-Member -MemberType 'AliasProperty' -Name $TableHeader.Name -Value $TableHeader.Value -ErrorAction 'SilentlyContinue'
+                }
+
+                ## Select result properties
+                $ReportContent =  $ReportContent | Select-Object -Property $NewTableHeaders.GetEnumerator().Name
+            }
+
+            ## Convert result to html and set alternating row background colors
+            [object]$HTMLReport = $ReportContent | ConvertTo-Html -Head $Head -Body $Body -PostContent $Footer |
+                Set-HtmlTableAlternatingRow -CSSEvenClass 'even' -CSSOddClass 'odd' |
+                    Out-String
+        }
+        Catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+        Finally {
+            Write-Output -InputObject $HTMLReport
+        }
+    }
+    End {
+    }
+}
+#endregion
+
+#region Function Add-ADDeviceToGroup
+Function Add-ADDeviceToGroup {
+<#
+.SYNOPSIS
+    Adds an Active Directory device to a group.
+.DESCRIPTION
+    Adds an Active Directory device to a group, using a specified OU, filter and group name
+.PARAMETER Server
+    Specifies the domain or server to query.
+.PARAMETER Group
+    Specifies the group to add the device to.
+.PARAMETER SearchBase
+    Specifies the search start location. Default is '$null'.
+.PARAMETER Filter
+    Specifies the filtering options. Default is 'Enabled -eq $true'.
+.PARAMETER SkipOSCheck
+    Specifies to skip the OS empty check.
+.EXAMPLE
+    Add-ADDeviceToGroup -Server 'somedomain.com' -Group 'AddToThisGroup' -SearchBase 'CN=Computers,DC=somedomain,DC=com' -Filter 'operatingSystem -notlike "*server*" -and objectClass -eq "computer"' -SkipOSCheck
+.INPUTS
+    None.
+.OUTPUTS
+    System.Object
+.NOTES
+    Created by Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    AD
+.FUNCTIONALITY
+    Gets Inactive Devices
+#>
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    Param (
+        [Parameter(Mandatory=$true,HelpMessage='Enter a valid Domain or Domain Controller.',Position=0)]
+        [ValidateNotNullorEmpty()]
+        [Alias('ServerName')]
+        [string]$Server,
+        [Parameter(Mandatory=$true,HelpMessage='Specify Group Common Name (CN).',Position=1)]
+        [ValidateNotNullorEmpty()]
+        [Alias('GroupName')]
+        [string]$Group,
+        [Parameter(Mandatory=$false,HelpMessage='Specify OU Common Name (CN).',Position=2)]
+        [ValidateNotNullorEmpty()]
+        [Alias('OU')]
+        [string[]]$SearchBase = $null,
+        [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=3)]
+        [ValidateNotNullorEmpty()]
+        [Alias('FilterOption')]
+        [string]$Filter = "Enabled -eq 'true'",
+        [Parameter(Mandatory=$false,HelpMessage='Specify if to skip OS check.',Position=4)]
+        [switch]$SkipOSCheck
+    )
+    Begin {
+
+        ## Print parameters if verbose is enabled
+        Write-Log -Message $PSBoundParameters.GetEnumerator() -DebugMessage
+    }
+    Process {
+        Try {
+
+            ## Get current group members SIDs
+            [string[]]$GroupMembersSID = (Get-ADGroupMember -Server $Server -Identity $Group -ErrorAction 'Stop').SID.Value
+            Write-Log -Message "Processing Group [$Group] ($($GroupMembersSID.Count))..." -VerboseMessage
+
+            ## Process all OUs specified in the SearchBase parameter
+            $AddADDeviceToGroup = ForEach ($OU in $SearchBase) {
+
+                ## Show progress
+                Show-Progress -Status "Searching [$Server] --> [$OU]..." -Loop
+
+                ## Get date and time
+                [string]$Date = (Get-Date -Format 'yyyy-dd-mm').ToString()
+                [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
+
+                ## Get all devices in the specified OU
+                $ADComputers = Get-ADComputer -Server $Server -Filter $Filter -SearchBase $OU -Property 'SID', 'Name', 'OperatingSystem', 'DistinguishedName' |
+                    Select-Object 'SID', 'Name', 'OperatingSystem', @{ Name='Group';Expression={$Group} }, @{ Name='Server';Expression={$Server} }, 'DistinguishedName', @{ Name='Operation';Expression={'Present'} },  @{ Name='Date';Expression={$Date} }, @{ Name='Time';Expression={$Time} }
+
+                ## Add the device to the group if it's not already a member
+                ForEach ($ADComputer in $ADComputers) {
+
+                    ## If SkipOScheck is not specified, skip all computers with no operating system defined
+                    If (-not $SkipOSCheck -and [string]::IsNullOrWhiteSpace($ADComputer.OperatingSystem)) {
+                        $ADComputer.Operation = 'Skipped'
+                        Write-Log -Message "Skipping computer [$($ADComputer.Name)] as it has no Operating System defined..." -LoggingOptions 'EventLog' -VerboseMessage -LogDebugMessage $true
+
+                        ## Return result to the pipeline and continue with the next computer
+                        Write-Output -InputObject $ADComputer
+                        Continue
+                    }
+
+                    [string]$ADComputerSID = $ADComputer.SID.Value
+                    If ($ADComputerSID -notin $GroupMembersSID) {
+
+                        ## Show progress
+                        Show-Progress -Status "Adding [$($ADComputer.Name)] --> [$Server\$Group]..." -Loop
+
+                        ##  Add computer to group and support for ShouldProcess
+                        [boolean]$ShouldProcess = $PSCmdlet.ShouldProcess("$Server\$Group", "Add $($ADComputer.Name)")
+                        If($ShouldProcess) { Add-ADGroupMember -Server $Server -Identity $Group -Members $ADComputerSID }
+                        #  If operation is successful, set the opration status to 'Added' otherwise set it to 'Failed'
+                        If ($?) { $ADComputer.Operation = 'Added' } Else { $ADComputer.Operation = 'Failed' }
+                        #  Add operation time to the computer object
+                        [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
+                        $ADComputer.Time = $Time
+
+                        ## Return result to the pipeline
+                        Write-Output -InputObject $ADComputer
+                    }
+                }
+            }
+        }
+        Catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+        Finally {
+            Write-Output -InputObject $AddADDeviceToGroup
+        }
+    }
+    End {
+    }
+}
+#endregion
+
+#endregion
+##*=============================================
+##* END FUNCTION LISTINGS
+##*=============================================
+
+##*=============================================
+##* SCRIPT BODY
+##*=============================================
+#region ScriptBody
+
+Try {
+
+    ## Write execution to log
+    Write-Log -Message "Script [$ScriptFullName] started!" -VerboseMessage -LogDebugMessage $true
+
+    ## Check if the configuratin file exists
+    [boolean]$ConfigExists = Test-Path -Path $ConfigFilePath
+
+    ## Create a new configuration file if specified
+    If (-not $ConfigExists -or $NewConfigFile) {
+        New-JsonConfigurationFile -Path $ConfigFilePath
+        Write-Log -Message "New configuration file [$ConfigFilePath] created!" -VerboseMessage -LogDebugMessage $true
+        Write-Log -Message "Script [$ScriptFullName] finished!" -VerboseMessage -LogDebugMessage $true
+        Return
+    }
+
+    ## Get configuration file content
+    [object]$ScriptConfig = $(Get-Content -Path $ConfigFilePath | ConvertFrom-Json)
+
+    ## Set script configuration from json object and convert them to hashtables
+    [hashtable]$HTMLReportConfig = $ScriptConfig.HTMLReportConfig | ConvertTo-HashtableFromPsCustomObject
+    [hashtable]$DomainConfig = $ScriptConfig.DomainConfig | ConvertTo-HashtableFromPsCustomObject
+
+    ## Get domain configuration
+    [string[]]$Domains = $DomainConfig.GetEnumerator() | Select-Object -ExpandProperty 'Name'
+
+    ## Process domains
+    [object]$AddADComputerToGroup = ForEach ($Domain in $Domains) {
+
+        ## Show Progress
+        [string]$Progress = "Processing [$($DomainConfig.$Domain.Description)] --> [$($DomainConfig.$Domain.Server)]"
+        Show-Progress -Status $Progress -Loop
+        Write-Log -Message $Progress -VerboseMessage
+
+        ## Convert the domain config to a hashtable for loop AddDeviceToGroup call
+        [hashtable]$Params = $DomainConfig.$Domain | ConvertTo-HashtableFromPsCustomObject
+        #  Splatt aditional parameters
+        $Params.Add('WhatIf', $WhatIfPreference)
+        $Params.Remove('Description')
+
+        ## Call Add-ADDeviceToGroup function with loop variables
+        Add-ADDeviceToGroup @Params
+    }
+}
+Catch {
+    Write-Log -Message "Script [$ScriptFullName] Failed!`n$(Resolve-Error)" -Severity 3
+    Throw $PSItem
+}
+Finally {
+
+    ## Get number of matched computers
+    [int32]$MatchingDeviceCount = $AddADComputerToGroup.Count
+
+    ## Write to log
+    Write-Log -Message "[$MatchingDeviceCount] matching devices found!" -VerboseMessage -LogDebugMessage $true
+
+    ## Splatting Format-HTMLReport table headers
+    $HTMLReportConfig.Add('ReportContent', $AddADComputerToGroup)
+    If ($NewTableHeaders)  { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
+
+    ## Formating html report
+    [object]$AddADComputerToGroupHTML = Format-HTMLReport @HTMLReportConfig
+
+    ## Write html report to disk
+    [string]$HTMLFileName = -join ($ScriptName, '.html')
+    [string]$HTMLFilePath = Join-Path -Path $Script:LogFileDirectory -ChildPath $HTMLFileName
+    Out-File -InputObject $AddADComputerToGroupHTML -FilePath $HTMLFilePath -Force
+
+    ## If any matching devices are found, write the result to log
+    If ($MatchingDeviceCount -gt 0) {
+        $AddADComputerToGroupCSV = "`n$($AddADComputerToGroup | ConvertTo-Csv -NoTypeInformation  | Out-String)"
+        Write-Log -Message $AddADComputerToGroupCSV -LogType 'Legacy' -LoggingOptions 'File'
+    }
+
+    ## Show progress status and write it to the event log
+    Show-Progress -Status "$($ScriptConfig.HTMLReportConfig.ReportName) completed!" -Delay 1000 -Step $Steps
+    ## Write execution to log
+    Write-Log -Message "Check the log for more information [$ScriptFullName] finished!" -VerboseMessage -LogDebugMessage $true
+    Write-Log -Message "Script [$ScriptFullName] finished!" -VerboseMessage -LogDebugMessage $true
+}
+
+#endregion
+##*=============================================
+##* END SCRIPT BODY
+##*=============================================

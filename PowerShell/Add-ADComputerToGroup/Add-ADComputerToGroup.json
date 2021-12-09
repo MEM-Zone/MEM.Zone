@@ -1,0 +1,20 @@
+{
+    "HTMLReportConfig":  {
+        "ReportName":    "Report for AD Certificate Autoenrollment",
+        "ReportHeader":  "Devices added to certificate autoenrollment groups",
+        "ReportFooter":  "For more information write to: \u003ci\u003e\u003ca href = \u0027mailto:servicedesk@company.com\u0027\u003eit-servicedesk@company.com\u003c/a\u003e\u003c/i\u003e"
+    },
+    "DomainConfig":  {
+         "ULBSDomainConfig":  {
+            "Description":  "Company Devices",
+            "Server":       "companydomain.com",
+            "Group":        "US-CertificateAutoenrollment",
+            "SearchBase":   [
+                "OU=Computers,OU=DEPARTMENT,OU=DIVISION,OU=COMPANY ROOT,DC=company,DC=com",
+                "OU=Special Computers,OU=DEPARTMENT,OU=DIVISION,OU=COMPANY ROOT,DC=company,DC=com"
+            ],
+            "Filter":  "operatingSystem -notlike \"*server*\" -and objectClass -eq \"computer\"",
+            "SkipOSCheck":  false
+        }
+    }
+}
