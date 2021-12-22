@@ -5,10 +5,14 @@
     Sets the wallpaper for windows 10, by downloading the necessary wallpaper files from Azure File Storage and activating the default wallpaper.
 .PARAMETER Path
     Specifies the destination path for the wallpapers.
-.PARAMETER DefaultWallpaper
-    Specifies the default wallpaper name. This will be used if no matches for the monitor resolution are found in azure file storage.
+.PARAMETER DefaultResolution
+    Specifies the default wallpaper resolution. This will be used if no matches for the monitor resolution are found in azure file storage.
 .PARAMETER Position
     Specifies the wallpaper position or style on the screen. Acceptable values are: 'Center, Tile, Stretch, Fit, Fill, Span'.
+.PARAMETER SlideShowOptions
+    Specifies whether the wallpaper slide show should be shuffled or not. Acceptable values are: 'EnableShuffle', 'DisableShuffle'.
+.PARAMETER SlideShowInterval
+    Specifies the interval between wallpaper slides in seconds.
 .PARAMETER Url
     Specifies the azure file storage share URL.
 .PARAMETER SasToken
@@ -17,12 +21,25 @@
     Overwrite the existing wallpaper even if it is already assigned.
 .EXAMPLE
     [hashtable]$Parameters = @{
-        Path = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
-        DefaultWallpaper = 'img0_1920x1200.jpg'
-        Url = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
-        SasToken = ''?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
-        Force = $false
-        Verbose = $true
+        Path              = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
+        DefaultResolution = '1920x1200'
+        Position          = 'Stretch'
+        Url               = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
+        SasToken          = '?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
+        Force             = $false
+        Verbose           = $true
+    }
+    Set-WindowsAzureWallpaper.ps1 @Parameters
+.EXAMPLE
+    [hashtable]$Parameters = @{
+        Path               = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
+        DefaultResolution  = '1920x1200'
+        SlideShowOptions   = 'EnableShuffle'
+        SlideShowInterval  =  1800
+        Url                = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
+        SasToken           = '?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
+        Force              = $false
+        Verbose            = $true
     }
     Set-WindowsAzureWallpaper.ps1 @Parameters
 .INPUTS
@@ -31,6 +48,7 @@
     System.String
 .NOTES
     Created by Ioan Popovici
+    Wallpaper files need to have the resolution specified in the file name.(e.g. xxx1920x1200xxx.jpg).
     If you have MEMCM you can run the SQL query linked below (Set-WindowsAzureWallpaper-SQL) in order to get the most common resolutions used in your environment.
     You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
@@ -59,26 +77,41 @@
 
 ## !! Comment the reqion below if using in-script parameter values. You can set the parameters in the SCRIPT BODY region at the end of the script !!
 #region ScriptParameters
+[CmdletBinding(DefaultParameterSetName='Wallpaper')]
 Param (
-    [Parameter(Mandatory=$true,HelpMessage='Destination Path:',Position=0)]
+    [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Destination Path:',Position=0)]
+    [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Destination and Slideshow Path:',Position=0)]
     [ValidateNotNullorEmpty()]
     [Alias('Destination')]
     [string]$Path,
-    [Parameter(Mandatory=$true,HelpMessage='Default Wallpaper Name:',Position=1)]
+    [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Default Wallpaper Resolution:',Position=1)]
+    [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Default Wallpaper Resolution:',Position=1)]
     [Alias('Default')]
-    [string]$DefaultWallpaper,
-    [Parameter(Mandatory=$false,HelpMessage='Wallpaper Position (Center, Tile, Stretch, Fit, Fill, Span):',Position=2)]
+    [string]$DefaultResolution,
+    [Parameter(Mandatory=$false,ParameterSetName='Wallpaper',HelpMessage='Wallpaper Position (Center, Tile, Stretch, Fit, Fill, Span):',Position=2)]
     [ValidateSet('Center', 'Tile', 'Stretch', 'Fit', 'Fill', 'Span')]
     [Alias('Style')]
     [string]$Position = 'Stretch',
-    [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=3)]
+    [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Enable Slideshow Shuffle? (EnableShuffle / DisableShuffle)',Position=2)]
+    [ValidateSet('EnableShuffle', 'DisableShuffle')]
+    [Alias('Shuffle')]
+    [string]$SlideShowOptions,
+    [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Slideshow Advance Interval (Seconds):',Position=3)]
+    [ValidateSet('EnableShuffle', 'DisableShuffle')]
+    [Alias('Interval')]
+    [string]$SlideShowInterval,
+    [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Share URL:',Position=3)]
+    [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Share URL:',Position=4)]
     [ValidateNotNullorEmpty()]
     [Alias('Location')]
     [string]$Url,
-    [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=4)]
+    [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Share SAS Token:',Position=4)]
+    [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Share SAS Token:',Position=5)]
     [ValidateNotNullorEmpty()]
     [Alias('Sas')]
     [string]$SasToken,
+    [Parameter(ParameterSetName='Wallpaper')]
+    [Parameter(ParameterSetName='Slideshow')]
     [Alias('Overwrite')]
     [switch]$Force
 )
@@ -220,7 +253,7 @@ Function Get-AzureStorageFile {
     https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
-..COMPONENT
+.COMPONENT
     Azure File Storage Rest API
 .FUNCTIONALITY
     List Items
@@ -331,7 +364,7 @@ Function Get-AzureStorageFileContent {
     https://MEM.Zone/GIT
 .LINK
     https://MEM.Zone/ISSUES
-..COMPONENT
+.COMPONENT
     Azure File Storage Rest API
 .FUNCTIONALITY
     Copies to local storage
@@ -1285,30 +1318,47 @@ Function Import-Win32IDesktopAPI {
 #region Function Set-WindowsAzureWallpaper
 Function Set-WindowsAzureWallpaper {
 <#
-SYNOPSIS
+.SYNOPSIS
     Sets the wallpaper for windows 10.
 .DESCRIPTION
-    Sets the wallpaper for windows 10, by downloading the necessary wallpaper files from Azure File Storage and activating the default wallpaper.
+    Sets the wallpaper for windows 10, by downloading the necessary wallpaper files from Azure File Storage and activating the wallpaper or wallpaper slideshow.
 .PARAMETER Path
     Specifies the destination path for the wallpapers.
-.PARAMETER DefaultWallpaper
-    Specifies the default wallpaper name. This will be used if no matches for the monitor resolution are found in azure file storage.
+.PARAMETER DefaultResolution
+    Specifies the default wallpaper resolution. This will be used if no matches for the monitor resolution are found in azure file storage.
 .PARAMETER Position
     Specifies the wallpaper position or style on the screen. Acceptable values are: 'Center, Tile, Stretch, Fit, Fill, Span'.
+.PARAMETER SlideShowOptions
+    Specifies whether the wallpaper slide show should be shuffled or not. Acceptable values are: 'EnableShuffle', 'DisableShuffle'.
+.PARAMETER SlideShowInterval
+    Specifies the interval between wallpaper slides in seconds.
 .PARAMETER Url
     Specifies the azure file storage share URL.
 .PARAMETER SasToken
     Specifies the azure file storage share SAS token.
 .PARAMETER Force
-    Overwrites the existing wallpaper even if it is already assigned.
+    Overwrite the existing wallpaper even if it is already assigned.
 .EXAMPLE
     [hashtable]$Parameters = @{
-        Path = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
-        DefaultWallpaper = 'img0_1920x1200.jpg'
-        Url = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
-        SasToken = '?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
-        Force = $false
-        Verbose = $true
+        Path              = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
+        DefaultResolution = '1920x1200'
+        Position          = 'Stretch'
+        Url               = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
+        SasToken          = '?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
+        Force             = $false
+        Verbose           = $true
+    }
+    Set-WindowsAzureWallpaper.ps1 @Parameters
+.EXAMPLE
+    [hashtable]$Parameters = @{
+        Path               = Join-Path -Path $env:ProgramData -ChildPath 'SomeCompany\Wallpapers'
+        DefaultResolution  = '1920x1200'
+        SlideShowOptions   = 'EnableShuffle'
+        SlideShowInterval  =  1800
+        Url                = 'https://testcmspublic.file.core.windows.net/public/SomeCompany/Branding/Wallpapers'
+        SasToken           = '?sv=2020-02-10&ss=f&srt=co&sp=rl&se=2022-02-23T16:50:56Z&st=2021-02-23T08:50:56Z&spr=https&sig=U1ksjwFS7x970xYezvG%2B%2FfIQYoX6k12VY95xOVfDm6Y%3D'
+        Force              = $false
+        Verbose            = $true
     }
     Set-WindowsAzureWallpaper @Parameters
 .INPUTS
@@ -1316,11 +1366,17 @@ SYNOPSIS
 .OUTPUTS
     System.String
 .NOTES
-    This is an internal script function and should typically not be called directly.
+    Created by Ioan Popovici
+    If you have MEMCM you can run the SQL query linked below (Set-WindowsAzureWallpaper-SQL) in order to get the most common resolutions used in your environment.
+    You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
-    https://MEM.Zone
+    https://MEM.Zone/Set-WindowsAzureWallpaper
 .LINK
-    https://MEM.Zone/GIT
+    https://MEM.Zone/Set-WindowsAzureWallpaper-CHANGELOG
+.LINK
+    https://MEM.Zone/Set-WindowsAzureWallpaper-GIT
+.LINK
+    https://MEM.Zone/Set-WindowsAzureWallpaper-SQL
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -1328,108 +1384,184 @@ SYNOPSIS
 .FUNCTIONALITY
     Change Wallpaper
 #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName='Wallpaper')]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Destination Path:',Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Destination Path:',Position=0)]
+        [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Destination and Slideshow Path:',Position=0)]
         [ValidateNotNullorEmpty()]
         [Alias('Destination')]
         [string]$Path,
-        [Parameter(Mandatory=$true,HelpMessage='Default Wallpaper Name:',Position=1)]
+        [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Default Wallpaper Resolution:',Position=1)]
+        [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Default Wallpaper Resolution:',Position=1)]
         [Alias('Default')]
-        [string]$DefaultWallpaper,
-        [Parameter(Mandatory=$false,HelpMessage='Wallpaper Position (Center, Tile, Stretch, Fit, Fill, Span):',Position=2)]
+        [string]$DefaultResolution,
+        [Parameter(Mandatory=$false,ParameterSetName='Wallpaper',HelpMessage='Wallpaper Position (Center, Tile, Stretch, Fit, Fill, Span):',Position=2)]
         [ValidateSet('Center', 'Tile', 'Stretch', 'Fit', 'Fill', 'Span')]
         [Alias('Style')]
         [string]$Position = 'Stretch',
-        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=3)]
+        [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Enable Slideshow Shuffle? (EnableShuffle / DisableShuffle)',Position=2)]
+        [ValidateSet('EnableShuffle', 'DisableShuffle')]
+        [Alias('Shuffle')]
+        [string]$SlideShowOptions,
+        [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Slideshow Advance Interval (Seconds):',Position=3)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Interval')]
+        [string]$SlideShowInterval,
+        [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Share URL:',Position=3)]
+        [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Share URL:',Position=4)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=4)]
+        [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Share SAS Token:',Position=4)]
+        [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Share SAS Token:',Position=5)]
         [ValidateNotNullorEmpty()]
         [Alias('Sas')]
         [string]$SasToken,
+        [Parameter(ParameterSetName='Wallpaper')]
+        [Parameter(ParameterSetName='Slideshow')]
         [Alias('Overwrite')]
         [switch]$Force
     )
-
     Begin {
 
         ## Remove the '?' from the SAS string if needed
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
+        ## Import IDesktop API
+        Format-Spacer -Message 'Initialization' -Type 'Verbose' -AddEmptyRow 'After'
+        Import-Win32IDesktopAPI
+
+        ## Set namespace variables
+        $MonitorCommand   = New-Object -TypeName 'MEMZone.MonitorCommand'
+        $WallpaperCommand = New-Object -TypeName 'MEMZone.WallpaperCommand'
     }
     Process {
         Try {
-            ## Import IDesktop API
-            Format-Spacer -Message 'Initialization' -Type 'Verbose' -AddEmptyRow 'After'
-            Import-Win32IDesktopAPI
 
-            ## Set namespace variables
-            $MonitorCommand   = New-Object -TypeName 'MEMZone.MonitorCommand'
-            $WallpaperCommand = New-Object -TypeName 'MEMZone.WallpaperCommand'
+            ## If Wallpaper Parameter Set is used, set wallpaper otherwise set slideshow
+            If ($PsCmdlet.ParameterSetName -eq 'Wallpaper') {
 
-            ## Get monitors
-            $Monitors = $MonitorCommand::GetMonitor()
-            Format-Spacer -Message 'Monitor List' -Type 'Verbose' -AddEmptyRow 'Before'
-            Write-Verbose -Message $($Monitors | Out-String)
+                ## Get monitors
+                $Monitors = $MonitorCommand::GetMonitor()
+                Format-Spacer -Message 'Monitor List' -Type 'Verbose' -AddEmptyRow 'Before'
+                Write-Verbose -Message $($Monitors | Out-String)
 
-            ## Get Azure wallpapers
-            $AzureWallpaperFiles = Get-AzureStorageFile -Url $Url -SasToken $SasToken
-            Format-Spacer -Message 'Azure Wallpaper List' -Type 'Verbose'
-            Write-Verbose -Message $($AzureWallpaperFiles | Out-String)
+                ## Get Azure wallpapers
+                [psobject]$AzureWallpaperFiles = Get-AzureStorageFile -Url $Url -SasToken $SasToken
+                Format-Spacer -Message 'Azure Wallpaper List' -Type 'Verbose'
+                Write-Verbose -Message $($AzureWallpaperFiles | Out-String)
 
-            ## Cycle trough all monitors
-            Format-Spacer -Message 'Processing Monitors' -Type 'Verbose'
-            ForEach($Monitor in $Monitors) {
+                ## Set default wallpaper based on specified resolution, if multiple matches are found the first one is selected
+                [psobject]$DefaultWallpaper = $AzureWallpaperFiles | Where-Object -Property 'Name' -match $DefaultResolution | Select-Object -First 1
+                Format-Spacer -Message 'Default Wallpaper' -Type 'Verbose'
+                Write-Verbose -Message $($DefaultWallpaper | Out-String)
 
-                ## Set default wallpaper path and write verbose monitor name
-                $LocalWallpaperPath = $DefaultWallpaperPath
-                Format-Spacer -Message $($Monitor.Name) -Type 'Verbose' -AddEmptyRow 'After'
+                ## Set assumed local wallpaper path in order to check if it's already downloaded and set
+                [string]$LocalWallpaperPath = Join-Path -Path $Path -ChildPath $DefaultWallpaper.Name
 
-                ## Get monitor assigned wallpaper path
-                $MonitorWallpaperPath = $WallpaperCommand::GetWallpaper($Monitor.Index) | Select-Object -ExpandProperty 'Path'
-                Write-Verbose -Message "Current wallpaper path is $MonitorWallpaperPath"
+                ## Cycle trough all monitors
+                Format-Spacer -Message 'Processing Monitors' -Type 'Verbose'
+                ForEach ($Monitor in $Monitors) {
 
-                ## Match azure wallpaper name with monitor resolution
-                $AzureWallpaperMatch = $AzureWallpaperFiles | Where-Object -Property 'Name' -match $Monitor.Resolution
+                    ## Write verbose monitor name
+                    Format-Spacer -Message $($Monitor.Name) -Type 'Verbose' -AddEmptyRow 'After'
 
-                ## If wallpaper matches set LocalWallpaper
-                If ($AzureWallpaperMatch) {
-                    Write-Verbose -Message "Azure wallpaper $AzureWallpaperMatch.Name matches monitor resolution $Monitor.Resolution."
-                    $LocalWallpaperPath = Join-Path -Path $Path -ChildPath $AzureWallpaperMatch.Name
+                    ## Get monitor assigned wallpaper path
+                    $MonitorWallpaperPath = $WallpaperCommand::GetWallpaper($Monitor.Index) | Select-Object -ExpandProperty 'Path'
+                    Write-Verbose -Message "Current Wallpaper Path is $MonitorWallpaperPath"
+
+                    ## Match azure wallpaper name with monitor resolution and select only the first match
+                    $AzureWallpaperMatch = $AzureWallpaperFiles | Where-Object -Property 'Name' -match $Monitor.Resolution | Select-Object -First 1
+                    Format-Spacer -Message 'Matching Azure Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
+
+                    ## If there's no match, use the default wallpaper list
+                    If (-not $AzureWallpaperMatch) {
+                        Write-Warning -Message "No Wallpapers matching monitor resolution were found. Setting default wallpaper..."
+                        $LocalWallpaperPath = Join-Path -Path $Path -ChildPath $DefaultWallpaper.Name
+                    }
+                    Else { Write-Verbose -Message $($AzureWallpaperMatch | Out-String) }
+
+                    ## If wallpaper does not match, download and set default wallpaper if its not already assigned or the 'Force' is specified
+                    If (($MonitorWallpaperPath -ne $LocalWallpaperPath) -or $Force) {
+
+                        ## Download wallpaper
+                        Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
+                        $DownloadWallpaper = Get-AzureStorageFileContent -Url ($DefaultWallpaper).Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                        Write-Verbose -Message $($DownloadWallpaper | Out-String)
+
+                        ## Set wallpaper
+                        Format-Spacer -Message 'Setting Wallpaper' -Type 'Verbose' -AddEmptyRow 'After'
+                        Write-Verbose -Message "Setting Wallpaper [$DefaultWallpaperUrl] with Position [$Position], on Monitor [$($Monitor.Name)]..."
+                        $SetWallpaper = $WallpaperCommand::SetWallpaper($Monitor.Index, $LocalWallpaperPath, $Position) -Replace('S_OK', 'Successful')
+
+                        ## Set default output hashtable
+                        $Output = [ordered]@{ 'SetWallpaper' = $SetWallpaper }
+
+                        ## Throw error if setting wallpaper fails
+                        If ($SetWallpaper -ne 'Successful') { Throw $($Output | Out-String) }
+                    }
+                    Else { $Output = "`nWallpaper [$LocalWallpaperPath] with Position [$Position] on Monitor [$($Monitor.Name)] is already set!" }
                 }
+            }
 
-                ## If wallpaper does not match, download and set wallpaper if its not already assigned or the 'Force' is specified
-                If ($MonitorWallpaperPath -ne $LocalWallpaperPath -or $Force ) {
+            ## If Slideshow Parameter Set is used, set slideshow
+            ElseIf ($PsCmdlet.ParameterSetName -eq 'SlideShow') {
 
-                    #  Download wallpaper
-                    Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
-                    $DownloadWallpaper = Get-AzureStorageFileContent -Url $DefaultWallpaperUrl -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                ## Get primary monitor
+                $PrimaryMonitor = $MonitorCommand::GetMonitor() | Where-Object -Property  'Index' -eq 0
+                Format-Spacer -Message 'Primary Monitor' -Type 'Verbose' -AddEmptyRow 'Before'
+                Write-Verbose -Message $($PrimaryMonitor | Out-String)
+
+                ## Get Azure wallpapers
+                [psobject]$AzureWallpaperFiles = Get-AzureStorageFile -Url $Url -SasToken $SasToken
+                Format-Spacer -Message 'Azure Wallpaper List' -Type 'Verbose'
+                Write-Verbose -Message $($AzureWallpaperFiles | Out-String)
+
+                ## Get the default wallpaper list based on specified resolution
+                [psobject]$DefaultWallpaperList = $AzureWallpaperFiles | Where-Object -Property 'Name' -match $DefaultResolution
+                Format-Spacer -Message 'Default Azure Wallpaper List' -Type 'Verbose'
+                Write-Verbose -Message $($DefaultWallpaperList | Out-String)
+
+                ## Match azure wallpaper names with monitor resolution
+                $AzureWallpaperMatch = $AzureWallpaperFiles | Where-Object -Property 'Name' -match $PrimaryMonitor.Resolution
+                Format-Spacer -Message 'Matching Azure Wallpaper List' -Type 'Verbose' -AddEmptyRow 'After'
+
+                ## If there's no match, use the default wallpaper list
+                If (-not $AzureWallpaperMatch) {
+                    Write-Warning -Message "No Wallpapers matching monitor resolution were found. Setting default wallpaper list..."
+                    $AzureWallpaperMatch = $DefaultWallpaperList
+                }
+                Else { Write-Verbose -Message $($AzureWallpaperMatch | Out-String) }
+
+                ## Download the specified wallpaper set
+                Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
+                ForEach ($AzureWallpaper in $AzureWallpaperMatch) {
+                    $DownloadWallpaper = Get-AzureStorageFileContent -Url $AzureWallpaper.Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
                     Write-Verbose -Message $($DownloadWallpaper | Out-String)
-
-                    #  Set wallpaper
-
-                    Format-Spacer -Message 'Setting Wallpaper' -Type 'Verbose' -AddEmptyRow 'After'
-                    Write-Verbose "Setting $LocalWallpaperPath with $Position position, on $($Monitor.Name)..."
-                    $SetWallpaper = $WallpaperCommand::SetWallpaper($Monitor.Index, $LocalWallpaperPath, $Position)
-
-                    ## Assemble result
-                    [string]$Result = "Successfully set $LocalWallpaperPath on $($Monitor.Name)"
                 }
-                Else {
 
-                    ## Assemble result
-                    [string]$Result = "$LocalWallpaperPath as $Position on $($Monitor.Name) is already set!"
+                ## Set the wallpaper slideshow
+                Format-Spacer -Message 'Setting Wallpaper SlideShow' -Type 'Verbose' -AddEmptyRow 'After'
+                Write-Verbose "Setting slideshow, on $($PrimaryMonitor.Name) to $Path with SlideShowOptions [$SlideShowOptions] and AdvanceInterval [$SlideShowInterval] (Seconds)..."
+                $SetWallpaperSlideShowOptions = $WallpaperCommand::SetSlideshowOptions($SlideShowOptions, $SlideShowInterval) -Replace('S_OK', 'Successful')
+                $SetWallpaperSlideShow = $WallpaperCommand::SetSlideshowPath($Path) -Replace('S_OK', 'Successful')
+
+                ## Set default output hashtable
+                $Output = [ordered]@{
+                    'SetWallpaperSlideShowOptions' = $SetWallpaperSlideShowOptions
+                    'SetWallpaperSlideShow'        = $SetWallpaperSlideShow
                 }
+
+                ## Throw error if the operation failed
+                If ($SetWallpaperSlideShowOptions -ne 'Successful' -or $SetWallpaperSlideShow -ne 'Successful') { Throw $($Output | Out-String) }
             }
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            Throw $PSItem
         }
         Finally {
-            Write-Output -InputObject $Result
-            Format-Spacer -Message 'Exit Script' -Type 'Verbose' -AddEmptyRow 'Before'
+            Write-Output -InputObject $($Output | Out-String)
+            Format-Spacer -Message 'Exit Script' -Type 'Verbose'
         }
     }
     End {
@@ -1452,18 +1584,16 @@ Try {
     ## Set parameters according to script parameters.
     ## !! Add parameters values here if using in-script parameters. Don't forget to comment the script parameter section !!
     [hashtable]$Parameters = @{
-        Path = $Path
-        DefaultWallpaper = $DefaultWallpaper
-        Position = $Position
-        Url = $Url
-        SasToken = $SasToken
-        Force = $Force
+        Path               = $Path
+        DefaultResolution  = $DefaultResolution
+        Position           = $Position
+        Url                = $Url
+        SasToken           = $SasToken
+        SlideShowShuffle   = $SlideShowShuffle
+        SlideShowInterval  = $SlideShowInterval
+        Force              = $Force
+        Verbose            = $VerbosePreference
     }
-
-    ## Declare default wallpaper paths
-    [string]$DefaultWallpaperUrl = -join ($Parameters.Url, '/', $Parameters.DefaultWallpaper)
-    [string]$DefaultWallpaperPath = Join-Path -Path $Parameters.Path -ChildPath $Parameters.DefaultWallpaper
-
 
     ## Run Set-WindowsAzureWallpaper with declared parameters
     Set-WindowsAzureWallpaper @Parameters

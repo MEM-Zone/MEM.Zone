@@ -1,5 +1,11 @@
 # Set-WindowsAzureWallpaper release history
 
+## 2.0.0 - 2021-12-22
+
+* Added support for Setting a Wallpaper SlideShow.
+* Improved verbose output
+* Changed the `DefaultWallpaper` parameter to `DefaultResolution` so it can be used with the `SlideShow` implementation.
+* Simplified some of the code
 
 ## 1.0.2 - 2021-12-09
 
