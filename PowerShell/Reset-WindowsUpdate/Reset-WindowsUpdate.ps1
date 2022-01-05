@@ -61,20 +61,20 @@
 Param (
     [Parameter(Mandatory=$true,Position=0)]
     [ValidateNotNullorEmpty()]
-    [ValidateSet('DetectAndReset','Detect','Reset','ResetStandalone')]
+    [ValidateSet("DetectAndReset","Detect","Reset","ResetStandalone")]
     [string]$Action,
     [Parameter(Mandatory=$false,Position=1)]
     [ValidateNotNullorEmpty()]
-    [string]$LogName = 'Application',
+    [string]$LogName = "Application",
     [Parameter(Mandatory=$false,Position=2)]
     [ValidateNotNullorEmpty()]
-    [string]$Source = 'ESENT',
+    [string]$Source = "ESENT",
     [Parameter(Mandatory=$false,Position=3)]
     [ValidateNotNullorEmpty()]
-    [string]$EventID = '623' ,
+    [string]$EventID = "623",
     [Parameter(Mandatory=$false,Position=4)]
     [ValidateNotNullorEmpty()]
-    [string]$EntryType = 'Error',
+    [string]$EntryType = "Error",
     [Parameter(Mandatory=$false,Position=5)]
     [ValidateNotNullorEmpty()]
     [int]$LimitDays = 3,
@@ -483,7 +483,7 @@ Switch ($Action) {
             Write-Output -InputObject "No reset possible. Clear EventLog [$LogName] error. $($_.Exception.Message)"
         }
     }
-    'RepairStandalone' {
+    'ResetStandalone' {
 
         ##  Reset windows update component
         Reset-WindowsUpdate -ErrorAction 'SilentlyContinue'
