@@ -1,5 +1,10 @@
 # Select-Certificate release history
 
+## 3.0.0 - 2022-02-09
+
+* Added TemplateOID support
+* Minor code optimisations
+
 ## 2.0.0 - 2021-09-29
 
 * Added `Filter` parameter

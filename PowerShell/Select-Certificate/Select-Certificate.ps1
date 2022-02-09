@@ -8,7 +8,7 @@
 .PARAMETER SerialNumber
     Specifies the Serial Number of the certificate to be selected.
 .PARAMETER Filter
-    Specify the filter to use when searching for the certificate.
+    Specify the filter to use when searching for the certificate. !! You need to use single quotes to specify the filter parameters !!
     Valid Filter Parameters:
         'EnhancedKeyUsageList'
         'DnsNameList'
@@ -21,6 +21,7 @@
         'Version'
         'Issuer'
         'Subject'
+        'TemplateOID'
     Valid Filter Syntax:
         "Issuer -match '*IssuerName*' -and Subject -match $Env:ComputerName -or Thumbprint -eq '5DA5BAA64650769F1279BF4CF80532AFB471CA7A'"
 .PARAMETER StoreLocation
@@ -70,7 +71,13 @@
 .EXAMPLE
     Select-Certificate.ps1 -SerialNumber '61ec50244f40eeba74eba0d889eb37667' -StoreName "'TrustedPublisher','Root'"
 .EXAMPLE
-    Select-Certificate.ps1 -Filter 'EnhancedKeyUsageList -match "Client Authentication" -and Issuer -match "*SomeCA*" -and Subject -match "$Env:ComputerName" -or Thumbprint -eq "5DA5BAA64650769F1279BF4CF80532AFB471CA7A"' -StoreName 'My'
+    [hashtable]$ScriptParameters = @{
+        Filter         = "Subject -match '$Env:ComputerName' -and Issuer -match 'SomeCA' -and TemplateOID -eq '1.3.6.1.4.1.311.21.8.15345926.10523111.1328283.12369231.6977377.105.13507483.11294707'"
+        StoreLocation  = "LocalMachine"
+        StoreName      = "My"
+        Summarization  = "Off"
+    }
+    Select-Certificate.ps1 @ScriptParameters
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
@@ -97,6 +104,7 @@
 ## Set script requirements
 #Requires -Version 3.0
 
+<#
 #region Coment section if using inline variables
 [CmdletBinding()]
 Param (
@@ -133,17 +141,17 @@ Param (
     [string]$Summarization = "On"
 )
 #endregion
+#>
 
-<#
 #region uncomment section if using inline variables, add keys and values
 [CmdletBinding()]
 Param ()
 [hashtable]$ScriptParameters = @{
-    Filter         = "Issuer -like '*SomeCA*' -and Subject -match '$Env:ComputerName' -and '$(Get-Date)' -ge '[datetime]( NotAfter )'"
+    Filter         = "Subject -match '$Env:ComputerName' -and Issuer -match 'adidas G2 Sub CA 01' -and TemplateOID -eq '1.3.6.1.4.1.311.21.8.15345926.10523111.1328283.12369231.6977377.105.13507483.11294707'"
     StoreLocation  = "LocalMachine"
     StoreName      = "My"
-    Summarization  = "On"
-}#>
+    Summarization  = "Off"
+}
 
 ## For testing purposes
 #$VerbosePreference = 'Continue'
@@ -273,7 +281,7 @@ Function Select-Certificate {
 .PARAMETER SerialNumber
     Specifies the Serial Number of the certificate to be selected.
 .PARAMETER Filter
-    Specify the filter to use when searching for the certificate.
+    Specify the filter to use when searching for the certificate. !! You need to use single quotes to specify the filter parameters !!
     Valid Filter Parameters:
         'EnhancedKeyUsageList'
         'DnsNameList'
@@ -286,6 +294,7 @@ Function Select-Certificate {
         'Version'
         'Issuer'
         'Subject'
+        'TemplateOID'
     Valid Filter Syntax:
         "Issuer -match '*IssuerName*' -and Subject -match $Env:ComputerName -or Thumbprint -eq '5DA5BAA64650769F1279BF4CF80532AFB471CA7A'"
 .PARAMETER StoreLocation
@@ -328,7 +337,13 @@ Function Select-Certificate {
 .EXAMPLE
     Select-Certificate.ps1 -SerialNumber '61ec50244f40eeba74eba0d889eb37667' -StoreName "'TrustedPublisher','Root'"
 .EXAMPLE
-    Select-Certificate -Filter 'EnhancedKeyUsageList -match "Client Authentication" -and Issuer -match "*SomeCA*" -and Subject -match "$Env:ComputerName" -or Thumbprint -eq "5DA5BAA64650769F1279BF4CF80532AFB471CA7A"' -StoreName 'My'
+    [hashtable]$ScriptParameters = @{
+        Filter         = "Subject -match '$Env:ComputerName' -and Issuer -match 'SomeCA' -and TemplateOID -eq '1.3.6.1.4.1.311.21.8.15345926.10523111.1328283.12369231.6977377.105.13507483.11294707'"
+        StoreLocation  = "LocalMachine"
+        StoreName      = "My"
+        Summarization  = "Off"
+    }
+    Select-Certificate.ps1 @ScriptParameters
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
@@ -367,7 +382,7 @@ Function Select-Certificate {
     Begin {
 
         ## Set valid filter parameters
-        [string[]]$ValidParameters = @('EnhancedKeyUsageList', 'FriendlyName', 'NotAfter', 'NotBefore', 'HasPrivateKey', 'SerialNumber', 'Thumbprint', 'Version', 'Issuer', 'Subject')
+        [string[]]$ValidParameters = @('EnhancedKeyUsageList', 'FriendlyName', 'NotAfter', 'NotBefore', 'HasPrivateKey', 'SerialNumber', 'Thumbprint', 'Version', 'Issuer', 'Subject', 'TemplateOID')
 
         ## Cleanup serial number
         If ($SerialNumber) { $SerialNumber = $SerialNumber -replace '\s','' }
@@ -389,20 +404,36 @@ Function Select-Certificate {
             ## Set filter depending on the parameter set
             If ($($PSCmdlet.ParameterSetName) -eq 'Subject') { $Filter =  [Scriptblock]::Create($PSItem.Subject -eq $SubjectName) }
             If ($($PSCmdlet.ParameterSetName) -eq 'Serial')  { $Filter =  [Scriptblock]::Create($PSItem.SerialNumber -eq $SerialNumber) }
-            #  Build filter by prefixing each valid parameter with '$PSItem.' and then converting the output to a scriptblock
+
+            ## Build filter by prefixing each valid parameter with '$PSItem.' and then converting the output to a scriptblock.
+            #  If 'TemplateOID' is specified, we check if it matches the certificate's template and return the OID for matching with the 'TemplateOID' parameter value.
             If ($($PSCmdlet.ParameterSetName) -eq 'Filter')  {
                 #  Split filter into individual items
                 [string[]]$FilterParameters = $Filter.Split('')
                 Write-Debug -Message "-- Filter Items -- `n$Filter.Split('')"
                 #  Check for valid parameters
-                [string]$FilterResolved = $(ForEach ($Parameter in $FilterParameters) {
-                    #  Prefix parameters with '$PSItem.'
-                    If ($Parameter -in $ValidParameters) { $Parameter.Replace($Parameter, ('$PsItem.' + $Parameter)) }
-                    #  If the item is not in the valid parameter list, it's probably not a parameter, so just return it
-                    Else { $Parameter }
+                [string]$FilterResolved = $(
+                    ForEach ($Parameter in $FilterParameters) {
+                        #  Prefix parameters with '$PSItem.'
+                        If ($Parameter -in $ValidParameters) {
+                            #  Check if parameter is 'TemplateOID' and if so, check if it matches the certificate's Template OID
+                            If ($Parameter -eq 'TemplateOID') {
+                                #  Extract the template value from the filter
+                                [regex]$Pattern = "(?:Template)[^']*.([^']*)"
+                                [string]$TemplateOID = ($Filter | Select-String -Pattern $Pattern).Matches.Groups[1].Value
+                                #  Build the certificate matching query. This should return the OID of matching certificates.
+                                [string]$GetCertificateTemplate = '$(If ($PsItem.Thumbprint -in $($CertificateStore.Certificates.Find(9, $TemplateOID, $false).ThumbPrint)) { $TemplateOID } Else { $null })'
+                                $Parameter.Replace($Parameter, $($GetCertificateTemplate))
+                            }
+                            Else { $Parameter.Replace($Parameter, ('$PsItem.' + $Parameter)) }
+                        }
+                        #  If the item is not in the valid parameter list, it's probably not a parameter, so just return it so it can be used in the filter.
+                        Else { $Parameter }
+                    }
                 #  Join the filter items back together into a single string
-                }) -join ' '
-                #  Convert the resolved filter to a scriptblock
+                ) -join ' '
+
+                ## Convert the resolved filter to a scriptblock
                 [Scriptblock]$Filter = [Scriptblock]::Create($FilterResolved)
                 Write-Verbose -Message "-- Filter Resolved -- `n$FilterResolved"
             }
@@ -459,7 +490,7 @@ Try {
         ## Set the invoke parameter set to the current store
         $InvokeParameters = $ScriptParameters
         $InvokeParameters['StoreName'] = $Store
-        Write-Verbose -Message "-- Invoke parameters -- n`$($InvokeParameters | Out-String)"
+        Write-Verbose -Message "-- Invoke parameters -- `n$($InvokeParameters | Out-String)"
 
         ## Get the certificate details and add the store name to the result object
         Write-Verbose "Searching $Store Store..."
