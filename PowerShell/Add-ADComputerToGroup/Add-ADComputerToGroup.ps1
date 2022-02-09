@@ -3,8 +3,6 @@
     Adds Active Directory devices to a group.
 .DESCRIPTION
     Adds Active Directory devices to a group, if they match a specified criteria and are not already part of the group.
-.PARAMETER LogFilePath
-    Specifies to save the matching device list to specified log folder. Default is 'WindowsRoot\Logs\ScriptName.log'.
 .PARAMETER ConfigFilePath
     Specifies the script configuration json file path.
     Default is: 'ScriptPath\ScriptName.json'.
@@ -21,6 +19,9 @@
     System.String
 .NOTES
     Created by Ioan Popovici
+    !! IMPORTANT !!
+        Multiple domain entries using the same group are not supported!
+        If you use the same group name in multiple entries, the last entry will overwrite the previous ones.
 .LINK
     https://MEM.Zone/Add-ADComputerToGroup
 .LINK
@@ -44,7 +45,7 @@
 #region VariableDeclaration
 
 ## Get script parameters
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess=$true)]
 Param (
     [Parameter(Mandatory=$false,HelpMessage='Specify script json config file path.',Position=0)]
     [ValidateNotNullorEmpty()]
@@ -53,43 +54,35 @@ Param (
     [Parameter(Mandatory=$false,HelpMessage='Specify to create a new config json file.',Position=1)]
     [ValidateScript({ If ([string]::IsNullOrEmpty($ConfigFilePath)) { Throw 'ConfigFilePath parameter is mandatory, when using this switch!' } })]
     [Alias('NewConfig')]
-    [switch]$NewConfigFile,
-    [Parameter(Mandatory=$false,HelpMessage='Specify a log file path.',Position=3)]
-    [ValidateNotNullorEmpty()]
-    [Alias('Log')]
-    [string]$LogFilePath = $null
+    [switch]$NewConfigFile
 )
 
 ## Get script path, name and configuration file path
 [string]$ScriptName       = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
 [string]$ScriptFullName   = [System.IO.Path]::GetFullPath($MyInvocation.MyCommand.Definition)
-If ([string]::IsNullOrEmpty($ConfigFilePath)) { $ConfigFilePath = $ScriptFullName.Replace('.ps1', '.json') }
+If ([string]::IsNullOrEmpty($ConfigFilePath)) { $ConfigFilePath = [IO.Path]::ChangeExtension($ScriptFullName, 'json') }
 
 ## Get Show-Progress steps
-$ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Command' -and $_.Content -eq 'Show-Progress' }).Count)
+$ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Command' -and $PSItem.Content -eq 'Show-Progress' }).Count)
 ## Set Show-Progress steps
 $Script:Steps = $ProgressSteps
 $Script:Step  = 0
 
 ## Set script global variables
+$Script:RunPhase         = 'Main'
 $Script:LoggingOptions   = @('Host', 'File', 'EventLog')
 $Script:LogName          = 'Endpoint Management Scripts'
 $Script:LogSource        = $ScriptName
 $Script:LogDebugMessages = $false
-$Script:LogFileDirectory = If ([string]::IsNullOrEmpty($LogFilePath)) { $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $Script:LogName)) } Else { Join-Path -Path $LogFilePath -ChildPath $Script:LogName }
+$Script:LogFileDirectory = Split-Path -Path $ScriptFullName -Parent
+$Script:LogFilePath      = [IO.Path]::ChangeExtension($ScriptFullName, 'log')
 
-## Specify new table headers
-$NewTableHeaders = [ordered]@{
-    'Security Identifier' = 'SID'
-    'Device Name'         = 'Name'
-    'Domain'              = 'Server'
-    'Destination Group'   = 'Group'
-    'Operating System'    = 'OperatingSystem'
-    'Path (DN)'           = 'DistinguishedName'
-    'Operation Result'    = 'Operation'
-    'Date'                = 'Date'
-    'Time'                = 'Time'
-}
+## Initialize ordered hashtables
+[System.Collections.Specialized.OrderedDictionary]$HTMLReportConfig = @{}
+[System.Collections.Specialized.OrderedDictionary]$DomainConfig     = @{}
+[System.Collections.Specialized.OrderedDictionary]$NewTableHeaders  = @{}
+[System.Collections.Specialized.OrderedDictionary]$Params           = @{}
+
 
 #endregion
 ##*=============================================
@@ -114,13 +107,13 @@ Function Resolve-Error {
     The list of properties to display from the error record. Use "*" to display all properties.
     Default list of error properties is: Message, FullyQualifiedErrorId, ScriptStackTrace, PositionMessage, InnerException
 .PARAMETER GetErrorRecord
-    Get error record details as represented by $_.
+    Get error record details as represented by $PSItem.
 .PARAMETER GetErrorInvocation
-    Get error record invocation information as represented by $_.InvocationInfo.
+    Get error record invocation information as represented by $PSItem.InvocationInfo.
 .PARAMETER GetErrorException
-    Get error record exception details as represented by $_.Exception.
+    Get error record exception details as represented by $PSItem.Exception.
 .PARAMETER GetErrorInnerException
-    Get error record inner exception details as represented by $_.Exception.InnerException. Will retrieve all inner exceptions if there is more than one.
+    Get error record inner exception details as represented by $PSItem.Exception.InnerException. Will retrieve all inner exceptions if there is more than one.
 .EXAMPLE
     Resolve-Error
 .EXAMPLE
@@ -348,7 +341,7 @@ Function Write-Log {
         [string]$ScriptSection = $Script:RunPhase,
         [Parameter(Mandatory = $false, Position = 4)]
         [ValidateSet('CMTrace', 'Legacy')]
-        [string]$LogType = 'CMTrace',
+        [string]$LogType = 'Legacy',
         [Parameter(Mandatory = $false, Position = 5)]
         [ValidateSet('Host', 'File', 'EventLog', 'None')]
         [string[]]$LoggingOptions = $Script:LoggingOptions,
@@ -360,7 +353,7 @@ Function Write-Log {
         [string]$LogFileName = $($Script:LogSource + '.log'),
         [Parameter(Mandatory = $false, Position = 8)]
         [ValidateNotNullorEmpty()]
-        [int]$MaxLogFileSizeMB = '4',
+        [int]$MaxLogFileSizeMB = 5,
         [Parameter(Mandatory = $false, Position = 9)]
         [ValidateNotNullorEmpty()]
         [string]$LogName = $Script:LogName,
@@ -396,14 +389,12 @@ Function Write-Log {
         [boolean]$WriteEvent = $false
         [boolean]$DisableLogging = $false
         [boolean]$ExitLoggingFunction = $false
-        If (('Host' -in $LoggingOptions) -and (-not ($VerboseMessage -or $DebugMessage))) { $WriteHost = $true }
+        If ('Host' -in $LoggingOptions -and -not ($VerboseMessage -or $DebugMessage)) { $WriteHost = $true }
         If ('File' -in $LoggingOptions) { $WriteFile = $true }
         If ('EventLog' -in $LoggingOptions) { $WriteEvent = $true }
         If ('None' -in $LoggingOptions) { $DisableLogging = $true }
         #  Check if the script section is defined
         [boolean]$ScriptSectionDefined = [boolean](-not [string]::IsNullOrEmpty($ScriptSection))
-        #  Check if the source is defined
-        [boolean]$SourceDefined = [boolean](-not [string]::IsNullOrEmpty($Source))
         #  Check if the event log and event source exit
         [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
         [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
@@ -520,7 +511,7 @@ Function Write-Log {
         ## Create the directory where the log file will be saved
         If (-not (Test-Path -LiteralPath $LogFileDirectory -PathType 'Container')) {
             Try {
-                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop'
+                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop' -WhatIf:$false
             }
             Catch {
                 [boolean]$ExitLoggingFunction = $true
@@ -588,23 +579,27 @@ Function Write-Log {
             }
 
             ## Write the log entry to the log file and event log if logging is not currently disabled
-            If (-not $DisableLogging -and $WriteFile) {
-                ## Write to file log
-                Try {
-                    $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop'
-                }
-                Catch {
-                    If (-not $ContinueOnError) {
-                        Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+            If ((-not $ExitLoggingFunction) -and (-not $DisableLogging)) {
+                #  Write to file log
+                If ($WriteFile) {
+                    Try {
+                        $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop' -WhatIf:$false
+                    }
+                    Catch {
+                        If (-not $ContinueOnError) {
+                            Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                        }
                     }
                 }
-                ## Write to event log
-                Try {
-                    & $WriteToEventLog -lMessage $ConsoleLogLine -lName $LogName -lSource $Source -lSeverity $Severity
-                }
-                Catch {
-                    If (-not $ContinueOnError) {
-                        Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                #  Write to event log
+                If ($WriteEvent) {
+                    Try {
+                        & $WriteToEventLog -lMessage $ConsoleLogLine -lName $LogName -lSource $Source -lSeverity $Severity
+                    }
+                    Catch {
+                        If (-not $ContinueOnError) {
+                            Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                        }
                     }
                 }
             }
@@ -622,18 +617,18 @@ Function Write-Log {
                 If (($LogFileSizeMB -gt $MaxLogFileSizeMB) -and ($MaxLogFileSizeMB -gt 0)) {
                     ## Change the file extension to "lo_"
                     [string]$ArchivedOutLogFile = [IO.Path]::ChangeExtension($LogFilePath, 'lo_')
-                    [hashtable]$ArchiveLogParams = @{ ScriptSection = $ScriptSection; Source = ${CmdletName}; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; WriteHost = $WriteHost; ContinueOnError = $ContinueOnError; PassThru = $false }
+                    [hashtable]$ArchiveLogParams = @{ ScriptSection = $ScriptSection; Source = $Source; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; ContinueOnError = $ContinueOnError; PassThru = $false }
 
                     ## Log message about archiving the log file
                     $ArchiveLogMessage = "Maximum log file size [$MaxLogFileSizeMB MB] reached. Rename log file to [$ArchivedOutLogFile]."
-                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams
 
                     ## Archive existing log file from <filename>.log to <filename>.lo_. Overwrites any existing <filename>.lo_ file. This is the same method SCCM uses for log files.
-                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop'
+                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop' -WhatIf:$false
 
                     ## Start new log file and Log message about archiving the old log file
                     $NewLogMessage = "Previous log file was renamed to [$ArchivedOutLogFile] because maximum log file size of [$MaxLogFileSizeMB MB] was reached."
-                    Write-Log -Message $NewLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $NewLogMessage @ArchiveLogParams
                 }
             }
         }
@@ -662,6 +657,8 @@ Function Show-Progress {
     Specifies the current operation.
 .PARAMETER Step
     Specifies the progress step. Default: $Script:Step ++.
+.PARAMETER Steps
+    Specifies the progress steps. Default: $Script:Steps ++.
 .PARAMETER ID
     Specifies the progress bar id.
 .PARAMETER Delay
@@ -691,8 +688,8 @@ Function Show-Progress {
     [string]$ScriptName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Definition)
     [string]$ScriptFullName = Join-Path -Path $ScriptPath -ChildPath $ScriptName
     #  Get progress steps
-    $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Command' -and $_.Content -eq 'Show-Progress' }).Count)
-    $ForEachSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Keyword' -and $_.Content -eq 'ForEach' }).Count)
+    $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Command' -and $PSItem.Content -eq 'Show-Progress' }).Count)
+    $ForEachSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Keyword' -and $PSItem.Content -eq 'ForEach' }).Count)
     #  Set progress steps
     $Script:Steps = $ProgressSteps - $ForEachSteps
     $Script:Step = 0
@@ -730,21 +727,37 @@ Function Show-Progress {
         [Parameter(Mandatory=$false,Position=4)]
         [ValidateNotNullorEmpty()]
         [Alias('ste')]
-        [int]$Step = $Script:Step ++,
+        [int]$Step = $Script:Step,
         [Parameter(Mandatory=$false,Position=5)]
+        [ValidateNotNullorEmpty()]
+        [Alias('sts')]
+        [int]$Steps = $Script:Steps,
+        [Parameter(Mandatory=$false,Position=6)]
         [ValidateNotNullorEmpty()]
         [Alias('del')]
         [string]$Delay = 0,
-        [Parameter(Mandatory=$false,Position=5)]
+        [Parameter(Mandatory=$false,Position=7)]
         [ValidateNotNullorEmpty()]
         [Alias('lp')]
         [switch]$Loop
     )
     Begin {
-        If ($Loop) { $Script:Steps ++ }
-        If ($Script:Steps -eq 0) { $Script:Steps ++ }
+        If ($Loop) {
+            $Steps ++
+            $Script:Steps ++
+        }
+        If ($Step -eq 0) {
+            $Step ++
+            $Script:Step ++
+            $Steps ++
+            $Script:Steps ++
+        }
+        If ($Steps -eq 0) {
+            $Steps ++
+            $Script:Steps ++
+        }
 
-        $PercentComplete = $($($Step / $Steps) * 100)
+        [int]$PercentComplete = $($($Step / $Steps) * 100)
 
         ## Debug information
         Write-Debug -Message "Percent Step: $Step"
@@ -758,7 +771,7 @@ Function Show-Progress {
             Start-Sleep -Milliseconds $Delay
         }
         Catch {
-            Throw (New-Object System.Exception("Could not Show progress status [$Status]! $($_.Exception.Message)", $_.Exception))
+            Throw (New-Object System.Exception("Could not Show progress status [$Status]! $($PSItem.Exception.Message)", $PSItem.Exception))
         }
     }
 }
@@ -804,7 +817,7 @@ Function New-JsonConfigurationFile {
         "ReportFooter":  "For more information write to: \u003ci\u003e\u003ca href = \u0027mailto:servicedesk@company.com\u0027\u003eit-servicedesk@company.com\u003c/a\u003e\u003c/i\u003e"
     },
     "DomainConfig":  {
-            "ULBSDomainConfig":  {
+        "ULBSDomainConfig":  {
             "Description":  "Company Devices",
             "Server":       "companydomain.com",
             "Group":        "US-CertificateAutoenrollment",
@@ -812,6 +825,7 @@ Function New-JsonConfigurationFile {
                 "OU=Computers,OU=DEPARTMENT,OU=DIVISION,OU=COMPANY ROOT,DC=company,DC=com",
                 "OU=Special Computers,OU=DEPARTMENT,OU=DIVISION,OU=COMPANY ROOT,DC=company,DC=com"
             ],
+            "SearchScope":  "Subtree",
             "Filter":  "operatingSystem -notlike \"*server*\" -and objectClass -eq \"computer\"",
             "SkipOSCheck":  false
         }
@@ -859,10 +873,14 @@ Function ConvertTo-HashtableFromPsCustomObject {
         [pscustomobject]$PsCustomObject
     )
     Begin {
-        [hashtable]$Output = [ordered]@{}
+
+        ## Preservers hashtable parameter order
+        [System.Collections.Specialized.OrderedDictionary]$Output = @{}
     }
     Process {
-        [object]$ObjectProperties = Get-Member -InputObject $PsCustomObject -MemberType 'NoteProperty'
+
+        ## The '.PsObject.Members' method preservers the order of the members, Get-Member does not.
+        [object]$ObjectProperties = $PsCustomObject.PsObject.Members | Where-Object -Property 'MemberType' -eq 'NoteProperty'
         ForEach ($Property in $ObjectProperties) { $Output.Add($Property.Name, $PsCustomObject.$($Property.Name)) }
         Write-Output -InputObject $Output
     }
@@ -1135,6 +1153,91 @@ Function Format-HTMLReport {
 }
 #endregion
 
+#region Function Get-ADGroupMember
+Function Get-ADGroupMember {
+<#
+.SYNOPSIS
+    Gets the members for an Active Directory group.
+.DESCRIPTION
+    Gets the members for an Active Directory group.
+.PARAMETER Server
+    Specifies the domain or server to query.
+.PARAMETER Group
+    Specifies the group to add the device to.
+.PARAMETER MemberType
+    Specifies the group members type.
+    Allowed values:
+        'User'
+        'Computer'
+.EXAMPLE
+    GetADGroupMember -Server 'somedomain.com' -Group 'SomeGroup' -MemberType 'User'
+.EXAMPLE
+    GetADGroupMember -Server 'somedomain.com' -Group 'SomeGroup' -MemberType 'Computer'
+.INPUTS
+    None.
+.OUTPUTS
+    System.Object
+.NOTES
+    Created by Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    AD
+.FUNCTIONALITY
+    Get group members
+#>
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    Param (
+        [Parameter(Mandatory=$true,HelpMessage='Enter a valid Domain or Domain Controller.',Position=0)]
+        [ValidateNotNullorEmpty()]
+        [Alias('ServerName')]
+        [string]$Server,
+        [Parameter(Mandatory=$true,HelpMessage='Specify Group Common Name (CN).',Position=1)]
+        [ValidateNotNullorEmpty()]
+        [Alias('GroupName')]
+        [string]$Group,
+        [Parameter(Mandatory=$true,HelpMessage='Specify Group Member type (User/Computer).',Position=2)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Type')]
+        [string]$MemberType
+    )
+    Begin {
+
+        ## Print parameters if verbose is enabled
+        Write-Log -Message $PSBoundParameters.GetEnumerator() -DebugMessage
+    }
+    Process {
+        Try {
+            ## Get the group Distinguished Name (DN)
+            [string]$GroupDN = (Get-ADGroup -Server $Params.Server -Identity $Params.Group).DistinguishedName
+
+            ## Set LDAP Filter to get all users or computers (including due to group nesting) that are members of the group
+            [string]$LDAPFilter = "(&(objectCategory=$MemberType)(memberOf:1.2.840.113556.1.4.1941:=$GroupDN))"
+
+            ## Get current group members. Get-ADComputer is used because the Get-ADGroupMember, Get-ADPrincipalGroupMembershipscope, and Get-ADAccountAuthorizationGroup
+            ## cmdleds return is limited by the Active Directory Web Services to 5000 results per query by default
+            Write-Log -Message "Searching [$Server] --> [$Group] Members..." -VerboseMessage
+            If ($MemberType -eq 'Computer') {
+                $GroupMembers = Get-ADComputer -Server $Server -LDAPFilter $LDAPFilter -Properties 'SID', 'Name', 'OperatingSystem', 'DistinguishedName'
+            }
+            Else {
+                $GroupMembers = Get-ADUser -Server $Server -LDAPFilter $LDAPFilter -Properties 'SID', 'Name', 'OperatingSystem', 'DistinguishedName'
+            }
+        }
+        Catch {
+            Throw $PSItem
+        }
+        Finally {
+            Write-Output -InputObject $GroupMembers
+        }
+    }
+    End {
+    }
+}
+#endregion
+
 #region Function Add-ADDeviceToGroup
 Function Add-ADDeviceToGroup {
 <#
@@ -1146,8 +1249,17 @@ Function Add-ADDeviceToGroup {
     Specifies the domain or server to query.
 .PARAMETER Group
     Specifies the group to add the device to.
+.PARAMETER GroupMembers
+    Specifies the group members to check if the member is not already added.
+    Should be used only when getting the group membership outside the function for very large groups. Default is '$null'
 .PARAMETER SearchBase
     Specifies the search start location. Default is '$null'.
+.PARAMETER SearchScope
+    Specifies the scope of an Active Directory search. The acceptable values for this parameter are:
+        * 'Base'     or '0'
+        * 'OneLevel' or '1'
+        * 'Subtree'  or '2'
+    Default is 'Base'.
 .PARAMETER Filter
     Specifies the filtering options. Default is 'Enabled -eq $true'.
 .PARAMETER SkipOSCheck
@@ -1167,7 +1279,7 @@ Function Add-ADDeviceToGroup {
 .COMPONENT
     AD
 .FUNCTIONALITY
-    Gets Inactive Devices
+    Add Devices to a group
 #>
     [CmdletBinding(SupportsShouldProcess=$true)]
     Param (
@@ -1179,15 +1291,22 @@ Function Add-ADDeviceToGroup {
         [ValidateNotNullorEmpty()]
         [Alias('GroupName')]
         [string]$Group,
-        [Parameter(Mandatory=$false,HelpMessage='Specify OU Common Name (CN).',Position=2)]
+        [Parameter(Mandatory=$false,HelpMessage='Specify Group Mebers.',Position=2)]
+        [Alias('Members')]
+        [pscustomobject]$GroupMembers = @{},
+        [Parameter(Mandatory=$false,HelpMessage='Specify OU Common Name (CN).',Position=3)]
         [ValidateNotNullorEmpty()]
         [Alias('OU')]
-        [string[]]$SearchBase = $null,
-        [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=3)]
+        [string[]]$SearchBase = @(),
+        [Parameter(Mandatory=$false,HelpMessage='Specify a search Scope (Base, OneLevel or Subtree).',Position=4)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Scope')]
+        [string]$SearchScope = 'Base',
+        [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=5)]
         [ValidateNotNullorEmpty()]
         [Alias('FilterOption')]
         [string]$Filter = "Enabled -eq 'true'",
-        [Parameter(Mandatory=$false,HelpMessage='Specify if to skip OS check.',Position=4)]
+        [Parameter(Mandatory=$false,HelpMessage='Specify if to skip OS check.',Position=6)]
         [switch]$SkipOSCheck
     )
     Begin {
@@ -1197,64 +1316,226 @@ Function Add-ADDeviceToGroup {
     }
     Process {
         Try {
+            ## Get date and time
+            [string]$Date = (Get-Date -Format 'yyyy-dd-mm').ToString()
+            [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
 
-            ## Get current group members SIDs
-            [string[]]$GroupMembersSID = (Get-ADGroupMember -Server $Server -Identity $Group -ErrorAction 'Stop').SID.Value
-            Write-Log -Message "Processing Group [$Group] ($($GroupMembersSID.Count))..." -VerboseMessage
+            ## Get the group members if not already specified
+            If (-not $GroupMember) { $GroupMember = Get-ADGroupMember -Server $Server -Group $Group -MemberType 'Computer' }
+            Write-Log -Message "Processing [$Group] Group (Members: $($GroupMembers.Count))..." -VerboseMessage
 
-            ## Process all OUs specified in the SearchBase parameter
-            $AddADDeviceToGroup = ForEach ($OU in $SearchBase) {
+            ## Set the progress indicators for the loop
+            [int]$OUSteps = $SearchBase.Count
+            [int]$OUStep  = 0
+
+            ## Process all OUs specified in the SearchBase parameter and add mathching devices to the group
+            $AddADComputerToGroup = ForEach ($OU in $SearchBase) {
 
                 ## Show progress
-                Show-Progress -Status "Searching [$Server] --> [$OU]..." -Loop
+                [string]$Status = "Searching [$Server] --> [$OU]"
+                Show-Progress -Activity "Retrieving Devices in OU..." -Status $Status -Step $OUStep -Steps $OUSteps -ID 1
+                Write-Log -Message $Status -VerboseMessage
 
-                ## Get date and time
-                [string]$Date = (Get-Date -Format 'yyyy-dd-mm').ToString()
-                [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
+                ## Get all devices in the specified OU and tag them for 'Processing'.
+                $ADComputersInfo = Get-ADComputer -Server $Server -Filter $Filter -SearchBase $OU -SearchScope $SearchScope -Property 'SID', 'Name', 'OperatingSystem', 'DistinguishedName'
+                #  Create custom object to hold the group members
+                $ADComputers = ForEach ($ADComputer in $ADComputersInfo) {
+                    [pscustomobject]@{
+                        SID = $ADComputer.SID.Value
+                        Name = $ADComputer.Name
+                        OperatingSystem = $ADComputer.OperatingSystem
+                        Group = $Group
+                        Server = $Server
+                        DistinguishedName = $ADComputer.DistinguishedName
+                        Operation = 'Processing'
+                        Date = $Date
+                        Time = $Time
+                    }
+                }
 
-                ## Get all devices in the specified OU
-                $ADComputers = Get-ADComputer -Server $Server -Filter $Filter -SearchBase $OU -Property 'SID', 'Name', 'OperatingSystem', 'DistinguishedName' |
-                    Select-Object 'SID', 'Name', 'OperatingSystem', @{ Name='Group';Expression={$Group} }, @{ Name='Server';Expression={$Server} }, 'DistinguishedName', @{ Name='Operation';Expression={'Present'} },  @{ Name='Date';Expression={$Date} }, @{ Name='Time';Expression={$Time} }
+                ## Set the progress indicators for the loop
+                [int]$AddSteps = $ADComputers.Count
+                [int]$AddStep  = 0
 
                 ## Add the device to the group if it's not already a member
                 ForEach ($ADComputer in $ADComputers) {
 
+                    ## Add operation time to the computer object
+                    [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
+                    $ADComputer.Time = $Time
+
                     ## If SkipOScheck is not specified, skip all computers with no operating system defined
                     If (-not $SkipOSCheck -and [string]::IsNullOrWhiteSpace($ADComputer.OperatingSystem)) {
-                        $ADComputer.Operation = 'Skipped'
-                        Write-Log -Message "Skipping computer [$($ADComputer.Name)] as it has no Operating System defined..." -LoggingOptions 'EventLog' -VerboseMessage -LogDebugMessage $true
-
-                        ## Return result to the pipeline and continue with the next computer
-                        Write-Output -InputObject $ADComputer
-                        Continue
-                    }
-
-                    [string]$ADComputerSID = $ADComputer.SID.Value
-                    If ($ADComputerSID -notin $GroupMembersSID) {
 
                         ## Show progress
-                        Show-Progress -Status "Adding [$($ADComputer.Name)] --> [$Server\$Group]..." -Loop
+                        [string]$Status = "Skipping [$($ADComputer.Name)] --> [$Server\$Group]"
+                        Show-Progress -Activity "Skipping Devices as tey have no Operating System defined..." -Status $Status -Step $AddStep -Steps $AddSteps -ID 2
+                        Write-Log -Message $Status -VerboseMessage
+
+                        ## Set operation status
+                        $ADComputer.Operation = 'Skipped'
+                    }
+
+                    ## If the computer is not already a member of the group add and tag it as 'Added'
+                    ElseIf ($ADComputer.SID -notin $GroupMember.SID.Value) {
+
+                        ## Show progress
+                        [string]$Status = "Adding [$($ADComputer.Name)] --> [$Server\$Group]"
+                        Show-Progress -Activity "Adding Devices to Security Group..." -Status $Status -Step $AddStep -Steps $AddSteps -ID 2
+                        Write-Log -Message $Status -VerboseMessage
 
                         ##  Add computer to group and support for ShouldProcess
                         [boolean]$ShouldProcess = $PSCmdlet.ShouldProcess("$Server\$Group", "Add $($ADComputer.Name)")
-                        If($ShouldProcess) { Add-ADGroupMember -Server $Server -Identity $Group -Members $ADComputerSID }
+                        If ($ShouldProcess) { Add-ADGroupMember -Server $Server -Identity $Group -Members $ADComputer.SID -Confirm:$false }
                         #  If operation is successful, set the opration status to 'Added' otherwise set it to 'Failed'
-                        If ($?) { $ADComputer.Operation = 'Added' } Else { $ADComputer.Operation = 'Failed' }
-                        #  Add operation time to the computer object
-                        [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
-                        $ADComputer.Time = $Time
-
-                        ## Return result to the pipeline
-                        Write-Output -InputObject $ADComputer
+                        If ($?) { $ADComputer.Operation = 'Added' } Else { $ADComputer.Operation = 'AddFailed' }
                     }
+
+                    ## If the computer is already a member of the group tag it as 'Present'
+                    Else { $ADComputer.Operation = 'Present' }
+
+                    ## Return the computer object to the pipeline
+                    Write-Output -InputObject $ADComputer
+
+                    ## Increment the add progress step
+                    $AddStep ++
                 }
+
+                ## Increment the OU progress step
+                $OUStep ++
             }
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            Throw $PSItem
         }
         Finally {
-            Write-Output -InputObject $AddADDeviceToGroup
+            Write-Output -InputObject $AddADComputerToGroup
+        }
+    }
+    End {
+    }
+}
+#endregion
+
+#region Function Remove-ADDeviceFromGroup
+Function Remove-ADDeviceFromGroup {
+<#
+.SYNOPSIS
+    Removes an Active Directory device to a group.
+.DESCRIPTION
+    Removes an Active Directory device to a group, using a specified OU, filter and group name
+.PARAMETER Server
+    Specifies the domain or server to query.
+.PARAMETER Group
+    Specifies the group to add the device to.
+.PARAMETER GroupMembers
+    Specifies the group members to process.
+    Should be used only when getting the group membership outside the function for very large groups. Default is '$null'
+.PARAMETER SkipSID
+    Specifies whether to skip one or more SIDs. Default is '$null'.
+.EXAMPLE
+    Remove-ADDeviceFromGroup -Server 'somedomain.com' -Group 'RemoveFromThisGroup' -SkipSID 'S-1-5-32-543'
+.INPUTS
+    None.
+.OUTPUTS
+    System.Object
+.NOTES
+    Created by Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    AD
+.FUNCTIONALITY
+    Remove Devices from a group
+#>
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    Param (
+        [Parameter(Mandatory=$true,HelpMessage='Enter a valid Domain or Domain Controller.',Position=0)]
+        [ValidateNotNullorEmpty()]
+        [Alias('ServerName')]
+        [string]$Server,
+        [Parameter(Mandatory=$true,HelpMessage='Specify Group Common Name (CN).',Position=1)]
+        [ValidateNotNullorEmpty()]
+        [Alias('GroupName')]
+        [string]$Group,
+        [Parameter(Mandatory=$false,HelpMessage='Specify Group Members.',Position=2)]
+        [Alias('Members')]
+        [pscustomobject]$GroupMembers = @{},
+        [Parameter(Mandatory=$false,HelpMessage='Specify a SID or SIDs to skip.',Position=5)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Skip')]
+        [string[]]$SkipSID = @()
+    )
+    Begin {
+
+        ## Print parameters if verbose is enabled
+        Write-Log -Message $PSBoundParameters.GetEnumerator() -DebugMessage
+    }
+    Process {
+        Try {
+            ## Get date and time
+            [string]$Date = (Get-Date -Format 'yyyy-dd-mm').ToString()
+            [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
+
+            ## Get the group members if not already specified
+            If ($GroupMembers.Count -eq 0) { $GroupMembers = Get-ADGroupMember -Server $Server -Group $Group -MemberType 'Computer' }
+
+            ## Create custom object to hold the group members and tag them for 'Processing'.
+            $GroupMembers = ForEach ($GroupMember in $GroupMembers) {
+                [pscustomobject]@{
+                    SID = $GroupMember.SID.Value
+                    Name = $GroupMember.Name
+                    OperatingSystem = $GroupMember.OperatingSystem
+                    Group = $Group
+                    Server = $Server
+                    DistinguishedName = $GroupMember.DistinguishedName
+                    Operation = 'Processing'
+                    Date = $Date
+                    Time = $Time
+                }
+            }
+            Write-Log -Message "Processing [$Group] Group (Members: $($GroupMembers.Count))..." -VerboseMessage
+
+            ## Set the progress indicators for the loop
+            [int]$RemoveSteps = $GroupMembers.Count
+            [int]$RemoveStep  = 0
+
+            ## Remove devices
+            $RemoveADComputerFromGroup = ForEach ($GroupMember in $GroupMembers) {
+
+                ## Add operation time to the computer object
+                [string]$Time = (Get-Date -Format 'HH:mm:ss.fff').ToString()
+                $GroupMember.Time = $Time
+
+                ## If the computer is not the $SkipSID list, then remove it from the group
+                If ($GroupMember.SID -notin $SkipSID) {
+
+                    ## Show progress
+                    [string]$Status = "Removing [$($GroupMember.Name)] --> [$Server\$Group]"
+                    Show-Progress -Activity "Removing Devices from Security Group..." -Status $Status -Step $RemoveStep -Steps $RemoveSteps -ID 2
+                    Write-Log -Message $Status -VerboseMessage
+
+                    ##  Remove computer to group and support for ShouldProcess
+                    [boolean]$ShouldProcess = $PSCmdlet.ShouldProcess("$Server\$Group", "Remove $($GroupMember.Name)")
+                    If ($ShouldProcess) { Remove-ADGroupMember -Server $Server -Identity $Group -Members $GroupMember.SID -Confirm:$false }
+                    #  If operation is successful, set the opration status to 'Remove' otherwise set it to 'RemoveFailed'
+                    If ($?) { $GroupMember.Operation = 'Removed' } Else { $GroupMember.Operation = 'RemoveFailed' }
+
+                    ## Return result to the pipeline
+                    Write-Output -InputObject $GroupMember
+                }
+
+                ## Increment the remove progress step
+                $RemoveStep ++
+            }
+        }
+        Catch {
+            Throw $PSItem
+        }
+        Finally {
+            Write-Output -InputObject $RemoveADComputerFromGroup
         }
     }
     End {
@@ -1291,29 +1572,68 @@ Try {
     ## Get configuration file content
     [object]$ScriptConfig = $(Get-Content -Path $ConfigFilePath | ConvertFrom-Json)
 
-    ## Set script configuration from json object and convert them to hashtables
-    [hashtable]$HTMLReportConfig = $ScriptConfig.HTMLReportConfig | ConvertTo-HashtableFromPsCustomObject
-    [hashtable]$DomainConfig = $ScriptConfig.DomainConfig | ConvertTo-HashtableFromPsCustomObject
+    ## Set script configuration from json object and convert them to hashtables. Hashtables are declared in the script initialization.
+    $NewTableHeaders  = $ScriptConfig.MainConfig.ReportHeaderColumns | ConvertTo-HashtableFromPsCustomObject
+    $HTMLReportConfig = $ScriptConfig.HTMLReportConfig               | ConvertTo-HashtableFromPsCustomObject
+    $DomainConfig     = $ScriptConfig.DomainConfig                   | ConvertTo-HashtableFromPsCustomObject
 
-    ## Get domain configuration
+    ## Set log file path and fullname if it exists in the config file
+    If (-not [string]::IsNullOrEmpty($ScriptConfig.MainConfig.LogFolderPath)) {
+        $Script:LogFileDirectory = $ScriptConfig.MainConfig.LogFolderPath
+        $Script:LogFilePath      = $(Join-Path -Path $Script:LogFileDirectory -ChildPath $($Script:LogSource + '.log'))
+    }
+
+    ## Get domain configuration from the config file
     [string[]]$Domains = $DomainConfig.GetEnumerator() | Select-Object -ExpandProperty 'Name'
 
-    ## Process domains
-    [object]$AddADComputerToGroup = ForEach ($Domain in $Domains) {
+    ## Set the progress indicators for the loop
+    [int]$DomainSteps = $Domains.Count
+    [int]$DomainStep  = 0
 
-        ## Show Progress
-        [string]$Progress = "Processing [$($DomainConfig.$Domain.Description)] --> [$($DomainConfig.$Domain.Server)]"
-        Show-Progress -Status $Progress -Loop
+    ## Process domains
+    $Output = ForEach ($Domain in $Domains) {
+
+        ## Show Progress and write it to log
+        [string]$Progress = "Processing [$($DomainConfig.$Domain.Server)] --> [$($DomainConfig.$Domain.Group)]"
+        Show-Progress -Status $Progress -Step $DomainStep -Steps $DomainSteps -ID 0
         Write-Log -Message $Progress -VerboseMessage
 
-        ## Convert the domain config to a hashtable for loop AddDeviceToGroup call
-        [hashtable]$Params = $DomainConfig.$Domain | ConvertTo-HashtableFromPsCustomObject
-        #  Splatt aditional parameters
+        ## Convert the domain config to a hashtable for loop AddDeviceToGroup call. '$Param' is declared in the script initializtion.
+        $Params = $DomainConfig.$Domain | ConvertTo-HashtableFromPsCustomObject
+        #  Splat aditional parameters
         $Params.Add('WhatIf', $WhatIfPreference)
+        $Params.Add('Verbose', $VerbosePreference)
+        $Params.Add('Debug', $DebugPreference)
         $Params.Remove('Description')
 
+        ## Get group members
+        $GroupMembers = Get-ADGroupMember -Server $Params.Server -Group $Params.Group -MemberType 'Computer'
+
+        ## Splat parameters for AddDeviceToGroup
+        $Params.Add('GroupMembers', $GroupMembers )
+
         ## Call Add-ADDeviceToGroup function with loop variables
-        Add-ADDeviceToGroup @Params
+        $AddADDeviceToGroup = Add-ADDeviceToGroup @Params
+
+        ## Build the skip SID list to be used in the Remove-ADDeviceFromGroup function
+        $SkipSID = $AddADDeviceToGroup | Where-Object -Property 'Operation' -in ('Added','Present')|  Select-Object -ExpandProperty 'SID'
+
+        ## Splat parameeters for Remove-ADDeviceFromGroup
+        $Params.Add('SkipSID', $SkipSID )
+        $Params.Remove('SkipOSCheck')
+        $Params.Remove('SearchScope')
+        $Params.Remove('SearchBase')
+        $Params.Remove('Filter')
+
+        ## Call Remove-ADDeviceFromGroup function with loop variables
+        $RemoveADDeviceFromGroup = Remove-ADDeviceFromGroup @Params
+
+        ## Return result to the pipeline if it is not empty
+        If ($RemoveADDeviceFromGroup.Count -gt 0) { Write-Output $RemoveADDeviceFromGroup }
+        Write-Output $AddADDeviceToGroup
+
+        ## Increment the domain progress step
+        $DomainStep ++
     }
 }
 Catch {
@@ -1322,34 +1642,53 @@ Catch {
 }
 Finally {
 
-    ## Get number of matched computers
-    [int32]$MatchingDeviceCount = $AddADComputerToGroup.Count
+    ## Get number of devices added, removed, present and failed
+    [int]$TotalDeviceCount   = $($Output | Measure-object).Count
+    [int]$PresentDeviceCount = $($Output | Where-Object { $PsItem.Operation -eq 'Present' } | Measure-object).Count
+    [int]$AddedDeviceCount   = $($Output | Where-Object { $PsItem.Operation -eq 'Added'   } | Measure-object).Count
+    [int]$SkippedDeviceCount = $($Output | Where-Object { $PsItem.Operation -eq 'Skipped' } | Measure-object).Count
+    [int]$RemovedDeviceCount = $($Output | Where-Object { $PsItem.Operation -eq 'Removed' } | Measure-object).Count + $SkippedDeviceCount
+    [int]$FailedDeviceCount  = $($Output | Where-Object { $PsItem.Operation -match 'Fail' } | Measure-object).Count
 
-    ## Write to log
-    Write-Log -Message "[$MatchingDeviceCount] matching devices found!" -VerboseMessage -LogDebugMessage $true
+    ## Write device counts to log
+    [string]$LogMessage = [ordered]@{
+        'PresentDevices' = $PresentDeviceCount
+        'AddedDevices'   = $AddedDeviceCount
+        'SkippedDevices' = $SkippedDeviceCount
+        'RemovedDevices' = $RemovedDeviceCount
+        'FailedDevices'  = $FailedDeviceCount
+        'TotalDevices'   = $TotalDeviceCount
+    } | Out-String
+    Write-Log -Message $LogMessage -VerboseMessage -LogDebugMessage $true -PassThru
+
+    ## Set the output to empty string if there are no devices found else, remove the 'Present' devices from the output
+    $Output = $Output | Where-Object { $PsItem.Operation -ne 'Present' }
+
+    ## Set the output to '' if it's null so we can show the table headers
+    If (-not $Output) { $Output = '' }
 
     ## Splatting Format-HTMLReport table headers
-    $HTMLReportConfig.Add('ReportContent', $AddADComputerToGroup)
-    If ($NewTableHeaders)  { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
+    $HTMLReportConfig.Add('ReportContent', $Output)
+    If (-not [string]::IsNullOrEmpty($NewTableHeaders))  { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
 
     ## Formating html report
-    [object]$AddADComputerToGroupHTML = Format-HTMLReport @HTMLReportConfig
+    [object]$OutputHTML = Format-HTMLReport @HTMLReportConfig
 
     ## Write html report to disk
     [string]$HTMLFileName = -join ($ScriptName, '.html')
     [string]$HTMLFilePath = Join-Path -Path $Script:LogFileDirectory -ChildPath $HTMLFileName
-    Out-File -InputObject $AddADComputerToGroupHTML -FilePath $HTMLFilePath -Force
+    Out-File -InputObject $OutputHTML -FilePath $HTMLFilePath -Force -WhatIf:$false
 
     ## If any matching devices are found, write the result to log
-    If ($MatchingDeviceCount -gt 0) {
-        $AddADComputerToGroupCSV = "`n$($AddADComputerToGroup | ConvertTo-Csv -NoTypeInformation  | Out-String)"
-        Write-Log -Message $AddADComputerToGroupCSV -LogType 'Legacy' -LoggingOptions 'File'
+    If ($TotalDeviceCount -gt 0) {
+        $OutputCSV = "`n$($Output | ForEach-Object { If ($PsItem) { ConvertTo-Csv -InputObject $PsItem -NoTypeInformation}} | Out-String)"
+        Write-Log -Message $OutputCSV -LoggingOptions 'File'
     }
 
     ## Show progress status and write it to the event log
-    Show-Progress -Status "$($ScriptConfig.HTMLReportConfig.ReportName) completed!" -Delay 1000 -Step $Steps
+    Show-Progress -Status "$($ScriptConfig.HTMLReportConfig.ReportName) completed!" -Delay 1000 -Step 100 -Steps 100 -ID 0
     ## Write execution to log
-    Write-Log -Message "Check the log for more information [$ScriptFullName] finished!" -VerboseMessage -LogDebugMessage $true
+    Write-Log -Message "Check the log [$Script:LogFilePath] for more information!" -VerboseMessage -LogDebugMessage $true -LoggingOptions 'EventLog'
     Write-Log -Message "Script [$ScriptFullName] finished!" -VerboseMessage -LogDebugMessage $true
 }
 
