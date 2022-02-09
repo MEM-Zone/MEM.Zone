@@ -227,6 +227,111 @@ Function Format-Spacer {
 }
 #endregion
 
+#region Function Get-AzureBlobStorageItem
+Function Get-AzureBlobStorageItem {
+<#
+.SYNOPSIS
+    Lists blobs for an azure blob storage path.
+.DESCRIPTION
+    Lists blobs for an azure blob storage path using REST API.
+.PARAMETER Url
+    Specifies the azure share URL.
+.PARAMETER SasToken
+    Specifies the azure share SAS token.
+.EXAMPLE
+    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>' -SasToken 'SomeAccessToken'
+.EXAMPLE
+    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>/<blob>' -SasToken 'SomeAccessToken'
+.INPUTS
+    None.
+.OUTPUTS
+    System.Array.
+.NOTES
+    This is an internal script function and should typically not be called directly.
+    Credit to Roger Zander
+.LINK
+    https://rzander.azurewebsites.net/download-files-from-azure-blob-storage-with-powershell/
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/GIT
+.COMPONENT
+    Azure Blob Storage Rest API
+.FUNCTIONALITY
+    List Blob Items
+#>
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Location')]
+        [string]$Url,
+        [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=1)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Sas')]
+        [string]$SasToken
+    )
+
+    Begin {
+
+        ## Remove the '?' from the SAS string if needed
+        If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
+
+        ## Set file name regex pattern
+        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]{1,3}$'
+    }
+    Process {
+        Try {
+
+            ## Extract blob name from the URL if it exist
+            $BlobName = $($Url | Select-String -AllMatches -Pattern $RegexPattern | Select-Object -ExpandProperty 'Matches').Value
+
+            ## If URL is a single blob, get the properties
+            If (-not [string]::IsNullOrEmpty($BlobName)) {
+                #  Build URI
+                [string]$Uri = '{0}?{1}' -f ($Url, $SasToken)
+                #  Invoke REST API
+                $Blob = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
+                #  Build the output object
+                $AzureBlobList = [pscustomobject]@{
+                    'Name'     = $BlobName
+                    'Size(KB)' = '{0:N2}' -f ($Blob.Headers.'Content-Length' / 1KB)
+                    'Url'      = $Url
+                }
+            }
+
+            ## Else list the directory content
+            Else {
+                #  Build URI
+                [string]$Uri = '{0}?{1}&{2}' -f ($Url, 'restype=container&comp=list', $SasToken)
+                #  Invoke REST API
+                $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
+                #  Cleanup response and convert to XML
+                $Xml = [xml]$Response.Substring($Response.IndexOf('<'))
+                #  Get the file objects
+                $Blobs = $Xml.ChildNodes.Blobs.Blob
+                #  Build the output object
+                $AzureBlobList = ForEach ($Blob in $Blobs) {
+                    [pscustomobject]@{
+                        'Name'     = $($Blob.Name | Split-Path -Leaf)
+                        'Size(KB)' = '{0:N2}' -f ($Blob.Properties.'Content-Length' / 1KB)
+                        'Url'      = '{0}/{1}' -f ($Url, $Blob.Name)
+                    }
+                }
+            }
+        }
+        Catch {
+            $PSCmdlet.ThrowTerminatingError($PSItem)
+        }
+        Finally {
+            Write-Output -InputObject $AzureBlobList
+        }
+    }
+    End {
+    }
+}
+#endregion
+
 #region Function Get-AzureStorageFile
 Function Get-AzureStorageFile {
 <#
@@ -276,7 +381,7 @@ Function Get-AzureStorageFile {
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
         ## Set file name regex pattern
-        [regex]$RegexPattern = '[\w]+\.[A-Za-z0-9]{1,3}$'
+        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]{1,3}$'
     }
     Process {
         Try {
@@ -394,11 +499,12 @@ Function Get-AzureStorageFileContent {
     Process {
         Try {
 
-            ## Get azure file list
-            $AzureFileList = Get-AzureStorageFile -Url $Url -Sas $SasToken
+            ## Get azure file list depending on the storage type
+            If ($Url -match '.blob.') { $AzureFileList = Get-AzureBlobStorageItem -Url $Url -Sas $SasToken }
+            Else { $AzureFileList = Get-AzureStorageFile -Url $Url -Sas $SasToken }
 
             ## Get local file list
-            $LocalFileList = Get-ChildItem -Path $Path -File -ErrorAction 'SilentlyContinue' | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($_.Length / 1KB)}}
+            $LocalFileList = Get-ChildItem -Path $Path -ErrorAction 'SilentlyContinue' | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($_.Length / 1KB)}}
 
             ## Create destination folder
             New-Item -Path $Path -ItemType 'Directory' -ErrorAction 'SilentlyContinue' | Out-Null
@@ -1438,6 +1544,10 @@ Function Set-WindowsAzureWallpaper {
     Process {
         Try {
 
+            ## Get Azure wallpapers depending on the storage account type
+            If ($Url -match '.blob.') { [psobject]$AzureWallpaperFiles = Get-AzureBlobStorageItem -Url $Url -SasToken $SasToken}
+            Else { [psobject]$AzureWallpaperFiles = Get-AzureStorageFile -Url $Url -SasToken $SasToken }
+
             ## If Wallpaper Parameter Set is used, set wallpaper otherwise set slideshow
             If ($PsCmdlet.ParameterSetName -eq 'Wallpaper') {
 
@@ -1446,8 +1556,7 @@ Function Set-WindowsAzureWallpaper {
                 Format-Spacer -Message 'Monitor List' -Type 'Verbose' -AddEmptyRow 'Before'
                 Write-Verbose -Message $($Monitors | Out-String)
 
-                ## Get Azure wallpapers
-                [psobject]$AzureWallpaperFiles = Get-AzureStorageFile -Url $Url -SasToken $SasToken
+                ## Show Azure wallpaper list
                 Format-Spacer -Message 'Azure Wallpaper List' -Type 'Verbose'
                 Write-Verbose -Message $($AzureWallpaperFiles | Out-String)
 
@@ -1486,12 +1595,12 @@ Function Set-WindowsAzureWallpaper {
 
                         ## Download wallpaper
                         Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
-                        $DownloadWallpaper = Get-AzureStorageFileContent -Url ($DefaultWallpaper).Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                        $DownloadWallpaper = Get-AzureStorageFileContent -Url $($DefaultWallpaper.Url) -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
                         Write-Verbose -Message $($DownloadWallpaper | Out-String)
 
                         ## Set wallpaper
                         Format-Spacer -Message 'Setting Wallpaper' -Type 'Verbose' -AddEmptyRow 'After'
-                        Write-Verbose -Message "Setting Wallpaper [$DefaultWallpaperUrl] with Position [$Position], on Monitor [$($Monitor.Name)]..."
+                        Write-Verbose -Message "Setting Wallpaper [$($DefaultWallpaper.Url)] with Position [$Position], on Monitor [$($Monitor.Name)]..."
                         $SetWallpaper = $WallpaperCommand::SetWallpaper($Monitor.Index, $LocalWallpaperPath, $Position) -Replace('S_OK', 'Successful')
 
                         ## Set default output hashtable
@@ -1512,8 +1621,7 @@ Function Set-WindowsAzureWallpaper {
                 Format-Spacer -Message 'Primary Monitor' -Type 'Verbose' -AddEmptyRow 'Before'
                 Write-Verbose -Message $($PrimaryMonitor | Out-String)
 
-                ## Get Azure wallpapers
-                [psobject]$AzureWallpaperFiles = Get-AzureStorageFile -Url $Url -SasToken $SasToken
+                ## Show Azure wallpaper list
                 Format-Spacer -Message 'Azure Wallpaper List' -Type 'Verbose'
                 Write-Verbose -Message $($AzureWallpaperFiles | Out-String)
 

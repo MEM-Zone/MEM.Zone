@@ -1,5 +1,11 @@
 # Set-WindowsAzureWallpaper release history
 
+## 2.1.0 - 2022-02-09
+
+* Added blob storage support. It automatically detects if it's blob or file storage and acts accordingly.
+* Fixed regex pattern for default file name detection
+* Fixed default wallpaper url bug
+
 ## 2.0.0 - 2021-12-22
 
 * Added support for Setting a Wallpaper SlideShow.
