@@ -275,14 +275,11 @@ Function New-RegistryTreeWatcher {
 While ($true) {
 
     ## Setting up the registry watcher
-    New-RegistryTreeWatcher -Hive 'HKEY_LOCAL_MACHINE' -RootPath 'Software\Policies' -SourceIdentifier 'RegistryTreeWatcher'
+    New-RegistryTreeWatcher -Hive 'HKEY_LOCAL_MACHINE' -RootPath 'Software\Policies\Microsoft\Edge' -SourceIdentifier 'RegistryTreeWatcher'
 
     ## Set Registry Values if when a change is detected
     Write-Verbose -Message 'Setting Registry Values...' -Verbose
-    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation'     -Value 'https://MEM.Zone' -Force -PassThru
-    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'RestoreOnStartupURLs' -Value 1 -Force -PassThru
-    Set-ItemProperty -Path 'HKLM:\Software\Policies\Google\Chrome'  -Name 'HomepageLocation'     -Value 'https://MEM.Zone' -Force -PassThru
-    Set-ItemProperty -Path 'HKLM:\Software\Policies\Google\Chrome'  -Name 'RestoreOnStartupURLs' -Value 1 -Force -PassThru
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation' -Value 'https://MEM.Zone/' -Force -PassThru
 }
 
 #endregion
