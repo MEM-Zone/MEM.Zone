@@ -20,6 +20,8 @@
 .LINK
     https://MEM.Zone/AutopilotPrerequisites-GIT
 .LINK
+    https://MEM.Zone/AutopilotPrerequisites-CHANGELOG
+.LINK
     https://MEM.Zone/Issues
 .COMPONENT
     Autopilot
