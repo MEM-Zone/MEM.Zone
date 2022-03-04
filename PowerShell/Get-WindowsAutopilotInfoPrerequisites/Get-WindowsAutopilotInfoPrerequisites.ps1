@@ -16,6 +16,10 @@
 .LINK
     https://MEM.Zone
 .LINK
+    https://MEM.Zone/AutopilotPrerequisites
+.LINK
+    https://MEM.Zone/AutopilotPrerequisites-GIT
+.LINK
     https://MEM.Zone/Issues
 .COMPONENT
     Autopilot
