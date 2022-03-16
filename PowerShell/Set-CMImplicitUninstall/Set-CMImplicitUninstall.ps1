@@ -21,9 +21,9 @@
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/CMImplicitUninstall-CHANGELOG
+    https://MEM.Zone/Set-CMImplicitUninstall-CHANGELOG
 .LINK
-    https://MEM.Zone/CMImplicitUninstall-CHANGELOG-GIT
+    https://MEM.Zone/Set-CMImplicitUninstall-GIT
 .LINK
     https://MEM.Zone/Issues
 .COMPONENT
