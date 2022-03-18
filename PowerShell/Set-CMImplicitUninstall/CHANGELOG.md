@@ -1,5 +1,10 @@
 # Set-CMImplicitUninstall release history
 
+
+## 1.1.1 - 2022-03-18
+
+* Fixed (this time for real) the `ImplicitUninstallEnabled` flag value not being set to true if it already is set to `false`
+
 ## 1.1.0 - 2022-03-18
 
 * Fixed the `ImplicitUninstallEnabled` flag value not being set to true if it already is set to `false`

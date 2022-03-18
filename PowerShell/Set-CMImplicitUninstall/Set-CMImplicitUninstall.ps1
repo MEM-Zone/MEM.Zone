@@ -141,7 +141,7 @@ Try {
         #  If the ImplicitUninstallEnabled property is not present add it ot the xml
         If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled) { $AdditonalPoperties.Properties.SetAttribute('ImplicitUninstallEnabled', 'true'); [boolean]$ShouldProcess = $true }
         #  If the ImplicitUninstallEnabled property value is not 'true' set it to 'true'
-        If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled -eq 'true') { $AdditonalPoperties.Properties.ImplicitUninstallEnabled = 'true'; [boolean]$ShouldProcess = $true }
+        If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled -ne 'true') { $AdditonalPoperties.Properties.ImplicitUninstallEnabled = 'true'; [boolean]$ShouldProcess = $true }
         #  If the OfferFlags bitmask does not contain the ImplicitUninstallEnabled flag, add it. (64 is the bitmask value for the ImplicitUninstallEnabled flag, you won't find this value in the documentation)
         If (-not $OfferFlags.HasFlag([OfferFlagsBitmask]::ImplicitUninstallEnabled)) { [int]$OfferFlagsValue = $OfferFlags.GetHashCode() + 64; ; [boolean]$ShouldProcess = $true }
 
