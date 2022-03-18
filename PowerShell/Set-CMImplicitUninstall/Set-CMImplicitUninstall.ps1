@@ -136,18 +136,21 @@ Try {
 
 
         ## Set the ImplicitUninstallEnabled flag properties
+        #  If there are no additional properties, set the default properties xml
         If (-not $AdditonalPoperties) { $AdditonalPoperties = $AdditonalPopertiesDefaultXML; [boolean]$ShouldProcess = $true }
+        #  If the ImplicitUninstallEnabled property is not present add it ot the xml
         If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled) { $AdditonalPoperties.Properties.SetAttribute('ImplicitUninstallEnabled', 'true'); [boolean]$ShouldProcess = $true }
+        #  If the ImplicitUninstallEnabled property value is not 'true' set it to 'true'
+        If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled -eq 'true') { $AdditonalPoperties.Properties.ImplicitUninstallEnabled = 'true'; [boolean]$ShouldProcess = $true }
+        #  If the OfferFlags bitmask does not contain the ImplicitUninstallEnabled flag, add it. (64 is the bitmask value for the ImplicitUninstallEnabled flag, you won't find this value in the documentation)
         If (-not $OfferFlags.HasFlag([OfferFlagsBitmask]::ImplicitUninstallEnabled)) { [int]$OfferFlagsValue = $OfferFlags.GetHashCode() + 64; ; [boolean]$ShouldProcess = $true }
 
-        ## Update the application assigment
+        ## Update the application assigment if needed
         If ($ShouldProcess) {
             $AssignmentInfo | Set-CimInstance -Property @{ AdditionalProperties = ($AdditonalPoperties.OuterXml); OfferFlags = $OfferFlagsValue } -ErrorAction 'Stop'
             Write-Verbose -Message  "Succesfully updated $ApplicationName --> $AssignmentID!" -Verbose
         }
-        Else {
-            Write-Verbose -Message  "Nothing to update for $ApplicationName --> $AssignmentID!" -Verbose
-        }
+        Else { Write-Verbose -Message  "Nothing to update for $ApplicationName --> $AssignmentID!" -Verbose }
     }
 
     ## Ouput success
