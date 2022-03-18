@@ -167,7 +167,7 @@ Try {
     Pop-Location
 
     ## Remove SCCM PSH Module
-    Remove-Module 'ConfigurationManager' -Force -ErrorAction 'Continue'
+    Remove-Module 'ConfigurationManager' -Force -ErrorAction 'SilentlyContinue'
 
 #endregion
 ##*=============================================

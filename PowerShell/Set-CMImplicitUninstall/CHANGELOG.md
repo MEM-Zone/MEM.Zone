@@ -1,6 +1,10 @@
 # Set-CMImplicitUninstall release history
 
 
+## 1.1.2 - 2022-03-18
+
+* Removed error message when the `ConfigurationManager` module cannot be unloaded at the end of the script.
+
 ## 1.1.1 - 2022-03-18
 
 * Fixed (this time for real) the `ImplicitUninstallEnabled` flag value not being set to true if it already is set to `false`
