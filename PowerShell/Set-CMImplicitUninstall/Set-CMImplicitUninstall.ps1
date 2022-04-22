@@ -26,6 +26,8 @@
     https://MEM.Zone/Set-CMImplicitUninstall-GIT
 .LINK
     https://MEM.Zone/Issues
+.LINK
+    https://docs.microsoft.com/en-us/mem/configmgr/develop/reference/apps/sms_applicationassignment-server-wmi-class
 .COMPONENT
     Configuration Manager
 .FUNCTIONALITY
@@ -33,7 +35,7 @@
 #>
 
 ## Set script requirements
-#Requires -Version 3.0
+#Requires -Version 5.0
 
 ##*=============================================
 ##* VARIABLE DECLARATION
@@ -119,6 +121,7 @@ Try {
     ForEach ($ApplicationAssigment in $ApplicationAssigments) {
 
         ## Show progress status
+        $ProgressStep ++
         [int]$AssignmentID = $ApplicationAssigment.AssignmentID
         [int16]$PercentComplete = ($ProgressStep / $ProgressTotal) * 100
         [string]$ApplicationName = $ApplicationAssigment.ApplicationName
@@ -138,7 +141,7 @@ Try {
         ## Set the ImplicitUninstallEnabled flag properties
         #  If there are no additional properties, set the default properties xml
         If (-not $AdditonalPoperties) { $AdditonalPoperties = $AdditonalPopertiesDefaultXML; [boolean]$ShouldProcess = $true }
-        #  If the ImplicitUninstallEnabled property is not present add it ot the xml
+        #  If the ImplicitUninstallEnabled property is not present add it to the xml
         If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled) { $AdditonalPoperties.Properties.SetAttribute('ImplicitUninstallEnabled', 'true'); [boolean]$ShouldProcess = $true }
         #  If the ImplicitUninstallEnabled property value is not 'true' set it to 'true'
         If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled -ne 'true') { $AdditonalPoperties.Properties.ImplicitUninstallEnabled = 'true'; [boolean]$ShouldProcess = $true }

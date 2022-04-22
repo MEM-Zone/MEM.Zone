@@ -1,5 +1,8 @@
 # Set-CMImplicitUninstall release history
 
+## 1.1.3 - 2022-04-22
+
+* Fixed the progress indicator.
 
 ## 1.1.2 - 2022-03-18
 
