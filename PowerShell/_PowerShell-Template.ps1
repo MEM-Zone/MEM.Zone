@@ -3,7 +3,7 @@
     ShortDescription.
 .DESCRIPTION
     LongDescription.
-.PARAMETER
+.PARAMETER ParameterName
     ParameterName.
 .EXAMPLE
     ApprovedVerb-WhatItDoes(Use Singular).ps1
@@ -41,7 +41,7 @@ Param (
     [ValidateNotNullorEmpty()]
     [ValidateSet('--','--','--')]
     [Alias('--')]
-    [string]$-- = '--'
+    [string]$ParameterName = '--'
 )
 
 ## Get script path and name
@@ -62,13 +62,13 @@ Param (
 Function Verb- {
 <#
 .SYNOPSIS
-    --.
+    ShortDescription.
 .DESCRIPTION
-    --.
-.PARAMETER
-    --.
+    LongDescription.
+.PARAMETER ParameterName
+    ParameterName.
 .EXAMPLE
-    --
+    ApprovedVerb-WhatItDoes(Use Singular).ps1
 .INPUTS
     None.
 .OUTPUTS
@@ -90,7 +90,7 @@ Function Verb- {
         [ValidateNotNullorEmpty()]
         [ValidateSet('--','--','--')]
         [Alias('--')]
-        [string]$-- = '--'
+        [string]$ParameterName = '--'
     )
 
     Begin {
