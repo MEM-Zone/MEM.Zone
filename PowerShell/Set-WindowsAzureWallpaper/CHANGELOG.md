@@ -1,5 +1,15 @@
 # Set-WindowsAzureWallpaper release history
 
+## 3.0.0 - 2022-04-22
+
+* Removed authentication requirement for Azure Blob and File storage.
+* Renamed Azure Functions for consistency (breaking change)
+* Fixed regex pattern for default file name detection (allows more than 3 characters now)
+* Fixed Default wallpaper not applying if no matching wallpaper is found.
+* Better error handling.
+* Updated descriptions
+* Code optimisations
+
 ## 2.1.0 - 2022-02-09
 
 * Added blob storage support. It automatically detects if it's blob or file storage and acts accordingly.

@@ -16,7 +16,7 @@
 .PARAMETER Url
     Specifies the azure file storage share URL.
 .PARAMETER SasToken
-    Specifies the azure file storage share SAS token.
+    Specifies the azure file storage share SAS token. If the SAS token is not specified, the theme file will be downloaded from Azure File Storage without authentication.
 .PARAMETER Force
     Overwrite the existing wallpaper even if it is already assigned.
 .EXAMPLE
@@ -75,7 +75,7 @@
 ##*=============================================
 #region VariableDeclaration
 
-## !! Comment the reqion below if using in-script parameter values. You can set the parameters in the SCRIPT BODY region at the end of the script !!
+## !! Comment the region below if using in-script parameter values. You can set the parameters in the SCRIPT BODY region at the end of the script !!
 #region ScriptParameters
 [CmdletBinding(DefaultParameterSetName='Wallpaper')]
 Param (
@@ -235,9 +235,9 @@ Function Get-AzureBlobStorageItem {
 .DESCRIPTION
     Lists blobs for an azure blob storage path using REST API.
 .PARAMETER Url
-    Specifies the azure share URL.
+    Specifies the azure blob URL.
 .PARAMETER SasToken
-    Specifies the azure share SAS token.
+    Specifies the azure blob SAS token. If this parameter is not specified, no authentication is used.
 .EXAMPLE
     Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>' -SasToken 'SomeAccessToken'
 .EXAMPLE
@@ -262,23 +262,25 @@ Function Get-AzureBlobStorageItem {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
+        [Parameter(Mandatory=$true,HelpMessage='Blob URL:',Position=0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=1)]
-        [ValidateNotNullorEmpty()]
+        [Parameter(Mandatory=$false,HelpMessage='Blob SAS Token:',Position=1)]
         [Alias('Sas')]
         [string]$SasToken
     )
 
     Begin {
 
+        ## Check if no security token is provided
+        $IsSecure = [boolean](-not [string]::IsNullOrEmpty($SasToken))
+
         ## Remove the '?' from the SAS string if needed
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
         ## Set file name regex pattern
-        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]{1,3}$'
+        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]*$'
     }
     Process {
         Try {
@@ -289,7 +291,7 @@ Function Get-AzureBlobStorageItem {
             ## If URL is a single blob, get the properties
             If (-not [string]::IsNullOrEmpty($BlobName)) {
                 #  Build URI
-                [string]$Uri = '{0}?{1}' -f ($Url, $SasToken)
+                [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($Url, $SasToken) } Else { $Url }
                 #  Invoke REST API
                 $Blob = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
                 #  Build the output object
@@ -303,7 +305,7 @@ Function Get-AzureBlobStorageItem {
             ## Else list the directory content
             Else {
                 #  Build URI
-                [string]$Uri = '{0}?{1}&{2}' -f ($Url, 'restype=container&comp=list', $SasToken)
+                [string]$Uri = If ($IsSecure) { '{0}?{1}&{2}' -f ($Url, 'restype=container&comp=list', $SasToken) } Else { '{0}?{1}' -f ($Url, 'restype=container&comp=list') }
                 #  Invoke REST API
                 $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
                 #  Cleanup response and convert to XML
@@ -321,7 +323,7 @@ Function Get-AzureBlobStorageItem {
             }
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $AzureBlobList
@@ -332,8 +334,8 @@ Function Get-AzureBlobStorageItem {
 }
 #endregion
 
-#region Function Get-AzureStorageFile
-Function Get-AzureStorageFile {
+#region Function Get-AzureFileStorageItem
+Function Get-AzureFileStorageItem {
 <#
 .SYNOPSIS
     Lists directories and files for a path.
@@ -342,9 +344,9 @@ Function Get-AzureStorageFile {
 .PARAMETER Url
     Specifies the azure share URL.
 .PARAMETER SasToken
-    Specifies the azure share SAS token.
+    Specifies the azure share SAS token. Specifies the azure share SAS token. If this parameter is not specified, no authentication is used.
 .EXAMPLE
-    Get-AzureStorageFile -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -Sas 'SomeAccessToken'
+    Get-AzureFileStorageItem -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken'
 .INPUTS
     None.
 .OUTPUTS
@@ -369,19 +371,21 @@ Function Get-AzureStorageFile {
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=1)]
-        [ValidateNotNullorEmpty()]
+        [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=1)]
         [Alias('Sas')]
         [string]$SasToken
     )
 
     Begin {
 
+        ## Check if no security token is provided
+        $IsSecure = [boolean](-not [string]::IsNullOrEmpty($SasToken))
+
         ## Remove the '?' from the SAS string if needed
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
         ## Set file name regex pattern
-        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]{1,3}$'
+        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]*$'
     }
     Process {
         Try {
@@ -392,7 +396,7 @@ Function Get-AzureStorageFile {
             ## If URL is a file, get the properties
             If (-not [string]::IsNullOrEmpty($FileName)) {
                 #  Build URI
-                [string]$Uri = '{0}?{1}' -f ($Url, $SasToken)
+                [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($Url, $SasToken) } Else { $Url }
                 #  Invoke REST API
                 $File = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
                 #  Build the output object
@@ -406,7 +410,7 @@ Function Get-AzureStorageFile {
             ## Else list the directory content
             Else {
                 #  Build URI
-                [string]$Uri = '{0}/?{1}&{2}' -f ($Url, 'restype=directory&comp=list', $SasToken)
+                [string]$Uri = If ($IsSecure) { '{0}?{1}&{2}' -f ($Url, 'restype=directory&comp=list', $SasToken) } Else { '{0}?{1}' -f ($Url, 'restype=directory&comp=list') }
                 #  Invoke REST API
                 $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
                 #  Cleanup response and convert to XML
@@ -424,7 +428,7 @@ Function Get-AzureStorageFile {
             }
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $AzureFileList
@@ -435,23 +439,23 @@ Function Get-AzureStorageFile {
 }
 #endregion
 
-#region Function Get-AzureStorageFileContent
-Function Get-AzureStorageFileContent {
+#region Function Start-AzureStorageFileTransfer
+Function Start-AzureStorageFileTransfer {
 <#
 .SYNOPSIS
-    Downloads the contents of a file.
+    Transfers the contents of a file.
 .DESCRIPTION
-    Downloads the contents of a file from Azure File storage using BITS.
+    Transfers the contents of a file from Azure File or Blob storage using BITS.
 .PARAMETER Url
     Specifies the azure share URL.
 .PARAMETER SasToken
-    Specifies the azure share SAS security token.
+    Specifies the azure share SAS security token. If this parameter is not specified no authentication is performed.
 .PARAMETER Path
     Specifies the destination path.
 .PARAMETER Force
     Overwrites the existing file even if it has the same name and size. I can't think why this would be needed but I added it anyway.
 .EXAMPLE
-    Get-AzureStorageFile -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken' -Path 'D:\Temp'
+    Start-AzureStorageFileTransfer -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken' -Path 'D:\Temp'
 .INPUTS
     None.
 .OUTPUTS
@@ -472,7 +476,7 @@ Function Get-AzureStorageFileContent {
 .COMPONENT
     Azure File Storage Rest API
 .FUNCTIONALITY
-    Copies to local storage
+    Transfer to local storage
 #>
     [CmdletBinding()]
     Param (
@@ -480,11 +484,10 @@ Function Get-AzureStorageFileContent {
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$true,HelpMessage='Share SAS Token:',Position=1)]
-        [ValidateNotNullorEmpty()]
+        [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=1)]
         [Alias('Sas')]
         [string]$SasToken,
-        [Parameter(Mandatory=$true,HelpMessage='Local Download Path:',Position=2)]
+        [Parameter(Mandatory=$true,HelpMessage='Local Transfer Path:',Position=2)]
         [Alias('Destination')]
         [string]$Path,
         [Alias('Overwrite')]
@@ -492,6 +495,9 @@ Function Get-AzureStorageFileContent {
     )
 
     Begin {
+
+        ## Check if no security token is provided
+        $IsSecure = [boolean](-not [string]::IsNullOrEmpty($SasToken))
 
         ## Remove the '?' from the SAS string if needed
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
@@ -501,31 +507,31 @@ Function Get-AzureStorageFileContent {
 
             ## Get azure file list depending on the storage type
             If ($Url -match '.blob.') { $AzureFileList = Get-AzureBlobStorageItem -Url $Url -Sas $SasToken }
-            Else { $AzureFileList = Get-AzureStorageFile -Url $Url -Sas $SasToken }
+            Else { $AzureFileList = Get-AzureFileStorageItem -Url $Url -Sas $SasToken }
 
             ## Get local file list
-            $LocalFileList = Get-ChildItem -Path $Path -ErrorAction 'SilentlyContinue' | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($_.Length / 1KB)}}
+            $LocalFileList = Get-ChildItem -Path $Path -ErrorAction 'SilentlyContinue' | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($PSItem.Length / 1KB)}}
 
             ## Create destination folder
-            New-Item -Path $Path -ItemType 'Directory' -ErrorAction 'SilentlyContinue' | Out-Null
+            If (-not [System.IO.Directory]::Exists($Path)) { [System.IO.Directory]::CreateDirectory($Path) }
 
             ## Process files one by one
             $CopiedFileList = ForEach ($File in $AzureFileList) {
 
                 ## If the file is already present and the same size, set the 'Skip' flag.
-                [psobject]$LocalFileLookup = $LocalFileList | Where-Object { $_.Name -eq $File.Name -and $_.'Size(KB)' -eq $File.'Size(KB)' } | Select-Object -Property 'Name'
-                [boolean]$SkipFile = [boolean](-not [string]::IsNullOrEmpty($LocalFileLookup))
+                [psobject]$LocalFileLookup = $LocalFileList | Where-Object { $PSItem.Name -eq $File.Name -and $PSItem.'Size(KB)' -eq $File.'Size(KB)' } | Select-Object -Property 'Name'
+                $SkipFile = [boolean](-not [string]::IsNullOrEmpty($LocalFileLookup))
 
                 ## Assemble Destination and URI
                 [string]$Destination = Join-Path -Path $Path -ChildPath $File.Name
-                [string]$Uri = '{0}?{1}' -f ($File.Url, $SasToken)
-                [boolean]$Overwite = $Force -and $SkipFile
+                [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($File.Url, $SasToken) } Else { $File.Url }
+                $Overwrite = [boolean]($Force -and $SkipFile)
 
                 ## Tansfer file using BITS
-                If (-not $SkipFile -or $Force) { Start-BitsTransfer -Source $uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url -ErrorAction 'Stop' }
+                If (-not $SkipFile -or $Force) { Start-BitsTransfer -Source $Uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url -ErrorAction 'Stop' }
 
                 ## Check if last operation was successful and set error message
-                [boolean]$ShowError = If ($?) { $false; $ErrorMessage = $null } else { $true; $ErrorMessage = -join ('Error: ', $Error[0].Exception.Message) };
+                [boolean]$ShowError = If ($?) { $false; $ErrorMessage = $null } Else { $true; $ErrorMessage = -join ('Error: ', $Error[0].Exception.Message) };
 
                 ## Build output object
                 [pscustomobject]@{
@@ -534,16 +540,16 @@ Function Get-AzureStorageFileContent {
                     'Url'       = $File.Url
                     'Path'      = $Path
                     'Operation' = Switch ($true) {
-                        $ShowError { $ErrorMessage; break }
-                        $Overwite  { 'Overwritten'; break }
-                        $SkipFile  { 'Skipped' ; break }
-                        Default    { 'Downloaded' }
+                        $ShowError { $ErrorMessage; Break }
+                        $Overwrite { 'Overwritten'; Break }
+                        $SkipFile  { 'Skipped' ; Break }
+                        Default    { 'Transfered' }
                     }
                 }
             }
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $CopiedFileList
@@ -1410,7 +1416,7 @@ Function Import-Win32IDesktopAPI {
             Write-Verbose -Message 'Successfully imported Win32 IDesktop API.'
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $Win32API
@@ -1518,9 +1524,8 @@ Function Set-WindowsAzureWallpaper {
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$true,ParameterSetName='Wallpaper',HelpMessage='Share SAS Token:',Position=4)]
-        [Parameter(Mandatory=$true,ParameterSetName='Slideshow',HelpMessage='Share SAS Token:',Position=5)]
-        [ValidateNotNullorEmpty()]
+        [Parameter(Mandatory=$false,ParameterSetName='Wallpaper',HelpMessage='Share SAS Token:',Position=4)]
+        [Parameter(Mandatory=$false,ParameterSetName='Slideshow',HelpMessage='Share SAS Token:',Position=5)]
         [Alias('Sas')]
         [string]$SasToken,
         [Parameter(ParameterSetName='Wallpaper')]
@@ -1529,9 +1534,6 @@ Function Set-WindowsAzureWallpaper {
         [switch]$Force
     )
     Begin {
-
-        ## Remove the '?' from the SAS string if needed
-        If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
         ## Import IDesktop API
         Format-Spacer -Message 'Initialization' -Type 'Verbose' -AddEmptyRow 'After'
@@ -1545,8 +1547,8 @@ Function Set-WindowsAzureWallpaper {
         Try {
 
             ## Get Azure wallpapers depending on the storage account type
-            If ($Url -match '.blob.') { [psobject]$AzureWallpaperFiles = Get-AzureBlobStorageItem -Url $Url -SasToken $SasToken}
-            Else { [psobject]$AzureWallpaperFiles = Get-AzureStorageFile -Url $Url -SasToken $SasToken }
+            If ($Url -match '.blob.') { [psobject]$AzureWallpaperFiles = Get-AzureBlobStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
+            Else { [psobject]$AzureWallpaperFiles = Get-AzureFileStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
 
             ## If Wallpaper Parameter Set is used, set wallpaper otherwise set slideshow
             If ($PsCmdlet.ParameterSetName -eq 'Wallpaper') {
@@ -1595,7 +1597,7 @@ Function Set-WindowsAzureWallpaper {
 
                         ## Download wallpaper
                         Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
-                        $DownloadWallpaper = Get-AzureStorageFileContent -Url $($DefaultWallpaper.Url) -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                        $DownloadWallpaper = Start-AzureStorageFileTransfer -Url $($DefaultWallpaper.Url) -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
                         Write-Verbose -Message $($DownloadWallpaper | Out-String)
 
                         ## Set wallpaper
@@ -1635,7 +1637,7 @@ Function Set-WindowsAzureWallpaper {
                 Format-Spacer -Message 'Matching Azure Wallpaper List' -Type 'Verbose' -AddEmptyRow 'After'
 
                 ## If there's no match, use the default wallpaper list
-                If (-not $AzureWallpaperMatch) {
+                If ([string]::IsNullOrWhiteSpace($AzureWallpaperMatch)) {
                     Write-Warning -Message "No Wallpapers matching monitor resolution were found. Setting default wallpaper list..."
                     $AzureWallpaperMatch = $DefaultWallpaperList
                 }
@@ -1644,7 +1646,7 @@ Function Set-WindowsAzureWallpaper {
                 ## Download the specified wallpaper set
                 Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
                 ForEach ($AzureWallpaper in $AzureWallpaperMatch) {
-                    $DownloadWallpaper = Get-AzureStorageFileContent -Url $AzureWallpaper.Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                    $DownloadWallpaper = Start-AzureStorageFileTransfer -Url $AzureWallpaper.Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
                     Write-Verbose -Message $($DownloadWallpaper | Out-String)
                 }
 
@@ -1665,7 +1667,7 @@ Function Set-WindowsAzureWallpaper {
             }
         }
         Catch {
-            Throw $PSItem
+            $PsCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $($Output | Out-String)
@@ -1703,7 +1705,7 @@ Try {
         Verbose            = $VerbosePreference
     }
 
-    ## Run Set-WindowsAzureWallpaper with declared parameters
+    ## Call Set-WindowsAzureWallpaper with declared parameters
     Set-WindowsAzureWallpaper @Parameters
 }
 Catch {
