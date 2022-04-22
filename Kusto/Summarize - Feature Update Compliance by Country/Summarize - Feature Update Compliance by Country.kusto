@@ -1,0 +1,29 @@
+//.SYNOPSIS
+//    Summarizes feature update compliance by country.
+//.DESCRIPTION
+//    Summarizes feature update compliance by country by joining tables with different column names.
+//.NOTES
+//    Created by Ioan Popovici.
+//    v1.0.0
+//.LINK
+//    https://MEM.Zone/
+//.LINK
+//    https://MEM.Zone/GIT
+//.LINK
+//    https://MEM.Zone/ISSUES
+
+//*=============================================
+//* SCRIPT BODY
+//*=============================================
+//#region ScriptBody
+
+WaaSDeploymentStatus
+| join kind=innerunique (UCClient) on ($left.ComputerID == $right.GlobalDeviceId)
+| project ComputerID, DeviceName, Country, OSEdition, OSVersion, OSFeatureUpdateComplianceStatus
+| summarize DeviceNumber=count(), CompliantNumber=countif(OSFeatureUpdateComplianceStatus=='Compliant') by Country, OSFeatureUpdateComplianceStatus, OSVersion
+| render  table     with (title='Feature Update Compliance by Country', xtitle='Country', ytitle='Number of Devices')
+
+//#endregion
+//*=============================================
+//* END SCRIPT BODY
+//*=============================================
