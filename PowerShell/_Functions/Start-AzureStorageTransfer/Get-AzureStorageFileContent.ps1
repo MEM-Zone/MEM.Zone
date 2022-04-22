@@ -1,6 +1,6 @@
 #region Function Get-AzureFileStorageItem
 Function Get-AzureFileStorageItem {
-<#
+    <#
 .SYNOPSIS
     Lists directories and files for a path.
 .DESCRIPTION
@@ -31,12 +31,11 @@ Function Get-AzureFileStorageItem {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
+        [Parameter(Mandatory = $true, HelpMessage = 'Share URL:', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=1)]
-        [ValidateNotNullorEmpty()]
+        [Parameter(Mandatory = $false, HelpMessage = 'Share SAS Token:', Position = 1)]
         [Alias('Sas')]
         [string]$SasToken
     )
@@ -50,7 +49,7 @@ Function Get-AzureFileStorageItem {
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
         ## Set file name regex pattern
-        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]{1,3}$'
+        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]*$'
     }
     Process {
         Try {
@@ -93,7 +92,7 @@ Function Get-AzureFileStorageItem {
             }
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $AzureFileList
