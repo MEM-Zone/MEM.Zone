@@ -39,9 +39,9 @@ Function Invoke-SQLCommand {
 .LINK
     https://MEM.Zone/
 .LINK
-    https://MEM.Zone/Install-SRSReport-GIT
+    https://MEM.Zone/Invoke-SQLCommand-GIT
 .LINK
-    https://MEM.Zone/Install-SRSReport-ISSUES
+    https://MEM.Zone/ISSUES
 .COMPONENT
     RS
 .FUNCTIONALITY
