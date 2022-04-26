@@ -33,6 +33,7 @@ companyportal = '/Applications/Company Portal.app/'
 # Generated variables
 tempdir=$(mktemp -d)
 log="$logdir/$logname.log"
+USER=`stat -f "%Su" /dev/console`
 
 #endregion
 ##*=============================================
@@ -114,7 +115,7 @@ function startJamfOffboarding() {
     ## Remove all system profiles
     echo "Removing System Profiles..."
     for identifier in $(/usr/bin/profiles -L | awk "/attribute/" | awk '{print $4}'); do
-        /usr/bin/profiles -R -p "$identifier" >/dev/null 2>&1
+        sudo -u $USER profiles -R -p "$identifier" >/dev/null 2>&1
         echo "System profile [$identifier] removed!"
     done
     if [[ ! $identifier ]]; then
@@ -134,12 +135,12 @@ function startJamfOffboarding() {
 
     ## Remove Configuration Profiles
     echo "Removing Configuration Profiles..."
-    profiles remove -forced -all -v
+    sudo -u $USER profiles remove -forced -all -v
     echo ""
 
     ## Remove AD join
     echo "Unjoining from Active Directory!"
-    dsconfigad -force -remove -u johndoe -p nopasswordhere
+    sudo -u $USER dsconfigad -force -remove -u johndoe -p nopasswordhere
     echo ""
 }
 #endregion
