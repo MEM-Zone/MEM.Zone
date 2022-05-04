@@ -1,6 +1,6 @@
 # Set-WindowsAzureTheme release history
 
-## 1.0.0 - 2023-05-19
+## 1.0.0 - 2022-05-19
 
 ### First version
 
