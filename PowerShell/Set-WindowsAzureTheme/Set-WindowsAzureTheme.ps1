@@ -34,8 +34,6 @@
 .LINK
     https://MEM.Zone/Set-WindowsAzureTheme-GIT
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme-SQL
-.LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
     Desktop
@@ -577,8 +575,6 @@ Function Set-WindowsAzureTheme {
         [switch]$Force
     )
     Begin {
-
-        ## Import IDesktop API
         Format-Spacer -Message 'Initialization' -Type 'Verbose' -AddEmptyRow 'After'
 
         ## Set default output hashtable
