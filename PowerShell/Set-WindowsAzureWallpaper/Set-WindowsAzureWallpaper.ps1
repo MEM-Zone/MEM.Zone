@@ -49,7 +49,7 @@
 .NOTES
     Created by Ioan Popovici
     Wallpaper files need to have the resolution specified in the file name.(e.g. xxx1920x1200xxx.jpg).
-    If you have MEMCM you can run the SQL query linked below (Set-WindowsAzureWallpaper-SQL) in order to get the most common resolutions used in your environment.
+    If you have MEMCM you can run the SQL query linked below (Get-ScreenResolution-SQL) in order to get the most common resolutions used in your environment.
     You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
     https://MEM.Zone/Set-WindowsAzureWallpaper
@@ -58,7 +58,7 @@
 .LINK
     https://MEM.Zone/Set-WindowsAzureWallpaper-GIT
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper-SQL
+    https://MEM.Zone/Get-ScreenResolution-SQL
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
