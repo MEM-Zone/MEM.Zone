@@ -433,11 +433,11 @@ Try {
     ## Set parameters according to script parameters.
     ## !! Add parameters values here if using in-script parameters. Don't forget to comment the script parameter section !!
     [hashtable]$Parameters = @{
-        Action               = $Action
-        Path                 = $Path
-        Force                = $Force
-        DetectionMethod      = $DetectionMethod
-        Verbose              = $VerbosePreference
+        Action          = $Action
+        Path            = $Path
+        Force           = $Force
+        DetectionMethod = $DetectionMethod
+        Verbose         = $VerbosePreference
     }
 
     ## Call Set-WindowsAzureTheme with declared parameters
