@@ -444,7 +444,7 @@ Try {
     $SetWindowsTheme = Set-WindowsTheme @Parameters
 
     ## Return output if the theme is installed, otherwise return $null
-    $IsDetected = $SetWindowsTheme.$DetectionMethod
+    $IsDetected = $SetWindowsTheme.$($Parameters.DetectionMethod)
     $Output = If ($IsDetected) { $SetWindowsTheme } Else { $null }
 
     ## Set exit code to success
