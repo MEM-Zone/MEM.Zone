@@ -115,10 +115,6 @@ Function Get-CurrentUser {
     Param ()
 
     Begin {
-
-        ## Load HKU hive
-        $IsHKULoaded = Test-Path -Path 'HKU:'
-        If (-not $IsHKULoaded) { New-PSDrive -PSProvider 'Registry' -Name 'HKU' -Root 'HKEY_USERS' | Out-Null }
     }
     Process {
         Try {
@@ -132,15 +128,12 @@ Function Get-CurrentUser {
             $CurrentUser = $ActiveSessions[0]
             #  Get user SID
             $CurrentUserSID = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Authentication\LogonUI\SessionData\$($CurrentUser.ID)" -Name 'LoggedOnUserSID' -ErrorAction 'SilentlyContinue').LoggedOnUserSID
-            #  Get user domain
-            $CurrentUserDomain = (Get-ItemProperty "HKU:\$CurrentUserSID\Volatile Environment" -Name 'USERDNSDOMAIN' -ErrorAction 'SilentlyContinue').USERDNSDOMAIN
             #  Get machine domain
             $Domain = [System.Net.Dns]::GetHostByName($Env:ComputerName).HostName.Replace($Env:ComputerName + '.', '')
             #  Build output object
             $Output = [pscustomobject]@{
                 UserSID       = $CurrentUserSID
                 UserName      = $CurrentUser.USERNAME
-                UserDomain    = $CurrentUserDomain
                 MachineDomain = $Domain.ToUpper()
             }
         }
@@ -152,7 +145,6 @@ Function Get-CurrentUser {
         }
     }
     End {
-        Remove-PSDrive -PSProvider 'Registry' -Name 'HKU' -ErrorAction 'SilentlyContinue' | Out-Null
     }
 }
 #endregion
