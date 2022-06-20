@@ -87,7 +87,7 @@ Function Test-RegistryPolicyFile {
     [cmdletbinding()]
     Param (
         [Parameter(Mandatory=$false)]
-        [string]$Path = $(Join-Path $env:WinDir 'System32\GroupPolicy\Machine\Registry.pol')
+        [String[]]$Path = $(Join-Path $env:WinDir 'System32\GroupPolicy\Machine\*')
     )
     Begin {
 
@@ -95,26 +95,31 @@ Function Test-RegistryPolicyFile {
         [Byte[]]$HealthyFileHeader = @(80, 82, 101, 103)
     }
     Process {
-        Try {
+        ForEach ($Path in $Paths) {
+            Try {
 
-            ## Check if registry.pol file exists
-            [bool]$RegistryPolExists = Test-Path -Path $Path -PathType 'Leaf'
-            If($RegistryPolExists) {
+                ## Check if registry.pol file exists
+                [bool]$RegistryPolExists = Test-Path -Path $Path -PathType 'Leaf'
+                If ($RegistryPolExists) {
 
-                ## Get Registry file header
-                [Byte[]]$FileHeader = Get-Content -Encoding 'Byte' -Path $Path -TotalCount 4
+                    ## Get Registry file header
+                    [Byte[]]$FileHeader = Get-Content -Encoding 'Byte' -Path $Path -TotalCount 4
 
-                ## Compare file header with reference
-                $FileIsCorrupt = Compare-Object -ReferenceObject $HealthyFileHeader -DifferenceObject $FileHeader
-                If($FileIsCorrupt) { $Result = 'NonCompliant' } Else { $Result = 'Compliant' }
+                    ## Compare file header with reference
+                    $FileIsCorrupt = Compare-Object -ReferenceObject $HealthyFileHeader -DifferenceObject $FileHeader
+                    If($FileIsCorrupt) { $Result = 'NonCompliant' } Else { $Result = 'Compliant' }
+                }
+                Else {
+                    Write-Output "Registry.pol [$Path] not found!"
+                    $Result = 'Compliant'
+                }
             }
-            Else { $Result = "Registry.pol [$Path] not found!" }
-        }
-        Catch {
-            $Result = "Could not test Registry.pol [$Path]. `n$($_.Exception.Message)"
-        }
-        Finally {
-            Write-Output $Result
+            Catch {
+                $Result = "Could not test Registry.pol [$Path]. `n$($_.Exception.Message)"
+            }
+            Finally {
+                Write-Output $Result
+            }
         }
     }
     End {}
@@ -132,21 +137,25 @@ Function Test-RegistryPolicyFile {
 #region ScriptBody
 
 ## Check for corruption
+[String[]]$Paths = "$(Join-Path $env:WinDir 'System32\GroupPolicy\Machine\*')", "$(Join-Path $env:WinDir 'System32\GroupPolicy\User\*')"
 $TestRegistryPolicyFile = Test-RegistryPolicyFile -Path $Path -ErrorAction 'SilentlyContinue'
-If ($TestRegistryPolicyFile -eq 'NonCompliant') {
-    Try {
-        Remove-Item -Path $Path -Force -ErrorAction 'Stop'
-        $Result = "Registry.pol [$Path] repaired."
+ForEach ($Path in $Paths) {
+    If ($TestRegistryPolicyFile -eq 'NonCompliant') {
+        Try {
+            Remove-Item -Path $Path -Force -ErrorAction 'Stop'
+            Remove-Item -Path "$(Join-Path $env:WinDir 'System32\GroupPolicy\DataStore\0\SysVol\*')" -Recurse -Force -ErrorAction 'SilentlyContinue'
+            $Result = "Registry.pol [$Path] repaired."
+        }
+        Catch {
+            $Result = "Could not repair Registry.pol [$Path]. `n$($_.Exception.Message)"
+        }
+        Finally {
+            Write-Output -InputObject $Result
+        }
     }
-    Catch {
-        $Result = "Could not repair Registry.pol [$Path]. `n$($_.Exception.Message)"
+    Else {
+        Write-Output -InputObject $TestRegistryPolicyFile
     }
-    Finally {
-        Write-Output -InputObject $Result
-    }
-}
-Else {
-    Write-Output -InputObject $TestRegistryPolicyFile
 }
 
 #endregion
