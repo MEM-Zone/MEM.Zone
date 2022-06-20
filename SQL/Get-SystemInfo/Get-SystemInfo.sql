@@ -33,7 +33,7 @@ DECLARE @LastSupportedLegacyOSBuild AS INT = 9600;
 WITH DeviceInfo_CTE
 AS (
     SELECT Systems.ResourceID
-		, Device                = (
+        , Device                = (
                 IIF(
                     SystemNames.Resource_Names0 IS NOT NULL, UPPER(SystemNames.Resource_Names0)
                     , IIF(Systems.Full_Domain_Name0 IS NOT NULL, Systems.Name0 + N'.' + Systems.Full_Domain_Name0, Systems.Name0)
@@ -92,23 +92,23 @@ AS (
                         )
                 END
             , CASE
-				WHEN OSInfo.ServicingState = 0 THEN 'Internal'
+                WHEN OSInfo.ServicingState = 0 THEN 'Internal'
                 WHEN OSInfo.ServicingState = 1 THEN 'Insider'
-				WHEN OSInfo.ServicingState = 2 THEN 'Current'
-				WHEN OSInfo.ServicingState = 3 THEN 'Expiring Soon'
-				WHEN OSInfo.ServicingState = 4 THEN 'Expired'
-				WHEN OSInfo.ServicingState = 5 THEN 'Unknown'
-			  END
-		  )
+                WHEN OSInfo.ServicingState = 2 THEN 'Current'
+                WHEN OSInfo.ServicingState = 3 THEN 'Expiring Soon'
+                WHEN OSInfo.ServicingState = 4 THEN 'Expired'
+                WHEN OSInfo.ServicingState = 5 THEN 'Unknown'
+              END
+          )
         ) --0 = 'Internal', 1 = 'Insider', 2 = 'Current', 3 = 'Expiring Soon', 4 = 'Expired', 5 = 'Unknown'
         , Domain                = Systems.Resource_Domain_OR_Workgr0
         , IPAddresses           = REPLACE(IPAddresses.Value, N' ', N';')
         , Country               = Users.co
         , Location              = Users.l
         , UserName              = Users.Unique_User_Name0
-		, UserFullName          = Users.Full_User_Name0
-		, UserEmail             = Users.Mail0
-		, Region                = Systems.Resource_Domain_OR_Workgr0
+        , UserFullName          = Users.Full_User_Name0
+        , UserEmail             = Users.Mail0
+        , Region                = Systems.Resource_Domain_OR_Workgr0
         , DeviceModel           = ComputerSystem.Model0
         , ClientState           = IIF(CombinedResources.IsClient = 1, ClientSummary.ClientStateDescription, 'Unmanaged')
         , ClientVersion         = CombinedResources.ClientVersion
@@ -119,7 +119,7 @@ AS (
         LEFT JOIN fn_rbac_GS_OPERATING_SYSTEM(@UserSIDs) AS OperatingSystem ON OperatingSystem.ResourceID = CollectionMembers.ResourceID
         LEFT JOIN fn_rbac_CH_ClientSummary(@UserSIDs) AS ClientSummary ON ClientSummary.ResourceID = CollectionMembers.ResourceID
         LEFT JOIN fn_rbac_R_User(@UserSIDs) AS Users ON Users.User_Name0 = Systems.User_Name0
-		LEFT JOIN fn_rbac_GS_COMPUTER_SYSTEM(@UserSIDs) AS ComputerSystem ON ComputerSystem.ResourceID = CollectionMembers.ResourceID
+        LEFT JOIN fn_rbac_GS_COMPUTER_SYSTEM(@UserSIDs) AS ComputerSystem ON ComputerSystem.ResourceID = CollectionMembers.ResourceID
         OUTER APPLY (
             SELECT
                 Version = OSLocalizedNames.Value
@@ -129,7 +129,7 @@ AS (
             WHERE OSLocalizedNames.Name = OSServicingStates.Name
                 AND Systems.OSBranch01 = OSServicingStates.Branch --Select only the branch of the installed OS
         ) AS OSInfo
-		 OUTER APPLY (
+         OUTER APPLY (
         SELECT Value =  (
             SELECT LTRIM(RTRIM(IP.IP_Addresses0)) AS [data()]
             FROM fn_rbac_RA_System_IPAddresses(@UserSIDs) AS IP
@@ -146,27 +146,27 @@ AS (
 SELECT
     DeviceInfo.Device
     , DeviceInfo.ClientState
-	, DeviceInfo.ClientVersion
-	, DeviceInfo.OperatingSystem
+    , DeviceInfo.ClientVersion
+    , DeviceInfo.OperatingSystem
     , DeviceInfo.OSVersion
     , DeviceInfo.OSBuildNumber
     , DeviceInfo.OSServicingState
-	, DeviceInfo.IPAddresses
-	, DeviceInfo.UserName
-	, DeviceInfo.UserFullName
-	, DeviceInfo.UserEmail
-	, DeviceInfo.DeviceModel
-	, DeviceInfo.Country
-	, DeviceInfo.Location
-	, DeviceInfo.Region
+    , DeviceInfo.IPAddresses
+    , DeviceInfo.UserName
+    , DeviceInfo.UserFullName
+    , DeviceInfo.UserEmail
+    , DeviceInfo.DeviceModel
+    , DeviceInfo.Country
+    , DeviceInfo.Location
+    , DeviceInfo.Region
 FROM DeviceInfo_CTE AS DeviceInfo
 ORDER BY
-	Region
-	, ClientState
-	, ClientVersion
-	, OperatingSystem
-	, OSVersion
-	, OSServicingState
+    Region
+    , ClientState
+    , ClientVersion
+    , OperatingSystem
+    , OSVersion
+    , OSServicingState
 
 /* #endregion */
 /*##=============================================*/
