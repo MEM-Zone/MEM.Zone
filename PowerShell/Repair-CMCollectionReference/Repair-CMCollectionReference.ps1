@@ -83,8 +83,10 @@ Param (
 )
 
 ## Set variables
-[string]$ScriptFullName = [System.IO.Path]::GetFullPath($MyInvocation.MyCommand.Definition)
-[string]$LogPath = If ($PSBoundParameters.ContainsKey('LogPath')) { $LogPath } Else { $ScriptFullName.Replace('.ps1', '.csv') }
+[string]$ScriptName     = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
+[string]$LogName = $ScriptName + '.log'
+[string]$LogFilePath = If ($LogPath) { Join-Path -Path $LogPath -ChildPath $LogName } Else { $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $LogName)) }
+
 
 #endregion
 ##*=============================================
@@ -106,7 +108,7 @@ Function Invoke-CMSiteCommand {
     Runs a command on a remote site and retunrs the resuly to the pipeline.
 .PARAMETER SiteFQDN
     Specifies SMS provider FQDN.
-.Parameter Command
+.PARAMETER Command
     Specifies the command to run.
 .EXAMPLE
     Invoke-CMSiteCommand -SiteFQDN 'site.sms.com' -Command 'Get-CMSite'
@@ -125,7 +127,7 @@ Function Invoke-CMSiteCommand {
 .FUNCTIONALITY
     Run a remote command on a CMSite.
 #>
-[CmdletBinding()]
+    [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true,HelpMessage='Site FQDN:',Position=0)]
         [ValidateNotNullorEmpty()]
@@ -387,7 +389,7 @@ Param (
 
         ## Process collections
         Try {
-            $Output = ForEach ($Collection in $NewSiteCollections) {
+            ForEach ($Collection in $NewSiteCollections) {
 
                 ## Set collection variables
                 $CollectionID = $Collection.CollectionID
@@ -415,65 +417,68 @@ Param (
                     'DirectMembershipRules' {
                         #  Check if the collection contains direct membership rules
                         [boolean]$IsDirectRule = $($CollectionRules | Out-String).Contains('SMS_CollectionRuleDirect')
-                        #  Get collection direct membership rules
-                        If ($IsDirectRule) { $DirectMembershipRules = Invoke-CMSiteCommand -Command "Get-CMDeviceCollectionDirectMembershipRule -CollectionId $CollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop' }
-                        #  Set progress variables
-                        [int]$RuleProgressStep = 0
-                        [int]$RuleProgressTotal = ($DirectMembershipRules | Measure-Object).Count
-                        #  Process rules
-                        ForEach ($DirectMembershipRule in $DirectMembershipRules) {
-                            Try {
-                                #  Show progress status
-                                $RuleProgressStep ++
-                                [int16]$PercentComplete = ($RuleProgressStep / $RuleProgressTotal) * 100
-                                Write-Progress -Activity 'Processing Direct Membership Rules... ' -CurrentOperation "'$CollectionName' --> '$($DirectMembershipRule.RuleName)'" -PercentComplete $PercentComplete -Id 1
-                                #  Set variables
-                                $RuleName = $DirectMembershipRule.RuleName
-                                #  Initialize output properties
-                                $OutputProps = [PSCustomObject]@{
-                                    CollectionName = $CollectionName
-                                    RepairType     = 'DirectMembershipRules'
-                                    RuleName       = $RuleName
-                                    Operation      = 'Skipped'
-                                    Result         = 'Healthy'
-                                }
-                                $OldResourceID = $DirectMembershipRule.ResourceID
-                                $NewResourceID = (Invoke-CMSiteCommand -Command "Get-CMDevice -Name $RuleName" -SiteFQDN $NewSiteFQDN -ErrorAction 'SilentlyContinue').ResourceID
-                                $IsDuplicate = [boolean]($NewResourceID | Measure-Object).Count -gt 1
-                                If (-not $IsDuplicate) {
-                                    #  Update membership rule
-                                    If (-not [string]::IsNullOrWhiteSpace($NewResourceID)) {
-                                        #  If the collection rule is not already set to the new ResourceID, remove the old ResourceID and add the new one. !! This is potentially destructive but you can't have two rules with the same name !!
-                                        If ($OldResourceID -ne $NewResourceID -and $NewResourceID -notin $DirectMembershipRules.ResourceID) {
-                                            #  Set output props
-                                            $OutputProps.Operation  = "Update '$RuleName' | '$OldResourceID' --> '$($NewResourceID | Out-String)'"
-                                            #  Remove old rule
-                                            Write-Verbose -Message "Removing [DM RULE]      | '$CollectionName' ($CollectionID) | '$RuleName' ($OldResourceID)..."
-                                            Invoke-CMSiteCommand -Command "Remove-CMDeviceCollectionDirectMembershipRule -CollectionId $CollectionID -ResourceID $OldResourceID -Force" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
-                                            #  Add new rule
-                                            Write-Verbose -Message "Adding   [DM RULE]      | '$CollectionName' ($CollectionID) | '$RuleName' ['$OldResourceID' --> '$NewResourceID']..."
-                                            Invoke-CMSiteCommand -Command "Add-CMDeviceCollectionDirectMembershipRule -CollectionId $CollectionID -ResourceID $NewResourceID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
-                                            $OutputProps.Result = 'Updated'
+                        #  Check if we need to start processing
+                        If ($IsDirectRule) {
+                            #  Get collection direct membership rules
+                            $DirectMembershipRules = Invoke-CMSiteCommand -Command "Get-CMDeviceCollectionDirectMembershipRule -CollectionId $CollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                            #  Set progress variables
+                            [int]$RuleProgressStep = 0
+                            [int]$RuleProgressTotal = ($DirectMembershipRules | Measure-Object).Count
+                            #  Process rules
+                            ForEach ($DirectMembershipRule in $DirectMembershipRules) {
+                                Try {
+                                    #  Show progress status
+                                    $RuleProgressStep ++
+                                    [int16]$PercentComplete = ($RuleProgressStep / $RuleProgressTotal) * 100
+                                    Write-Progress -Activity 'Processing Direct Membership Rules... ' -CurrentOperation "'$CollectionName' --> '$($DirectMembershipRule.RuleName)'" -PercentComplete $PercentComplete -Id 1
+                                    #  Set variables
+                                    $RuleName = $DirectMembershipRule.RuleName
+                                    #  Initialize output properties
+                                    $OutputProps = [PSCustomObject]@{
+                                        CollectionName = $CollectionName
+                                        RepairType     = 'DirectMembershipRules'
+                                        RuleName       = $RuleName
+                                        Operation      = 'Skipped'
+                                        Result         = 'Healthy'
+                                    }
+                                    $OldResourceID = $DirectMembershipRule.ResourceID
+                                    $NewResourceID = (Invoke-CMSiteCommand -Command "Get-CMDevice -Name $RuleName | Where-Object -Property IsClient -eq $true" -SiteFQDN $NewSiteFQDN -ErrorAction 'SilentlyContinue').ResourceID
+                                    [boolean]$IsDuplicate = ($NewResourceID | Measure-Object).Count -gt 1
+                                    If (-not $IsDuplicate) {
+                                        #  Update membership rule
+                                        If (-not [string]::IsNullOrWhiteSpace($NewResourceID)) {
+                                            #  If the collection rule is not already set to the new ResourceID, remove the old ResourceID and add the new one. !! This is potentially destructive but you can't have two rules with the same name !!
+                                            If ($OldResourceID -ne $NewResourceID -and $NewResourceID -notin $DirectMembershipRules.ResourceID) {
+                                                #  Set output props
+                                                $OutputProps.Operation  = "Update '$RuleName' | '$OldResourceID' --> '$NewResourceID'"
+                                                #  Remove old rule
+                                                Write-Verbose -Message "Removing [DM RULE]      | '$CollectionName' ($CollectionID) | '$RuleName' ($OldResourceID)..."
+                                                Invoke-CMSiteCommand -Command "Remove-CMDeviceCollectionDirectMembershipRule -CollectionId $CollectionID -ResourceID $OldResourceID -Force" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                                                #  Add new rule
+                                                Write-Verbose -Message "Adding   [DM RULE]      | '$CollectionName' ($CollectionID) | '$RuleName' ['$OldResourceID' --> '$NewResourceID']..."
+                                                Invoke-CMSiteCommand -Command "Add-CMDeviceCollectionDirectMembershipRule -CollectionId $CollectionID -ResourceID $NewResourceID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                                                $OutputProps.Result = 'Updated'
+                                            }
+                                        }
+                                        Else {
+                                            Write-Warning -Message "Failed   [DM RULE]      | '$CollectionName' ($CollectionID) | Device '$RuleName' not found!"
+                                            $OutputProps.Result = "Device '$RuleName' not found!"
                                         }
                                     }
                                     Else {
-                                        Write-Warning -Message "Failed   [DM RULE]      | '$CollectionName' ($CollectionID) | Device '$RuleName' not found!"
-                                        $OutputProps.Result = "Device '$RuleName' not found!"
+                                        Write-Warning -Message "Failed   [DM RULE]      | '$CollectionName' ($CollectionID) | Device '$RuleName' found more than once!"
+                                        $OutputProps.Result = "Device '$RuleName' is not unique!"
                                     }
                                 }
-                                Else {
-                                    Write-Warning -Message "Failed   [DM RULE]      | '$CollectionName' ($CollectionID) | Device '$RuleName' found more than once!"
-                                    $OutputProps.Result = "Device '$RuleName' is not unique!"
+                                Catch {
+                                    $ErrorMessage = $($_.Exception.Message)
+                                    Write-Warning -Message "Failed   [DM RULE]      | '$CollectionName' ($CollectionID) | '$RuleName' | $ErrorMessage"
+                                    $OutputProps.Result = $ErrorMessage
+                                    $PSCmdlet.WriteError($ErrorMessage)
                                 }
-                            }
-                            Catch {
-                                $ErrorMessage = $($_.Exception.Message)
-                                Write-Warning -Message "Failed   [DM RULE]      | '$CollectionName' ($CollectionID) | '$RuleName' | $ErrorMessage"
-                                $OutputProps.Result = $ErrorMessage
-                                PSCmdlet.WriteError($ErrorMessage)
-                            }
-                            Finally {
-                                Write-Output -InputObject $OutputProps
+                                Finally {
+                                    $OutputProps | Export-Csv -Path $LogFilePath -NoClobber -Append -Delimiter ';' -NoTypeInformation
+                                }
                             }
                         }
                     }
@@ -482,57 +487,60 @@ Param (
                     'IncludeMembershipRules' {
                         #  Check if the collection contains include membership rules
                         [boolean]$IsIncludeRule = $($CollectionRules | Out-String).Contains('SMS_CollectionRuleIncludeCollection')
-                        #  Get collection direct membership rules
-                        If ($IsIncludeRule) { $IncludeMembershipRules = Invoke-CMSiteCommand -Command "Get-CMDeviceCollectionIncludeMembershipRule -CollectionId $CollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop' }
-                        #  Set progress variables
-                        [int]$RuleProgressStep = 0
-                        [int]$RuleProgressTotal = ($IncludeMembershipRules | Measure-Object).Count
-                        #  Process rules
-                        ForEach ($IncludeMembershipRule in $IncludeMembershipRules) {
-                            Try {
-                                #  Show progress status
-                                $RuleProgressStep ++
-                                [int16]$PercentComplete = ($RuleProgressStep / $RuleProgressTotal) * 100
-                                Write-Progress -Activity 'Processing Include Membership Rules... ' -CurrentOperation "'$CollectionName' --> '$($IncludeMembershipRule.RuleName)'" -PercentComplete $PercentComplete -Id 1
-                                #  Set variables
-                                $RuleName = $IncludeMembershipRule.RuleName
-                                $OutputProps = [PSCustomObject]@{
-                                    CollectionName = $CollectionName
-                                    RepairType     = 'IncludeMembershipRules'
-                                    RuleName       = $RuleName
-                                    Operation      = 'Skipped'
-                                    Result         = 'Healthy'
-                                }
-                                $OldCollectionID = $IncludeMembershipRule.IncludeCollectionID
-                                $NewCollectionID = (Invoke-CMSiteCommand -Command "Get-CMCollection -Name $RuleName" -SiteFQDN $NewSiteFQDN -CollectionType 'Device' -ErrorAction 'SilentlyContinue').CollectionID
-                                #  Update membership rule
-                                If (-not [string]::IsNullOrWhiteSpace($NewCollectionID)) {
-                                    #  If the collection rule is not already set to the new CollectionID, remove the old CollectionID and add the new one. !! This is potentially destructive but you can't have two rules with the same name !!
-                                    If ($NewCollectionID -ne $CollectionID -and $NewCollectionID -notin $IncludeMembershipRules.IncludeCollectionID) {
-                                        #  Set output props
-                                        $OutputProps.Operation  = "Update '$RuleName' | '$OldCollectionID' --> '$NewCollectionID'"
-                                        #  Remove old rule
-                                        Write-Verbose -Message "Removing [INCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' ($OldCollectionID)..."
-                                        Invoke-CMSiteCommand -Command "Remove-CMDeviceCollectionIncludeMembershipRule -CollectionId $CollectionID -IncludeCollectionId $OldCollectionID -Force" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
-                                        #  Add new rule
-                                        Write-Verbose -Message "Adding   [INCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' ['$OldCollectionID' --> '$NewCollectionID']..."
-                                        Invoke-CMSiteCommand -Command "Add-CMDeviceCollectionIncludeMembershipRule -CollectionId $CollectionID -IncludeCollectionId $NewCollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
-                                        $OutputProps.Result     = 'Updated'
+                        #  Check if we need to start processing
+                        If ($IsIncludeRule) {
+                            #  Get collection direct membership rules
+                            $IncludeMembershipRules = Invoke-CMSiteCommand -Command "Get-CMDeviceCollectionIncludeMembershipRule -CollectionId $CollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                            #  Set progress variables
+                            [int]$RuleProgressStep = 0
+                            [int]$RuleProgressTotal = ($IncludeMembershipRules | Measure-Object).Count
+                            #  Process rules
+                            ForEach ($IncludeMembershipRule in $IncludeMembershipRules) {
+                                Try {
+                                    #  Show progress status
+                                    $RuleProgressStep ++
+                                    [int16]$PercentComplete = ($RuleProgressStep / $RuleProgressTotal) * 100
+                                    Write-Progress -Activity 'Processing Include Membership Rules... ' -CurrentOperation "'$CollectionName' --> '$($IncludeMembershipRule.RuleName)'" -PercentComplete $PercentComplete -Id 1
+                                    #  Set variables
+                                    $RuleName = $IncludeMembershipRule.RuleName
+                                    $OutputProps = [PSCustomObject]@{
+                                        CollectionName = $CollectionName
+                                        RepairType     = 'IncludeMembershipRules'
+                                        RuleName       = $RuleName
+                                        Operation      = 'Skipped'
+                                        Result         = 'Healthy'
+                                    }
+                                    $OldCollectionID = $IncludeMembershipRule.IncludeCollectionID
+                                    $NewCollectionID = (Invoke-CMSiteCommand -Command "Get-CMCollection -Name $RuleName" -SiteFQDN $NewSiteFQDN -CollectionType 'Device' -ErrorAction 'SilentlyContinue').CollectionID
+                                    #  Update membership rule
+                                    If (-not [string]::IsNullOrWhiteSpace($NewCollectionID)) {
+                                        #  If the collection rule is not already set to the new CollectionID, remove the old CollectionID and add the new one. !! This is potentially destructive but you can't have two rules with the same name !!
+                                        If ($NewCollectionID -ne $CollectionID -and $NewCollectionID -notin $IncludeMembershipRules.IncludeCollectionID) {
+                                            #  Set output props
+                                            $OutputProps.Operation  = "Update '$RuleName' | '$OldCollectionID' --> '$NewCollectionID'"
+                                            #  Remove old rule
+                                            Write-Verbose -Message "Removing [INCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' ($OldCollectionID)..."
+                                            Invoke-CMSiteCommand -Command "Remove-CMDeviceCollectionIncludeMembershipRule -CollectionId $CollectionID -IncludeCollectionId $OldCollectionID -Force" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                                            #  Add new rule
+                                            Write-Verbose -Message "Adding   [INCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' ['$OldCollectionID' --> '$NewCollectionID']..."
+                                            Invoke-CMSiteCommand -Command "Add-CMDeviceCollectionIncludeMembershipRule -CollectionId $CollectionID -IncludeCollectionId $NewCollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                                            $OutputProps.Result     = 'Updated'
+                                        }
+                                    }
+                                    Else {
+                                        Write-Warning -Message "Failed   [INCLUDE RULE] | '$CollectionName' ($CollectionID) | Collection '$RuleName' not found!"
+                                        $OutputProps.Result = "Collection '$RuleName' not found!"
                                     }
                                 }
-                                Else {
-                                    Write-Warning -Message "Failed   [INCLUDE RULE] | '$CollectionName' ($CollectionID) | Collection '$RuleName' not found!"
-                                    $OutputProps.Result = "Collection '$RuleName' not found!"
+                                Catch {
+                                    $ErrorMessage = $($_.Exception.Message)
+                                    Write-Warning -Message "Failed   [INCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' | $ErrorMessage "
+                                    $OutputProps.Result = $ErrorMessage
+                                    $PSCmdlet.WriteError($ErrorMessage)
                                 }
-                            }
-                            Catch {
-                                $ErrorMessage = $($_.Exception.Message)
-                                Write-Warning -Message "Failed   [INCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' | $ErrorMessage "
-                                $OutputProps.Result = $ErrorMessage
-                                PSCmdlet.WriteError($ErrorMessage)
-                            }
-                            Finally {
-                                Write-Output -InputObject $OutputProps
+                                Finally {
+                                    $OutputProps | Export-Csv -Path $LogFilePath -NoClobber -Append -Delimiter ';' -NoTypeInformation
+                                }
                             }
                         }
                     }
@@ -540,58 +548,61 @@ Param (
                     ## Exclude Collection Membership Rules
                     'ExcludeMembershipRules' {
                         #  Check if the collection contains exclude membership rules
-                        [boolean]$IsExcludeRule = $($CollectionRules | Out-String).Contains('SMS_CollectionRuleIncludeCollection')
-                        #  Get collection direct membership rules
-                        If ($IsExcludeRule) { $DirectMembershipRules = Invoke-CMSiteCommand -Command "Get-CMDeviceCollectionExcludeMembershipRule -CollectionId $CollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop' }
-                        #  Set progress variables
-                        [int]$RuleProgressStep = 0
-                        [int]$RuleProgressTotal = ($ExcludeMembershipRules | Measure-Object).Count
-                        #  Process rules
-                        ForEach ($ExcludeMembershipRule in $ExcludeMembershipRules) {
-                            Try {
-                                #  Show progress status
-                                $RuleProgressStep ++
-                                [int16]$PercentComplete = ($RuleProgressStep / $RuleProgressTotal) * 100
-                                Write-Progress -Activity 'Processing Exclude Membership Rules... ' -CurrentOperation "'$CollectionName' --> '$($ExcludeMembershipRule.RuleName)'" -PercentComplete $PercentComplete -Id 1
-                                #  Set variables
-                                $RuleName = $ExcludeMembershipRule.RuleName
-                                $OutputProps = [PSCustomObject]@{
-                                    CollectionName = $CollectionName
-                                    RepairType     = 'ExcludeMembershipRules'
-                                    RuleName       = $RuleName
-                                    Operation      = 'Skipped'
-                                    Result         = 'Healthy'
-                                }
-                                $OldCollectionID = $ExcludeMembershipRule.ExcludeCollectionID
-                                $NewCollectionID = (Invoke-CMSiteCommand -Command "Get-CMCollection -Name $RuleName" -SiteFQDN $NewSiteFQDN -CollectionType 'Device' -ErrorAction 'SilentlyContinue').CollectionID
-                                #  Update membership rule
-                                If (-not [string]::IsNullOrWhiteSpace($NewCollectionID)) {
-                                    #  If the collection rule is not already set to the new CollectionID, remove the old CollectionID and add the new one. !! This is potentially destructive but you can't have two rules with the same name !!
-                                    If ($NewCollectionID -ne $OldCollectionID -and $NewCollectionID -notin $ExcludeMembershipRules.IncludeCollectionID) {
-                                        #  Set output props
-                                        $OutputProps.Operation = "Update '$RuleName' | '$OldCollectionID' --> '$NewCollectionID'"
-                                        #  Remove old rule
-                                        Write-Verbose -Message "Removing [EXCLUDE RULE] | $CollectionName ($CollectionID) | '$RuleName' ($OldCollectionID)..."
-                                        Invoke-CMSiteCommand -Command "Remove-CMDeviceCollectionExcludeMembershipRule -CollectionId $CollectionID -ExcludeCollectionId $OldCollectionID -Force" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
-                                        #  Add new rule
-                                        Write-Verbose -Message "Adding   [EXCLUDE RULE] | $CollectionName ($CollectionID) | '$RuleName' ['$OldCollectionID' --> '$NewCollectionID']..."
-                                        Invoke-CMSiteCommand -Command "Add-CMDeviceCollectionExcludeMembershipRule -CollectionId $CollectionID -ExcludeCollectionId $NewCollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
-                                        $OutputProps.Result = 'Updated'
+                        [boolean]$IsExcludeRule = $($CollectionRules | Out-String).Contains('SMS_CollectionRuleExcludeCollection')
+                        #  Check if we need to start processing
+                        If ($IsExcludeRule) {
+                            #  Get collection exclude membership rules
+                            $ExcludeMembershipRules = Invoke-CMSiteCommand -Command "Get-CMDeviceCollectionExcludeMembershipRule -CollectionId $CollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                            #  Set progress variables
+                            [int]$RuleProgressStep = 0
+                            [int]$RuleProgressTotal = ($ExcludeMembershipRules | Measure-Object).Count
+                            #  Process rules
+                            ForEach ($ExcludeMembershipRule in $ExcludeMembershipRules) {
+                                Try {
+                                    #  Show progress status
+                                    $RuleProgressStep ++
+                                    [int16]$PercentComplete = ($RuleProgressStep / $RuleProgressTotal) * 100
+                                    Write-Progress -Activity 'Processing Exclude Membership Rules... ' -CurrentOperation "'$CollectionName' --> '$($ExcludeMembershipRule.RuleName)'" -PercentComplete $PercentComplete -Id 1
+                                    #  Set variables
+                                    $RuleName = $ExcludeMembershipRule.RuleName
+                                    $OutputProps = [PSCustomObject]@{
+                                        CollectionName = $CollectionName
+                                        RepairType     = 'ExcludeMembershipRules'
+                                        RuleName       = $RuleName
+                                        Operation      = 'Skipped'
+                                        Result         = 'Healthy'
+                                    }
+                                    $OldCollectionID = $ExcludeMembershipRule.ExcludeCollectionID
+                                    $NewCollectionID = (Invoke-CMSiteCommand -Command "Get-CMCollection -Name $RuleName" -SiteFQDN $NewSiteFQDN -CollectionType 'Device' -ErrorAction 'SilentlyContinue').CollectionID
+                                    #  Update membership rule
+                                    If (-not [string]::IsNullOrWhiteSpace($NewCollectionID)) {
+                                        #  If the collection rule is not already set to the new CollectionID, remove the old CollectionID and add the new one. !! This is potentially destructive but you can't have two rules with the same name !!
+                                        If ($NewCollectionID -ne $OldCollectionID -and $NewCollectionID -notin $ExcludeMembershipRules.IncludeCollectionID) {
+                                            #  Set output props
+                                            $OutputProps.Operation = "Update '$RuleName' | '$OldCollectionID' --> '$NewCollectionID'"
+                                            #  Remove old rule
+                                            Write-Verbose -Message "Removing [EXCLUDE RULE] | $CollectionName ($CollectionID) | '$RuleName' ($OldCollectionID)..."
+                                            Invoke-CMSiteCommand -Command "Remove-CMDeviceCollectionExcludeMembershipRule -CollectionId $CollectionID -ExcludeCollectionId $OldCollectionID -Force" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                                            #  Add new rule
+                                            Write-Verbose -Message "Adding   [EXCLUDE RULE] | $CollectionName ($CollectionID) | '$RuleName' ['$OldCollectionID' --> '$NewCollectionID']..."
+                                            Invoke-CMSiteCommand -Command "Add-CMDeviceCollectionExcludeMembershipRule -CollectionId $CollectionID -ExcludeCollectionId $NewCollectionID" -SiteFQDN $NewSiteFQDN -ErrorAction 'Stop'
+                                            $OutputProps.Result = 'Updated'
+                                        }
+                                    }
+                                    Else {
+                                        Write-Warning -Message "Failed   [EXCLUDE RULE] | '$CollectionName' ($CollectionID) | Collection '$RuleName' not found!"
+                                        $OutputProps.Result = "Collection '$RuleName' not found!"
                                     }
                                 }
-                                Else {
-                                    Write-Warning -Message "Failed   [EXCLUDE RULE] | '$CollectionName' ($CollectionID) | Collection '$RuleName' not found!"
-                                    $OutputProps.Result = "Collection '$RuleName' not found!"
+                                Catch {
+                                    $ErrorMessage = $($_.Exception.Message)
+                                    Write-Warning -Message "Failed   [EXCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' | $ErrorMessage"
+                                    $OutputProps.Result = $ErrorMessage
+                                    $PSCmdlet.WriteError($ErrorMessage)
                                 }
-                            }
-                            Catch {
-                                $ErrorMessage = $($_.Exception.Message)
-                                Write-Warning -Message "Failed   [EXCLUDE RULE] | '$CollectionName' ($CollectionID) | '$RuleName' | $ErrorMessage"
-                                $OutputProps.Result = $ErrorMessage
-                                PSCmdlet.WriteError($ErrorMessage)
-                            }
-                            Finally {
-                                Write-Output -InputObject $OutputProps
+                                Finally {
+                                    $OutputProps | Export-Csv -Path $LogFilePath -NoClobber -Append -Delimiter ';' -NoTypeInformation
+                                }
                             }
                         }
                     }
@@ -647,10 +658,10 @@ Param (
                                 $ErrorMessage = $($_.Exception.Message)
                                 Write-Warning -Message "Failed [LIMITING COLL]  | '$CollectionName' ($CollectionID) | '$LimitingCollectionName' | $ErrorMessage"
                                 $OutputProps.Result = $ErrorMessage
-                                PSCmdlet.WriteError($ErrorMessage)
+                                $PSCmdlet.WriteError($ErrorMessage)
                             }
                             Finally {
-                                Write-Output -InputObject $OutputProps
+                                $OutputProps | Export-Csv -Path $LogFilePath -NoClobber -Append -Delimiter ';' -NoTypeInformation
                             }
                         }
                     }
@@ -659,9 +670,6 @@ Param (
         }
         Catch {
             $PSCmdlet.WriteError($PsItem)
-        }
-        Finally {
-            Write-Output -InputObject $Output
         }
     }
 }
@@ -686,7 +694,6 @@ Catch {
 }
 Finally {
     Write-Output -InputObject $Output
-    $Output | Export-Csv -Path $LogPath -Encoding 'utf8' -Force
 }
 
 #endregion
