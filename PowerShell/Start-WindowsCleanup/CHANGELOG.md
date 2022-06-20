@@ -1,4 +1,4 @@
-# Clean-WindowsImage release history
+# Start-WindowsCleanup release history
 
 ## 3.0.1 - 2021-11-19
 
