@@ -1,16 +1,16 @@
-#region Function Get-AzureFileStorageItem
-Function Get-AzureFileStorageItem {
+#region Function Get-RestAzureFileStorageItem
+Function Get-RestAzureFileStorageItem {
 <#
 .SYNOPSIS
-    Lists directories and files for a path.
+    Lists directories and files for a azure file storage path.
 .DESCRIPTION
-    Lists directories and files for a path storage using REST API.
+    Lists directories and files for a azure file storage path using REST API.
 .PARAMETER Url
     Specifies the azure share URL.
 .PARAMETER SasToken
     Specifies the azure share SAS token. Specifies the azure share SAS token. If this parameter is not specified, no authentication is used.
 .EXAMPLE
-    Get-AzureFileStorageItem -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken'
+    Get-RestAzureFileStorageItem -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken'
 .INPUTS
     None.
 .OUTPUTS
@@ -27,15 +27,15 @@ Function Get-AzureFileStorageItem {
 .COMPONENT
     Azure File Storage Rest API
 .FUNCTIONALITY
-    List Items
+    List Azure File Storage Items
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
+        [Parameter(Mandatory = $true, HelpMessage = 'Share URL:', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=1)]
+        [Parameter(Mandatory = $false, HelpMessage = 'Share SAS Token:', Position = 1)]
         [ValidateNotNullorEmpty()]
         [Alias('Sas')]
         [string]$SasToken
@@ -60,30 +60,38 @@ Function Get-AzureFileStorageItem {
 
             ## If URL is a file, get the properties
             If (-not [string]::IsNullOrEmpty($FileName)) {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($Url, $SasToken) } Else { $Url }
-                #  Invoke REST API
-                $File = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
-                #  Build the output object
-                $AzureFileList = [pscustomobject]@{
+
+                ## Invoke REST API
+                $Response = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
+
+                ##  Build the output object
+                $Output = [pscustomobject]@{
                     'Name'     = $FileName
-                    'Size(KB)' = '{0:N2}' -f ($File.Headers.'Content-Length' / 1KB)
+                    'Size(KB)' = '{0:N2}' -f ($Response.Headers.'Content-Length' / 1KB)
                     'Url'      = $Url
                 }
             }
 
             ## Else list the directory content
             Else {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}&{2}' -f ($Url, 'restype=directory&comp=list', $SasToken) } Else { '{0}?{1}' -f ($Url, 'restype=directory&comp=list') }
-                #  Invoke REST API
+
+                ## Invoke REST API
                 $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
-                #  Cleanup response and convert to XML
+
+                ## Cleanup response and convert to XML
                 $Xml = [xml]$Response.Substring($Response.IndexOf('<'))
-                #  Get the file objects
+
+                ## Get the file objects
                 $Files = $Xml.ChildNodes.Entries.File
-                #  Build the output object
-                $AzureFileList = ForEach ($File in $Files) {
+
+                ## Build the output object
+                $Output = ForEach ($File in $Files) {
                     [pscustomobject]@{
                         'Name'     = $File.Name
                         'Size(KB)' = '{0:N2}' -f ($File.Properties.'Content-Length' / 1KB)
@@ -93,10 +101,10 @@ Function Get-AzureFileStorageItem {
             }
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
-            Write-Output -InputObject $AzureFileList
+            Write-Output -InputObject $Output
         }
     }
     End {

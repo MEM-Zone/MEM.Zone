@@ -1,5 +1,5 @@
-#region Function Get-AzureBlobStorageItem
-Function Get-AzureBlobStorageItem {
+#region Function Get-RestAzureBlobStorageItem
+Function Get-RestAzureBlobStorageItem {
     <#
 .SYNOPSIS
     Lists blobs for an azure blob storage path.
@@ -10,9 +10,9 @@ Function Get-AzureBlobStorageItem {
 .PARAMETER SasToken
     Specifies the azure blob SAS token. If this parameter is not specified, no authentication is used.
 .EXAMPLE
-    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>' -SasToken 'SomeAccessToken'
+    Get-RestAzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>' -SasToken 'SomeAccessToken'
 .EXAMPLE
-    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>/<blob>' -SasToken 'SomeAccessToken'
+    Get-RestAzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>/<blob>' -SasToken 'SomeAccessToken'
 .INPUTS
     None.
 .OUTPUTS
@@ -61,30 +61,38 @@ Function Get-AzureBlobStorageItem {
 
             ## If URL is a single blob, get the properties
             If (-not [string]::IsNullOrEmpty($BlobName)) {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($Url, $SasToken) } Else { $Url }
-                #  Invoke REST API
-                $Blob = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
-                #  Build the output object
-                $AzureBlobList = [pscustomobject]@{
+
+                ## Invoke REST API
+                $Response = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
+
+                ## Build the output object
+                $Output = [pscustomobject]@{
                     'Name'     = $BlobName
-                    'Size(KB)' = '{0:N2}' -f ($Blob.Headers.'Content-Length' / 1KB)
+                    'Size(KB)' = '{0:N2}' -f ($Response.Headers.'Content-Length' / 1KB)
                     'Url'      = $Url
                 }
             }
 
             ## Else list the directory content
             Else {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}&{2}' -f ($Url, 'restype=container&comp=list', $SasToken) } Else { '{0}?{1}' -f ($Url, 'restype=container&comp=list') }
-                #  Invoke REST API
+
+                ## Invoke REST API
                 $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
-                #  Cleanup response and convert to XML
+
+                ## Cleanup response and convert to XML
                 $Xml = [xml]$Response.Substring($Response.IndexOf('<'))
-                #  Get the file objects
+
+                ## Get the file objects
                 $Blobs = $Xml.ChildNodes.Blobs.Blob
-                #  Build the output object
-                $AzureBlobList = ForEach ($Blob in $Blobs) {
+
+                ## Build the output object
+                $Output = ForEach ($Blob in $Blobs) {
                     [pscustomobject]@{
                         'Name'     = $($Blob.Name | Split-Path -Leaf)
                         'Size(KB)' = '{0:N2}' -f ($Blob.Properties.'Content-Length' / 1KB)
@@ -97,7 +105,7 @@ Function Get-AzureBlobStorageItem {
             $PSCmdlet.WriteError($PSItem)
         }
         Finally {
-            Write-Output -InputObject $AzureBlobList
+            Write-Output -InputObject $Output
         }
     }
     End {

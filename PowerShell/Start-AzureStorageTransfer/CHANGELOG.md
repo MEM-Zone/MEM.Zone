@@ -1,6 +1,6 @@
 # Start-AzureStorageTransfer release history
 
-## 2.0.0 - 2021-07-23
+## 2.0.0 - 2021-07-18
 
     * Renamed script to `Start-AzureStorageTransfer`
     * Renamed functions for better verb compliance
