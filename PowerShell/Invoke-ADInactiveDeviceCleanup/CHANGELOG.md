@@ -1,5 +1,9 @@
 # Invoke-ADInactiveDeviceCleanup release history
 
+## 3.0.0 - 2022-07-20
+
+* Moved parameters to `JSON` configuration file
+
 ## 2.0.0b - 2021-06-28 - (Beta Version)
 
 * Renamed script to better reflect the purpose

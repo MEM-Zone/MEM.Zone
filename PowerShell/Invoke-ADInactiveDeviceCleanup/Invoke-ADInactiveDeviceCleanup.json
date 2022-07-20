@@ -1,0 +1,31 @@
+{
+    "MainConfig": {
+        "Server": "domain.company.com",
+        "SearchBase": "OU=Disabled Computers,DC=domain,DC=company,DC=com",
+        "TargetPath": "OU=Disabled Computers,DC=domain,DC=company,DC=com",
+        "DaysInactive": 365,
+        "Filter": "Enabled -eq 'false'",
+        "ListOnly": false
+    },
+    "ReportHeaderColumns": {
+        "Device Name": "Name",
+        "Last Logon (Days)": "DaysSinceLastLogon",
+        "Last Logon (Date)": "LastLogonDate",
+        "Path (DN)": "DistinguishedName",
+        "Destination (DN)": "TargetPath",
+        "Object Enabled" : "Enabled"
+    },
+    "HTMLReportConfig": {
+        "ReportName": "Report from AD Inactive Device Maintenance",
+        "ReportHeader": "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days",
+        "ReportFooter": "For more information write to: <i><a href = 'mailto:servicedesk@company.com'>it-servicedesk@company.com</a></i>"
+    },
+    "SendMailConfig": {
+        "From": "endpoint.management@company.com",
+        "To": "hello@mem.zone",
+        "SmtpServer": "smtp.gmail.com",
+        "Port": 587,
+        "User": "endpoint.management@company.com",
+        "Password": "EncryptedPassword"
+    }
+}

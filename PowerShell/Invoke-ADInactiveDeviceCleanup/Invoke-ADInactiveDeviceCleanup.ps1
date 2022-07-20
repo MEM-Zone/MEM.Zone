@@ -3,59 +3,24 @@
     Cleans Active Directory inactive devices.
 .DESCRIPTION
     Cleans Active Directory devices that have passed the specified inactive threshold by disabling them and optionally moving them to a specified OU.
-.PARAMETER Server
-    Specifies the domain or server to query.
-.PARAMETER SearchBase
-    Specifies the search start location. Default is '$null'.
-.PARAMETER Filter
-    Specifies the filtering options. Default is 'Enable -eq $true'.
-.PARAMETER DaysInactive
-    Specifies the inactivity threshold. Default is '365'.
-.PARAMETER ListOnly
-    Specifies to only list the inactive devices in Active Directory.
-.PARAMETER TargetPath
-    Specifies to move the disabled devices to a specific Organizational Unit.
-.PARAMETER LogPath
-    Specifies to save the inactive device list to specified log folder. Default is 'ScriptFolder'.
-.PARAMETER HTMLReportConfig
-    Specifies the report configuration has a hashtable.
-    Default is:
-    [hashtable]@{
-        ReportName   = 'Report from AD Inactive Device Maintenance'
-        ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
-        ReportFooter = "Created by: <i><a href = 'https:\\MEM.Zone'>MEM.Zone</a></i> - 2021"
-    }
-.PARAMETER SendMailConfig
-    Specifies the mail configuration as a hashtable.
-    Requires: Mailkit and Mailmime (NuGet).
+.PARAMETER ConfigFilePath
+    Optionally specifies the json configuration file. This is needed for generating the HTML and email the report.
+    When this parameter is not specified, all other parameters are ignored.
+.PARAMETER NewConfigFile
+    Specifies to create a new json configuration file. This switch must be used in conjunction with the 'ConfigFilePath' parameter.
 .EXAMPLE
     Invoke-ADInactiveDeviceCleanup.ps1 -Server 'somedomain.com' -SearchBase 'CN=Computers,DC=somedomain,DC=com' -DaysInactive 365 -Destination 'CN=DisabledObjects,DC=somedomain,DC=com'
 .EXAMPLE
-    [string]$UserName = 'hello@mem.zone'
-    [securestring]$Password = 'AppSpecificPassword' | ConvertTo-SecureString -AsPlainText -Force
-    [PSCredential]$Credential = New-Object System.Management.Automation.PSCredential ($UserName, $Password)
-
-    [hashtable]$HTMLReportConfig = @{
-        ReportName   = 'Report from AD Inactive Device Maintenance'
-        ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
-        ReportFooter = "For more information write to: <i><a href = 'mailto:servicedesk@company.com'>it-servicedesk@company.com</a></i>"
-    }
-
-    [hashtable]$SendMailConfig = @{
-        To         = 'ioan@mem.zone'
-        From       = 'hello@mem.zone'
-        SmtpServer = 'smtp.gmail.com'
-        Port       = 587
-        Credential = $Credential
-    }
-    Invoke-ADInactiveDeviceCleanup.ps1 -Server 'somedomain.com' -SearchBase 'CN=Computers,DC=somedomain,DC=com' -DaysInactive 365 -ListOnly -HTMLReportConfig $HTMLReportConfig -SendMailConfig $SendMailConfig
+    Invoke-ADInactiveDeviceCleanup.ps1 -ConfigFilePath 'C:\Invoke-ADInactiveDeviceCleanup.json'
 .INPUTS
     None.
+    System.IO
 .OUTPUTS
     System.IO
     System.String
 .NOTES
     Created by Ioan Popovici
+    Requires: Mailkit and Mailmime (NuGet) for the email report.
 .LINK
     https://MEM.Zone/Invoke-ADInactiveDeviceCleanup
 .LINK
@@ -79,66 +44,17 @@
 #region VariableDeclaration
 
 ## Get script parameters
+[CmdletBinding(SupportsShouldProcess=$true)]
 Param (
-    [Parameter(Mandatory=$false,HelpMessage='Specify a valid Domain or Domain Controller.',Position=0)]
+    [Parameter(Mandatory=$false,HelpMessage='Specify script json config file path.',Position=0)]
     [ValidateNotNullorEmpty()]
-    [Alias('ServerName')]
-    [string]$Server,
-    [Parameter(Mandatory=$false,HelpMessage='Specify a OU Common Name (CN).',Position=1)]
-    [ValidateNotNullorEmpty()]
-    [Alias('OU')]
-    [string]$SearchBase = $null,
-    [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=2)]
-    [ValidateNotNullorEmpty()]
-    [Alias('FilterOption')]
-    [string]$Filter = "Enabled -eq 'true'",
-    [Parameter(Mandatory=$false,HelpMessage='Specify the inactivity threshold in days.',Position=3)]
-    [ValidateNotNullorEmpty()]
-    [Alias('LastActive')]
-    [int16]$DaysInactive = 365,
-    [Parameter(Mandatory=$false,Position=4)]
-    [ValidateNotNullorEmpty()]
-    [Alias('List')]
-    [switch]$ListOnly,
-    [Parameter(Mandatory=$false,HelpMessage='Specify the destination OU (CN) for disabled devices.',Position=5)]
-    [ValidateNotNullorEmpty()]
-    [Alias('Destination')]
-    [string]$TargetPath,
-    [Parameter(Mandatory=$false,HelpMessage='Specify the log folder path.',Position=6)]
-    [ValidateNotNullorEmpty()]
-    [Alias('Log')]
-    [string]$LogPath,
-    [Parameter(Mandatory=$false,HelpMessage='Specify send html report configuration as a hashtable.',Position=7)]
-    [ValidateNotNullorEmpty()]
-    [Alias('Report')]
-    [hashtable]$HTMLReportConfig = @{
-        ReportName   = 'Report from AD Inactive Device Maintenance'
-        ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
-        ReportFooter = "Created by: <i><a href = 'https:\\MEM.Zone'>MEM.Zone</a></i> - 2021"
-    },
-    [Parameter(Mandatory=$false,HelpMessage='Specify send mail configuration as a hashtable.',Position=8)]
-    [ValidateNotNullorEmpty()]
-    [Alias('Mail')]
-    [hashtable]$SendMailConfig = $null
+    [Alias('Config')]
+    [string]$ConfigFilePath = $null,
+    [Parameter(Mandatory=$false,HelpMessage='Specify to create a new config json file.',Position=1)]
+    [ValidateScript({ If ([string]::IsNullOrEmpty($ConfigFilePath)) { Throw 'ConfigFilePath parameter is mandatory, when using this switch!' } })]
+    [Alias('NewConfig')]
+    [switch]$NewConfigFile
 )
-
-## Get script path and name
-[string]$ScriptName     = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
-[string]$ScriptFullName = [System.IO.Path]::GetFullPath($MyInvocation.MyCommand.Definition)
-
-## Set script global variables
-$script:LoggingOptions   = @('Host', 'File', 'EventLog')
-$script:LogName          = 'Active Directory Scripts'
-$script:LogSource        = $ScriptName
-$script:LogDebugMessages = $false
-$script:LogFileDirectory = If ($LogPath) { Join-Path -Path $LogPath -ChildPath $script:LogName } Else { $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $script:LogName)) }
-
-## Get Show-Progress steps
-$ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Command' -and $_.Content -eq 'Show-Progress' }).Count)
-$ForEachSteps  = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Keyword' -and $_.Content -eq 'ForEach' }).Count)
-## Set Show-Progress steps
-$Script:Steps = $ProgressSteps - $ForEachSteps
-$Script:Step  = 0
 
 ## Specify new table headers
 $NewTableHeaders = [ordered]@{
@@ -150,6 +66,31 @@ $NewTableHeaders = [ordered]@{
     'Object Enabled'    = 'Enabled'
 }
 
+## Get script path, name and configuration file path
+[string]$ScriptName       = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
+[string]$ScriptFullName   = [System.IO.Path]::GetFullPath($MyInvocation.MyCommand.Definition)
+If ([string]::IsNullOrEmpty($ConfigFilePath)) { $ConfigFilePath = [IO.Path]::ChangeExtension($ScriptFullName, 'json') }
+
+## Get Show-Progress steps
+$ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Command' -and $PSItem.Content -eq 'Show-Progress' }).Count)
+## Set Show-Progress steps
+$Script:Steps = $ProgressSteps
+$Script:Step  = 0
+
+## Set script global variables
+$script:LoggingOptions   = @('Host', 'File', 'EventLog')
+$script:LogName          = 'Active Directory Scripts'
+$Script:LogSource        = $ScriptName
+$Script:LogDebugMessages = $false
+$Script:LogFileDirectory = Split-Path -Path $ScriptFullName -Parent
+$Script:LogFilePath      = [IO.Path]::ChangeExtension($ScriptFullName, 'log')
+
+## Initialize ordered hashtables
+[System.Collections.Specialized.OrderedDictionary]$HTMLReportConfig = @{}
+[System.Collections.Specialized.OrderedDictionary]$SendMailConfig   = @{}
+[System.Collections.Specialized.OrderedDictionary]$NewTableHeaders  = @{}
+[System.Collections.Specialized.OrderedDictionary]$Params           = @{}
+
 #endregion
 ##*=============================================
 ##* END VARIABLE DECLARATION
@@ -159,6 +100,185 @@ $NewTableHeaders = [ordered]@{
 ##* FUNCTION LISTINGS
 ##*=============================================
 #region FunctionListings
+
+#region Function Resolve-Error
+Function Resolve-Error {
+<#
+.SYNOPSIS
+    Enumerate error record details.
+.DESCRIPTION
+    Enumerate an error record, or a collection of error record, properties. By default, the details for the last error will be enumerated.
+.PARAMETER ErrorRecord
+    The error record to resolve. The default error record is the latest one: $global:Error[0]. This parameter will also accept an array of error records.
+.PARAMETER Property
+    The list of properties to display from the error record. Use "*" to display all properties.
+    Default list of error properties is: Message, FullyQualifiedErrorId, ScriptStackTrace, PositionMessage, InnerException
+.PARAMETER GetErrorRecord
+    Get error record details as represented by $PSItem.
+.PARAMETER GetErrorInvocation
+    Get error record invocation information as represented by $PSItem.InvocationInfo.
+.PARAMETER GetErrorException
+    Get error record exception details as represented by $PSItem.Exception.
+.PARAMETER GetErrorInnerException
+    Get error record inner exception details as represented by $PSItem.Exception.InnerException. Will retrieve all inner exceptions if there is more than one.
+.EXAMPLE
+    Resolve-Error
+.EXAMPLE
+    Resolve-Error -Property *
+.EXAMPLE
+    Resolve-Error -Property InnerException
+.EXAMPLE
+    Resolve-Error -GetErrorInvocation:$false
+.NOTES
+.LINK
+    http://psappdeploytoolkit.com
+#>
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory=$false,Position=0,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true)]
+        [AllowEmptyCollection()]
+        [array]$ErrorRecord,
+        [Parameter(Mandatory=$false,Position=1)]
+        [ValidateNotNullorEmpty()]
+        [string[]]$Property = ('Message','InnerException','FullyQualifiedErrorId','ScriptStackTrace','PositionMessage'),
+        [Parameter(Mandatory=$false,Position=2)]
+        [switch]$GetErrorRecord = $true,
+        [Parameter(Mandatory=$false,Position=3)]
+        [switch]$GetErrorInvocation = $true,
+        [Parameter(Mandatory=$false,Position=4)]
+        [switch]$GetErrorException = $true,
+        [Parameter(Mandatory=$false,Position=5)]
+        [switch]$GetErrorInnerException = $true
+    )
+
+    Begin {
+        ## If function was called without specifying an error record, then choose the latest error that occurred
+        If (-not $ErrorRecord) {
+            If ($global:Error.Count -eq 0) {
+                #Write-Warning -Message "The `$Error collection is empty"
+                Return
+            }
+            Else {
+                [array]$ErrorRecord = $global:Error[0]
+            }
+        }
+
+        ## Allows selecting and filtering the properties on the error object if they exist
+        [scriptblock]$SelectProperty = {
+            Param (
+                [Parameter(Mandatory=$true)]
+                [ValidateNotNullorEmpty()]
+                $InputObject,
+                [Parameter(Mandatory=$true)]
+                [ValidateNotNullorEmpty()]
+                [string[]]$Property
+            )
+
+            [string[]]$ObjectProperty = $InputObject | Get-Member -MemberType '*Property' | Select-Object -ExpandProperty 'Name'
+            ForEach ($Prop in $Property) {
+                If ($Prop -eq '*') {
+                    [string[]]$PropertySelection = $ObjectProperty
+                    Break
+                }
+                ElseIf ($ObjectProperty -contains $Prop) {
+                    [string[]]$PropertySelection += $Prop
+                }
+            }
+            Write-Output -InputObject $PropertySelection
+        }
+
+        #  Initialize variables to avoid error if 'Set-StrictMode' is set
+        $LogErrorRecordMsg = $null
+        $LogErrorInvocationMsg = $null
+        $LogErrorExceptionMsg = $null
+        $LogErrorMessageTmp = $null
+        $LogInnerMessage = $null
+    }
+    Process {
+        If (-not $ErrorRecord) { Return }
+        ForEach ($ErrRecord in $ErrorRecord) {
+            ## Capture Error Record
+            If ($GetErrorRecord) {
+                [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrRecord -Property $Property
+                $LogErrorRecordMsg = $ErrRecord | Select-Object -Property $SelectedProperties
+            }
+
+            ## Error Invocation Information
+            If ($GetErrorInvocation) {
+                If ($ErrRecord.InvocationInfo) {
+                    [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrRecord.InvocationInfo -Property $Property
+                    $LogErrorInvocationMsg = $ErrRecord.InvocationInfo | Select-Object -Property $SelectedProperties
+                }
+            }
+
+            ## Capture Error Exception
+            If ($GetErrorException) {
+                If ($ErrRecord.Exception) {
+                    [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrRecord.Exception -Property $Property
+                    $LogErrorExceptionMsg = $ErrRecord.Exception | Select-Object -Property $SelectedProperties
+                }
+            }
+
+            ## Display properties in the correct order
+            If ($Property -eq '*') {
+                #  If all properties were chosen for display, then arrange them in the order the error object displays them by default.
+                If ($LogErrorRecordMsg) { [array]$LogErrorMessageTmp += $LogErrorRecordMsg }
+                If ($LogErrorInvocationMsg) { [array]$LogErrorMessageTmp += $LogErrorInvocationMsg }
+                If ($LogErrorExceptionMsg) { [array]$LogErrorMessageTmp += $LogErrorExceptionMsg }
+            }
+            Else {
+                #  Display selected properties in our custom order
+                If ($LogErrorExceptionMsg) { [array]$LogErrorMessageTmp += $LogErrorExceptionMsg }
+                If ($LogErrorRecordMsg) { [array]$LogErrorMessageTmp += $LogErrorRecordMsg }
+                If ($LogErrorInvocationMsg) { [array]$LogErrorMessageTmp += $LogErrorInvocationMsg }
+            }
+
+            If ($LogErrorMessageTmp) {
+                $LogErrorMessage = 'Error Record:'
+                $LogErrorMessage += "`n-------------"
+                $LogErrorMsg = $LogErrorMessageTmp | Format-List | Out-String
+                $LogErrorMessage += $LogErrorMsg
+            }
+
+            ## Capture Error Inner Exception(s)
+            If ($GetErrorInnerException) {
+                If ($ErrRecord.Exception -and $ErrRecord.Exception.InnerException) {
+                    $LogInnerMessage = 'Error Inner Exception(s):'
+                    $LogInnerMessage += "`n-------------------------"
+
+                    $ErrorInnerException = $ErrRecord.Exception.InnerException
+                    $Count = 0
+
+                    While ($ErrorInnerException) {
+                        [string]$InnerExceptionSeperator = '~' * 40
+
+                        [string[]]$SelectedProperties = & $SelectProperty -InputObject $ErrorInnerException -Property $Property
+                        $LogErrorInnerExceptionMsg = $ErrorInnerException | Select-Object -Property $SelectedProperties | Format-List | Out-String
+
+                        If ($Count -gt 0) { $LogInnerMessage += $InnerExceptionSeperator }
+                        $LogInnerMessage += $LogErrorInnerExceptionMsg
+
+                        $Count++
+                        $ErrorInnerException = $ErrorInnerException.InnerException
+                    }
+                }
+            }
+
+            If ($LogErrorMessage) { $Output = $LogErrorMessage }
+            If ($LogInnerMessage) { $Output += $LogInnerMessage }
+
+            Write-Output -InputObject $Output
+
+            If (Test-Path -LiteralPath 'variable:Output') { Clear-Variable -Name 'Output' }
+            If (Test-Path -LiteralPath 'variable:LogErrorMessage') { Clear-Variable -Name 'LogErrorMessage' }
+            If (Test-Path -LiteralPath 'variable:LogInnerMessage') { Clear-Variable -Name 'LogInnerMessage' }
+            If (Test-Path -LiteralPath 'variable:LogErrorMessageTmp') { Clear-Variable -Name 'LogErrorMessageTmp' }
+        }
+    }
+    End {
+    }
+}
+#endregion
 
 #region Function Write-Log
 Function Write-Log {
@@ -175,7 +295,7 @@ Function Write-Log {
 .PARAMETER Source
     The source of the message being logged. Also used as the event log source.
 .PARAMETER ScriptSection
-    The heading for the portion of the script that is being executed. Default is: $script:installPhase.
+    The heading for the portion of the script that is being executed. Default is: $Script:installPhase.
 .PARAMETER LogType
     Choose whether to write a CMTrace.exe compatible log file or a Legacy text log file.
 .PARAMETER LoggingOptions
@@ -222,28 +342,28 @@ Function Write-Log {
         [int16]$Severity = 1,
         [Parameter(Mandatory = $false, Position = 2)]
         [ValidateNotNullorEmpty()]
-        [string]$Source = $script:LogSource,
+        [string]$Source = $Script:LogSource,
         [Parameter(Mandatory = $false, Position = 3)]
         [ValidateNotNullorEmpty()]
-        [string]$ScriptSection = $script:RunPhase,
+        [string]$ScriptSection = $Script:RunPhase,
         [Parameter(Mandatory = $false, Position = 4)]
         [ValidateSet('CMTrace', 'Legacy')]
-        [string]$LogType = 'CMTrace',
+        [string]$LogType = 'Legacy',
         [Parameter(Mandatory = $false, Position = 5)]
         [ValidateSet('Host', 'File', 'EventLog', 'None')]
-        [string[]]$LoggingOptions = $script:LoggingOptions,
+        [string[]]$LoggingOptions = $Script:LoggingOptions,
         [Parameter(Mandatory = $false, Position = 6)]
         [ValidateNotNullorEmpty()]
-        [string]$LogFileDirectory = $script:LogFileDirectory,
+        [string]$LogFileDirectory = $Script:LogFileDirectory,
         [Parameter(Mandatory = $false, Position = 7)]
         [ValidateNotNullorEmpty()]
-        [string]$LogFileName = $($script:LogSource + '.log'),
+        [string]$LogFileName = $($Script:LogSource + '.log'),
         [Parameter(Mandatory = $false, Position = 8)]
         [ValidateNotNullorEmpty()]
-        [int]$MaxLogFileSizeMB = '4',
+        [int]$MaxLogFileSizeMB = 5,
         [Parameter(Mandatory = $false, Position = 9)]
         [ValidateNotNullorEmpty()]
-        [string]$LogName = $script:LogName,
+        [string]$LogName = $Script:LogName,
         [Parameter(Mandatory = $false, Position = 10)]
         [ValidateNotNullorEmpty()]
         [int32]$EventID = 1,
@@ -257,7 +377,7 @@ Function Write-Log {
         [Parameter(Mandatory = $false, Position = 14)]
         [switch]$DebugMessage = $false,
         [Parameter(Mandatory = $false, Position = 15)]
-        [boolean]$LogDebugMessage = $script:LogDebugMessages
+        [boolean]$LogDebugMessage = $Script:LogDebugMessages
     )
 
     Begin {
@@ -268,22 +388,20 @@ Function Write-Log {
         #  Log file date/time
         [string]$LogTime = (Get-Date -Format 'HH:mm:ss.fff').ToString()
         [string]$LogDate = (Get-Date -Format 'MM-dd-yyyy').ToString()
-        If (-not (Test-Path -LiteralPath 'variable:LogTimeZoneBias')) { [int32]$script:LogTimeZoneBias = [timezone]::CurrentTimeZone.GetUtcOffset([datetime]::Now).TotalMinutes }
-        [string]$LogTimePlusBias = $LogTime + '-' + $script:LogTimeZoneBias
+        If (-not (Test-Path -LiteralPath 'variable:LogTimeZoneBias')) { [int32]$Script:LogTimeZoneBias = [timezone]::CurrentTimeZone.GetUtcOffset([datetime]::Now).TotalMinutes }
+        [string]$LogTimePlusBias = $LogTime + '-' + $Script:LogTimeZoneBias
         #  Initialize variables
         [boolean]$WriteHost = $false
         [boolean]$WriteFile = $false
         [boolean]$WriteEvent = $false
         [boolean]$DisableLogging = $false
         [boolean]$ExitLoggingFunction = $false
-        If (('Host' -in $LoggingOptions) -and (-not ($VerboseMessage -or $DebugMessage))) { $WriteHost = $true }
+        If ('Host' -in $LoggingOptions -and -not ($VerboseMessage -or $DebugMessage)) { $WriteHost = $true }
         If ('File' -in $LoggingOptions) { $WriteFile = $true }
         If ('EventLog' -in $LoggingOptions) { $WriteEvent = $true }
         If ('None' -in $LoggingOptions) { $DisableLogging = $true }
         #  Check if the script section is defined
         [boolean]$ScriptSectionDefined = [boolean](-not [string]::IsNullOrEmpty($ScriptSection))
-        #  Check if the source is defined
-        [boolean]$SourceDefined = [boolean](-not [string]::IsNullOrEmpty($Source))
         #  Check if the event log and event source exit
         [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
         [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
@@ -400,7 +518,7 @@ Function Write-Log {
         ## Create the directory where the log file will be saved
         If (-not (Test-Path -LiteralPath $LogFileDirectory -PathType 'Container')) {
             Try {
-                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop'
+                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop' -WhatIf:$false
             }
             Catch {
                 [boolean]$ExitLoggingFunction = $true
@@ -468,23 +586,27 @@ Function Write-Log {
             }
 
             ## Write the log entry to the log file and event log if logging is not currently disabled
-            If (-not $DisableLogging -and $WriteFile) {
-                ## Write to file log
-                Try {
-                    $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop'
-                }
-                Catch {
-                    If (-not $ContinueOnError) {
-                        Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+            If ((-not $ExitLoggingFunction) -and (-not $DisableLogging)) {
+                #  Write to file log
+                If ($WriteFile) {
+                    Try {
+                        $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop' -WhatIf:$false
+                    }
+                    Catch {
+                        If (-not $ContinueOnError) {
+                            Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                        }
                     }
                 }
-                ## Write to event log
-                Try {
-                    & $WriteToEventLog -lMessage $ConsoleLogLine -lName $LogName -lSource $Source -lSeverity $Severity
-                }
-                Catch {
-                    If (-not $ContinueOnError) {
-                        Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                #  Write to event log
+                If ($WriteEvent) {
+                    Try {
+                        & $WriteToEventLog -lMessage $ConsoleLogLine -lName $LogName -lSource $Source -lSeverity $Severity
+                    }
+                    Catch {
+                        If (-not $ContinueOnError) {
+                            Write-Host -Object "[$LogDate $LogTime] [$ScriptSection] [${CmdletName}] :: Failed to write message [$Msg] to the log file [$LogFilePath]. `n$(Resolve-Error)" -ForegroundColor 'Red'
+                        }
                     }
                 }
             }
@@ -502,18 +624,18 @@ Function Write-Log {
                 If (($LogFileSizeMB -gt $MaxLogFileSizeMB) -and ($MaxLogFileSizeMB -gt 0)) {
                     ## Change the file extension to "lo_"
                     [string]$ArchivedOutLogFile = [IO.Path]::ChangeExtension($LogFilePath, 'lo_')
-                    [hashtable]$ArchiveLogParams = @{ ScriptSection = $ScriptSection; Source = ${CmdletName}; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; WriteHost = $WriteHost; ContinueOnError = $ContinueOnError; PassThru = $false }
+                    [hashtable]$ArchiveLogParams = @{ ScriptSection = $ScriptSection; Source = $Source; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; ContinueOnError = $ContinueOnError; PassThru = $false }
 
                     ## Log message about archiving the log file
                     $ArchiveLogMessage = "Maximum log file size [$MaxLogFileSizeMB MB] reached. Rename log file to [$ArchivedOutLogFile]."
-                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams
 
                     ## Archive existing log file from <filename>.log to <filename>.lo_. Overwrites any existing <filename>.lo_ file. This is the same method SCCM uses for log files.
-                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop'
+                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop' -WhatIf:$false
 
                     ## Start new log file and Log message about archiving the old log file
                     $NewLogMessage = "Previous log file was renamed to [$ArchivedOutLogFile] because maximum log file size of [$MaxLogFileSizeMB MB] was reached."
-                    Write-Log -Message $NewLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $NewLogMessage @ArchiveLogParams
                 }
             }
         }
@@ -542,10 +664,12 @@ Function Show-Progress {
     Specifies the current operation.
 .PARAMETER Step
     Specifies the progress step. Default: $Script:Step ++.
+.PARAMETER Steps
+    Specifies the progress steps. Default: $Script:Steps ++.
 .PARAMETER ID
     Specifies the progress bar id.
 .PARAMETER Delay
-    Specifies the progress delay in milliseconds. Default: 100.
+    Specifies the progress delay in milliseconds. Default: 0.
 .PARAMETER Loop
     Specifies if the call comes from a loop.
 .EXAMPLE
@@ -571,8 +695,8 @@ Function Show-Progress {
     [string]$ScriptName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Definition)
     [string]$ScriptFullName = Join-Path -Path $ScriptPath -ChildPath $ScriptName
     #  Get progress steps
-    $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Command' -and $_.Content -eq 'Show-Progress' }).Count)
-    $ForEachSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Keyword' -and $_.Content -eq 'ForEach' }).Count)
+    $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Command' -and $PSItem.Content -eq 'Show-Progress' }).Count)
+    $ForEachSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Keyword' -and $PSItem.Content -eq 'ForEach' }).Count)
     #  Set progress steps
     $Script:Steps = $ProgressSteps - $ForEachSteps
     $Script:Step = 0
@@ -594,7 +718,7 @@ Function Show-Progress {
         [Parameter(Mandatory=$false,Position=0)]
         [ValidateNotNullorEmpty()]
         [Alias('act')]
-        [string]$Activity = 'Running Cleanup Please Wait...',
+        [string]$Activity = 'Running Active Directory Maintenance, Please Wait...',
         [Parameter(Mandatory=$true,Position=1)]
         [ValidateNotNullorEmpty()]
         [Alias('sta')]
@@ -610,19 +734,42 @@ Function Show-Progress {
         [Parameter(Mandatory=$false,Position=4)]
         [ValidateNotNullorEmpty()]
         [Alias('ste')]
-        [int]$Step = $Script:Step ++,
+        [int]$Step = $Script:Step,
         [Parameter(Mandatory=$false,Position=5)]
         [ValidateNotNullorEmpty()]
+        [Alias('sts')]
+        [int]$Steps = $Script:Steps,
+        [Parameter(Mandatory=$false,Position=6)]
+        [ValidateNotNullorEmpty()]
         [Alias('del')]
-        [string]$Delay = 100,
-        [Parameter(Mandatory=$false,Position=5)]
+        [string]$Delay = 0,
+        [Parameter(Mandatory=$false,Position=7)]
         [ValidateNotNullorEmpty()]
         [Alias('lp')]
         [switch]$Loop
     )
     Begin {
-        If ($Loop) { $Script:Steps ++ }
-        $PercentComplete = $($($Step / $Steps) * 100)
+        If ($Loop) {
+            $Steps ++
+            $Script:Steps ++
+        }
+        If ($Step -eq 0) {
+            $Step ++
+            $Script:Step ++
+            $Steps ++
+            $Script:Steps ++
+        }
+        If ($Steps -eq 0) {
+            $Steps ++
+            $Script:Steps ++
+        }
+
+        [int]$PercentComplete = $($($Step / $Steps) * 100)
+
+        ## Debug information
+        Write-Debug -Message "Percent Step: $Step"
+        Write-Debug -Message "Percent Steps: $Steps"
+        Write-Debug -Message "Percent Complete: $PercentComplete"
     }
     Process {
         Try {
@@ -631,139 +778,128 @@ Function Show-Progress {
             Start-Sleep -Milliseconds $Delay
         }
         Catch {
-            Throw (New-Object System.Exception("Could not Show progress status [$Status]! $($_.Exception.Message)", $_.Exception))
+            Throw (New-Object System.Exception("Could not Show progress status [$Status]! $($PSItem.Exception.Message)", $PSItem.Exception))
         }
     }
 }
 #endregion
 
-#region  Function Send-MailkitMessage
-Function Send-MailkitMessage {
+#region  New-JsonConfigurationFile
+Function New-JsonConfigurationFile {
 <#
 .SYNOPSIS
-    Sends an E-Mail to a specified address.
+    Creates a json configuration file.
 .DESCRIPTION
-    Sends an E-Mail to a specified address using Mailkit and Mailmime.
-.PARAMETER From
-    Specifies the source E-Mail address.
-.PARAMETER To
-    Specifies the destination E-Mail address.
-.PARAMETER CC
-    Specifies to include a carbon copy.
-.PARAMETER BCC
-    Specifies to include a black carbon copy.
-.PARAMETER Subject
-    Specifies the E-Mail subject.
-.PARAMETER Body
-    Speicfies the E-Mail body.
-.PARAMETER Attachments
-    Specifies E-Mail attachments.
-.PARAMETER SMTPServer
-    Specifies the E-Mail SMTP Server address.
-.PARAMETER Port
-    Specifies the E-Mail SMTP Port.
-.PARAMETER Credential
-    Specifies E-Mail account credentials.
-.PARAMETER BodyAsHtml
-    Specifies to pass the body as HTML.
+    Creates a new json configuration file in a specified location.
+.PARAMETER Path
+    Specifies the output path.
 .EXAMPLE
-    [string]$UserName = 'hello@mem.zone'
-    [securestring]$Password = 'AppSpecificPassword' | ConvertTo-SecureString -AsPlainText -Force
-    [PSCredential]$Credential = New-Object System.Management.Automation.PSCredential ($UserName, $Password)
-
-    [hashtable]$SendMailConfig = @{
-        To          = 'ioan@mem.zone'
-        From        = 'hello@mem.zone'
-        Body        = 'See attached report'
-        SmtpServer  = 'smtp.gmail.com'
-        Port        = 587
-        Credential  = $Credential
-        Attachments = "$env:SystemRoot\Runtime.log"
-    }
-    Send-MailkitMessage @$SendMailConfig
+    New-JsonConfigurationFile -Path 'C:\Temp\Config.json'
 .INPUTS
-    None.
+    None
 .OUTPUTS
-    None.
+    System.Object
 .NOTES
-    Created by Adam Listek
-    Adapted by Ioan Popovici
+    Created Ioan Popovici
 .LINK
-    https://adamtheautomator.com/powershell-email/#Sending_an_PowerShell_Email_via_MailKit
+    https://MEM.Zone
 .LINK
-    https://MEM.Zone/
-.LINK
-    https://MEM.Zone/GIT
-.LINK
-    https://MEM.Zone/ISSUES
+    https://MEM.Zone/Issues
 .COMPONENT
-    Mailkit
+    Configuration
 .FUNCTIONALITY
-    Sends a mail message using Mailkit
+    Create Json Configuration File
 #>
-    [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='Low')]
-    Param (
-        [Parameter(Mandatory=$true,Position=0)]
-        [string]$From,
-        [Parameter(Mandatory=$true,Position=1)]
-        [string]$To,
-        [Parameter(Mandatory=$false,Position=2)]
-        [string]$CC,
-        [Parameter(Mandatory=$false,Position=3)]
-        [string]$BCC,
-        [Parameter(Mandatory=$true,Position=4)]
-        [string]$Subject,
-        [Parameter(Mandatory=$true,Position=5)]
-        [string]$Body,
-        [Parameter(Mandatory=$false,Position=6)]
-        $Attachments = $LogFilePath,
-        [Parameter(Mandatory=$true,Position=7)]
-        [string]$SmtpServer,
-        [Parameter(Mandatory=$false,Position=8)]
-        [int32]$Port,
-        [Parameter(Mandatory=$false,Position=9)]
-        [pscredential]$Credential = $null,
-        [Parameter(Mandatory=$false,Position=10)]
-        [switch]$BodyAsHtml
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
+        [pscustomobject]$Path
     )
     Begin {
-        $SMTP    = New-Object 'MailKit.Net.Smtp.SmtpClient'
-        $Message = New-Object 'MimeKit.MimeMessage'
+        [string]$Configuration = @'
+{
+    "MainConfig": {
+        "Server": "domain.company.com",
+        "SearchBase": "OU=Disabled Computers,DC=domain,DC=company,DC=com",
+        "TargetPath": "OU=Disabled Computers,DC=domain,DC=company,DC=com",
+        "DaysInactive": 365,
+        "Filter": "Enabled -eq 'false'",
+        "ListOnly": false
+    },
+    "NewTableHeaders": {
+        "Device Name": "Name",
+        "Last Logon (Days)": "DaysSinceLastLogon",
+        "Last Logon (Date)": "LastLogonDate",
+        "Path (DN)": "DistinguishedName",
+        "Destination (DN)": "TargetPath",
+        "Object Enabled" : "Enabled"
+    },
+    "HTMLReportConfig": {
+        "ReportName": "Report from AD Inactive Device Maintenance",
+        "ReportHeader": "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days",
+        "ReportFooter": "For more information write to: <i><a href = 'mailto:servicedesk@company.com'>it-servicedesk@company.com</a></i>"
+    },
+    "SendMailConfig": {
+        "From": "endpoint.management@company.com",
+        "To": "hello@mem.zone",
+        "SmtpServer": "smtp.gmail.com",
+        "Port": 587,
+        "User": "endpoint.management@company.com",
+        "Password": "EncryptedPassword"
+    }
+}
+'@
     }
     Process {
-        Try {
-
-            If ($BodyAsHtml) { $TextPart = [MimeKit.TextPart]::new("html") }
-            Else { $TextPart = [MimeKit.TextPart]::new("plain") }
-
-            $TextPart.Text = $Body
-
-            $Message.From.Add($From)
-            $Message.To.Add($To)
-
-            If ($CC) { $Message.CC.Add($CC) }
-            If ($BCC) { $Message.BCC.Add($BCC) }
-
-            $Message.Subject = $Subject
-            $Message.Body    = $TextPart
-
-            If ($Attachment) { $Message.Attachments.Add($Attachments) }
-
-            $SMTP.Connect($SmtpServer, $Port, $False)
-
-            If ($Credential) { $SMTP.Authenticate($Credential.UserName, $Credential.GetNetworkCredential().Password) }
-
-            If ($PSCmdlet.ShouldProcess('Send the mail message via MailKit.')) { $SMTP.Send($Message) }
-        }
-        Catch {
-            Write-Log -Message "Send Mail - Failed!`n$PSItem" -Severity 3
-        }
-        Finally {
-            $SMTP.Disconnect($true)
-        }
+        Out-File -Path $Path -Encoding 'UTF8' -Content $Configuration -ErrorAction 'Stop'
     }
-    End {
-        $SMTP.Dispose()
+}
+#endregion
+
+#region  ConvertTo-HashtableFromPsCustomObject
+Function ConvertTo-HashtableFromPsCustomObject {
+<#
+.SYNOPSIS
+    Converts a custom object to a hashtable.
+.DESCRIPTION
+    Converts a custom powershell object to a hashtable.
+.PARAMETER PsCustomObject
+    Specifies the custom object to be converted.
+.EXAMPLE
+    ConvertTo-HashtableFromPsCustomObject -PsCustomObject $PsCustomObject
+.EXAMPLE
+    $PsCustomObject | ConvertTo-HashtableFromPsCustomObject
+.INPUTS
+    System.Object
+.OUTPUTS
+    System.Object
+.NOTES
+    Created Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/Issues
+.COMPONENT
+    Conversion
+.FUNCTIONALITY
+    Convert custom object to hashtable
+#>
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
+        [pscustomobject]$PsCustomObject
+    )
+    Begin {
+
+        ## Preservers hashtable parameter order
+        [System.Collections.Specialized.OrderedDictionary]$Output = @{}
+    }
+    Process {
+
+        ## The '.PsObject.Members' method preservers the order of the members, Get-Member does not.
+        [object]$ObjectProperties = $PsCustomObject.PsObject.Members | Where-Object -Property 'MemberType' -eq 'NoteProperty'
+        ForEach ($Property in $ObjectProperties) { $Output.Add($Property.Name, $PsCustomObject.$($Property.Name)) }
+        Write-Output -InputObject $Output
     }
 }
 #endregion
@@ -837,6 +973,7 @@ Function Format-HTMLReport {
     Formats a provided object to an HTML report, by formating table headers, html head and body.
 .PARAMETER ReportContent
     Specifies the report content object to format. Supports pipeline input.
+    Default value is an empty string.
 .PARAMETER HTMLHeader
     Specifies the HTML Head. Optional, should not be used if you don't know what you are doing.
 .PARAMETER HTMLBody
@@ -884,11 +1021,10 @@ Function Format-HTMLReport {
         [ValidateNotNullorEmpty()]
         [Alias('Body')]
         [string]$HTMLBody,
-        [Parameter(Mandatory=$true,ParameterSetName='CustomTemplate',ValueFromPipeline = $true,Position=0)]
-        [Parameter(Mandatory=$true,ParameterSetName='DefaultTemplate',ValueFromPipeline = $true,Position=0)]
-        [ValidateNotNullorEmpty()]
+        [Parameter(Mandatory=$false,ParameterSetName='CustomTemplate',ValueFromPipeline = $true,Position=0)]
+        [Parameter(Mandatory=$false,ParameterSetName='DefaultTemplate',ValueFromPipeline = $true,Position=0)]
         [Alias('Input')]
-        [object]$ReportContent,
+        [object]$ReportContent = '',
         [Parameter(Mandatory=$true,ParameterSetName='DefaultTemplate',HelpMessage='Specify the report name',Position=1)]
         [ValidateNotNullorEmpty()]
         [Alias('Name')]
@@ -1034,6 +1170,137 @@ Function Format-HTMLReport {
 }
 #endregion
 
+#region  Function Send-MailkitMessage
+Function Send-MailkitMessage {
+<#
+.SYNOPSIS
+    Sends an E-Mail to a specified address.
+.DESCRIPTION
+    Sends an E-Mail to a specified address using Mailkit and Mailmime.
+.PARAMETER From
+    Specifies the source E-Mail address.
+.PARAMETER To
+    Specifies the destination E-Mail address.
+.PARAMETER CC
+    Specifies to include a carbon copy.
+.PARAMETER BCC
+    Specifies to include a black carbon copy.
+.PARAMETER Subject
+    Specifies the E-Mail subject.
+.PARAMETER Body
+    Speicfies the E-Mail body.
+.PARAMETER Attachments
+    Specifies E-Mail attachments.
+.PARAMETER SMTPServer
+    Specifies the E-Mail SMTP Server address.
+.PARAMETER Port
+    Specifies the E-Mail SMTP Port.
+.PARAMETER Credential
+    Specifies E-Mail account credentials.
+.PARAMETER BodyAsHtml
+    Specifies to pass the body as HTML.
+.EXAMPLE
+    [string]$UserName = 'hello@mem.zone'
+    [securestring]$Password = 'AppSpecificPassword' | ConvertTo-SecureString -AsPlainText -Force
+    [PSCredential]$Credential = New-Object System.Management.Automation.PSCredential ($UserName, $Password)
+
+    [hashtable]$SendMailConfig = @{
+        To          = 'ioan@mem.zone'
+        From        = 'hello@mem.zone'
+        Body        = 'See attached report'
+        SmtpServer  = 'smtp.gmail.com'
+        Port        = 587
+        Credential  = $Credential
+        Attachments = "$env:SystemRoot\Runtime.log"
+    }
+    Send-MailkitMessage @$SendMailConfig
+.INPUTS
+    None.
+.OUTPUTS
+    None.
+.NOTES
+    Created by Adam Listek
+    Adapted by Ioan Popovici
+.LINK
+    https://adamtheautomator.com/powershell-email/#Sending_an_PowerShell_Email_via_MailKit
+.LINK
+    https://MEM.Zone/
+.LINK
+    https://MEM.Zone/GIT
+.LINK
+    https://MEM.Zone/ISSUES
+.COMPONENT
+    Mailkit
+.FUNCTIONALITY
+    Sends a mail message using Mailkit
+#>
+    [CmdletBinding(SupportsShouldProcess=$true,ConfirmImpact='Low')]
+    Param (
+        [Parameter(Mandatory=$true,Position=0)]
+        [string]$From,
+        [Parameter(Mandatory=$true,Position=1)]
+        [string]$To,
+        [Parameter(Mandatory=$false,Position=2)]
+        [string]$CC,
+        [Parameter(Mandatory=$false,Position=3)]
+        [string]$BCC,
+        [Parameter(Mandatory=$true,Position=4)]
+        [string]$Subject,
+        [Parameter(Mandatory=$true,Position=5)]
+        [string]$Body,
+        [Parameter(Mandatory=$false,Position=6)]
+        $Attachments = $LogFilePath,
+        [Parameter(Mandatory=$true,Position=7)]
+        [string]$SmtpServer,
+        [Parameter(Mandatory=$false,Position=8)]
+        [int32]$Port,
+        [Parameter(Mandatory=$false,Position=9)]
+        [pscredential]$Credential = $null,
+        [Parameter(Mandatory=$false,Position=10)]
+        [switch]$BodyAsHtml
+    )
+    Begin {
+        $SMTP    = New-Object 'MailKit.Net.Smtp.SmtpClient'
+        $Message = New-Object 'MimeKit.MimeMessage'
+    }
+    Process {
+        Try {
+
+            If ($BodyAsHtml) { $TextPart = [MimeKit.TextPart]::new("html") }
+            Else { $TextPart = [MimeKit.TextPart]::new("plain") }
+
+            $TextPart.Text = $Body
+
+            $Message.From.Add($From)
+            $Message.To.Add($To)
+
+            If ($CC) { $Message.CC.Add($CC) }
+            If ($BCC) { $Message.BCC.Add($BCC) }
+
+            $Message.Subject = $Subject
+            $Message.Body    = $TextPart
+
+            If ($Attachment) { $Message.Attachments.Add($Attachments) }
+
+            $SMTP.Connect($SmtpServer, $Port, $False)
+
+            If ($Credential) { $SMTP.Authenticate($Credential.UserName, $Credential.GetNetworkCredential().Password) }
+
+            If ($PSCmdlet.ShouldProcess('Send the mail message via MailKit.')) { $SMTP.Send($Message) }
+        }
+        Catch {
+            Write-Log -Message "Send Mail - Failed!`n$PSItem" -Severity 3
+        }
+        Finally {
+            $SMTP.Disconnect($true)
+        }
+    }
+    End {
+        $SMTP.Dispose()
+    }
+}
+#endregion
+
 #region Function Get-ADInactiveDevice
 Function Get-ADInactiveDevice {
 <#
@@ -1135,49 +1402,17 @@ Function Invoke-ADInactiveDeviceCleanup {
     Specifies to only list the inactive devices in Active Directory.
 .PARAMETER TargetPath
     Specifies to move the disabled devices to a specific Organizational Unit.
-.PARAMETER LogPath
-    Specifies to save the inactive device list to specified log folder. Default is 'ScriptFolder'.
-.PARAMETER HTMLReportConfig
-    Specifies the report configuration has a hashtable.
-    Default is:
-    [hashtable]@{
-        ReportName   = 'Report from AD Inactive Device Maintenance'
-        ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
-        ReportFooter = "Created by: <i><a href = 'https:\\MEM.Zone'>MEM.Zone</a></i> - 2021"
-    }
-.PARAMETER SendMailConfig
-    Specifies the mail configuration as a hashtable.
-    Requires: Mailkit and Mailmime (NuGet).
 .EXAMPLE
-    Invoke-ADInactiveDeviceCleanup -Server 'somedomain.com' -SearchBase 'CN=Computers,DC=somedomain,DC=com' -DaysInactive 365 -Destination 'CN=DisabledObjects,DC=somedomain,DC=com'
-.EXAMPLE
-    [string]$UserName = 'hello@mem.zone'
-    [securestring]$Password = 'AppSpecificPassword' | ConvertTo-SecureString -AsPlainText -Force
-    [PSCredential]$Credential = New-Object System.Management.Automation.PSCredential ($UserName, $Password)
-
-    [hashtable]$HTMLReportConfig = @{
-        ReportName   = 'Report from AD Inactive Device Maintenance'
-        ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
-        ReportFooter = "For more information write to: <i><a href = 'mailto:servicedesk@company.com'>it-servicedesk@company.com</a></i>"
-    }
-
-    [hashtable]$SendMailConfig = @{
-        To         = 'ioan@mem.zone'
-        From       = 'hello@mem.zone'
-        SmtpServer = 'smtp.gmail.com'
-        Port       = 587
-        Credential = $Credential
-    }
-    Invoke-ADInactiveDeviceCleanup -Server 'somedomain.com' -SearchBase 'CN=Computers,DC=somedomain,DC=com' -DaysInactive 365 -ListOnly -HTMLReportConfig $HTMLReportConfig -SendMailConfig $SendMailConfig
+    Invoke-ADInactiveDeviceCleanup.ps1 -Server 'somedomain.com' -SearchBase 'CN=Computers,DC=somedomain,DC=com' -DaysInactive 365 -Destination 'CN=DisabledObjects,DC=somedomain,DC=com'
 .INPUTS
     None.
 .OUTPUTS
-    System.IO
+    System.Object
     System.String
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/Issues
 .COMPONENT
@@ -1187,7 +1422,7 @@ Function Invoke-ADInactiveDeviceCleanup {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Specify a valid Domain or Domain Controller.',Position=0)]
+        [Parameter(Mandatory=$false,HelpMessage='Specify a valid Domain or Domain Controller.',Position=0)]
         [ValidateNotNullorEmpty()]
         [Alias('ServerName')]
         [string]$Server,
@@ -1210,29 +1445,9 @@ Function Invoke-ADInactiveDeviceCleanup {
         [Parameter(Mandatory=$false,HelpMessage='Specify the destination OU (CN) for disabled devices.',Position=5)]
         [ValidateNotNullorEmpty()]
         [Alias('Destination')]
-        [string]$TargetPath,
-        [Parameter(Mandatory=$false,HelpMessage='Specify the log folder path.',Position=6)]
-        [ValidateNotNullorEmpty()]
-        [Alias('Log')]
-        [string]$LogPath,
-        [Parameter(Mandatory=$false,HelpMessage='Specify send html report configuration as a hashtable.',Position=7)]
-        [ValidateNotNullorEmpty()]
-        [Alias('Report')]
-        [hashtable]$HTMLReportConfig = @{
-            ReportName   = 'Report from AD Inactive Device Maintenance'
-            ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
-            ReportFooter = "Created by: <i><a href = 'https:\\MEM.Zone'>MEM.Zone</a></i> - 2021"
-        },
-        [Parameter(Mandatory=$false,HelpMessage='Specify send mail configuration as a hashtable.',Position=8)]
-        [ValidateNotNullorEmpty()]
-        [Alias('Mail')]
-        [hashtable]$SendMailConfig = $null
+        [string]$TargetPath
     )
     Begin {
-
-        ## Set script variables
-        [hashtable]$SendMailConfig = $ScriptConfig.SendMailConfig
-        [hashtable]$HTMLReportConfig = $ScriptConfig.HTMLReportConfig
 
         ## Show Progress
         Show-Progress -Status "Cleaning up inactive AD devices --> [$SearchBase]"
@@ -1245,6 +1460,8 @@ Function Invoke-ADInactiveDeviceCleanup {
 
             ## Process inactive devices
             ForEach ($InactiveDevice in $InactiveDevices) {
+
+                ## Set variables
                 $Identity = $InactiveDevice.DistinguishedName
 
                 ## Check if the 'ListOnly' switch was specified
@@ -1281,48 +1498,14 @@ Function Invoke-ADInactiveDeviceCleanup {
                     }
                 }
             }
-
-            ## If we found devices, convert result to CSV, else add custom message to the result
-            If ($InactiveDevices) { $InactiveDevicesCSV = "`n$($InactiveDevices | ConvertTo-Csv -NoTypeInformation | Out-String)" }
-            Else { $InactiveDevices = "No devices with an inactivity threshold larger than $DaysInactive days found!" }
         }
         Catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
         }
         Finally {
 
-            ## Write to log
-            Write-Log -Message $InactiveDevicesCSV -LogType 'Legacy'
-
-            ## Splatting Format-HTMLReport table headers
-            If (-not $InactiveDevices) { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
-            If ($NewTableHeaders)      { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
-            If ($InactiveDevices)      { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
-
-            ## Formating html report
-            [object]$InactiveDevicesHTML = Format-HTMLReport @HTMLReportConfig
-
-            ## Send mail report if specified
-            If ($SendMailConfig) {
-                #  Show progress
-                Show-Progress -Status 'Sending mail report...' -Delay 1000 -Step $Steps
-                #  Set Mail subject
-                $SendMailConfig.Add('Subject', $HTMLReportConfig.ReportName)
-                #  Set Mail body
-                $SendMailConfig.Add('Body', $InactiveDevicesHTML)
-                #  Set Mail body as html
-                $SendMailConfig.Add('BodyAsHtml', $true)
-                #  Send mail using Mailkit and Mailmime
-                Send-MailkitMessage @SendMailConfig
-            }
-
-            ## Write html report to disk
-            [string]$HTMLFileName = -join ($ScriptName, '.html')
-            [string]$HTMLFilePath = Join-Path -Path $script:LogFileDirectory -ChildPath $HTMLFileName
-            Out-File -InputObject $InactiveDevicesHTML -FilePath $HTMLFilePath -Force
-
-            ## Show progress
-            Show-Progress -Status 'Inactive AD cleanup completed!' -Delay 1000 -Step $Steps
+            ## Output result
+            Write-Output -InputObject $InactiveDevices
         }
     }
     End {
@@ -1340,35 +1523,96 @@ Function Invoke-ADInactiveDeviceCleanup {
 ##*=============================================
 #region ScriptBody
 
-## Set custom script parameters
-#  Set credentials
-[string]$MailUserName = 'endpoint.management@company.com'
-[string]$MailPassword = 'zemajaeasdcyasdgiksdfdctmg' ## !!! DO NOT USE PASSWORDS IN SCRIPTS !!! USED FOR TESTING ONLY !!!
-[pscredential]$Credential = New-Object 'System.Management.Automation.PSCredential' ($MailUserName, $($MailPassword | ConvertTo-SecureString -AsPlainText -Force))
-#  Set configuration
-[hashtable]$ScriptConfig = @{
-    Server            = 'dommain.company.com'
-    SearchBase        = 'OU=Computers,DC=domain,DC=company,DC=com'
-    TargetPath        = 'OU=Disabled Computers,DC=domain,DC=company,DC=com'
-    DaysInactive      = 365
-    Filter            = "Enabled -eq 'true'"
-    ListOnly          = $false
-    HTMLReportConfig = @{
-        ReportName   = 'Report from AD Inactive Device Maintenance'
-        ReportHeader = "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days"
-        ReportFooter = "For more information write to: <i><a href = 'mailto:servicedesk@company.com'>it-servicedesk@company.com</a></i>"
-    }
-    SendMailConfig = @{
-        To         = 'ioan@mem.zone'
-        From       = 'endpoint.management@company.com'
-        SmtpServer = 'smtp.gmail.com'
-        Port       = 587
-        Credential = $Credential
-    }
-}
+Try {
 
-## Invoke script with specified parameters
-Invoke-ADInactiveDeviceCleanup @ScriptConfig
+    ## Write execution to log
+    Write-Log -Message "Script [$ScriptFullName] started!" -VerboseMessage -LogDebugMessage $true
+
+    ## Check if the configuratin file exists
+    [boolean]$ConfigExists = Test-Path -Path $ConfigFilePath
+
+    ## Create a new configuration file if specified
+    If (-not $ConfigExists -or $NewConfigFile) {
+        New-JsonConfigurationFile -Path $ConfigFilePath
+        Write-Log -Message "New configuration file [$ConfigFilePath] created!" -VerboseMessage -LogDebugMessage $true
+        Write-Log -Message "Script [$ScriptFullName] finished!" -VerboseMessage -LogDebugMessage $true
+        Return
+    }
+
+    ## Get configuration file content
+    [object]$ScriptConfig = $(Get-Content -Path $ConfigFilePath | ConvertFrom-Json)
+
+    ## Set script configuration from json object and convert them to hashtables. Hashtables are declared in the script initialization.
+    $NewTableHeaders  = $ScriptConfig.ReportHeaderColumns | ConvertTo-HashtableFromPsCustomObject
+    $HTMLReportConfig = $ScriptConfig.HTMLReportConfig    | ConvertTo-HashtableFromPsCustomObject
+    $SendMailConfig   = $ScriptConfig.SendMailConfig      | ConvertTo-HashtableFromPsCustomObject
+
+    ## Set log file path and fullname if it exists in the config file
+    If (-not [string]::IsNullOrEmpty($ScriptConfig.MainConfig.LogFolderPath)) {
+        $Script:LogFileDirectory = $ScriptConfig.MainConfig.LogFolderPath
+        $Script:LogFilePath      = $(Join-Path -Path $Script:LogFileDirectory -ChildPath $($Script:LogSource + '.log'))
+    }
+
+    ## Convert the domain config to a hashtable. '$Param' is declared in the script initializtion.
+    $Params = $ScriptConfig.MainConfig | ConvertTo-HashtableFromPsCustomObject
+    #  Splat aditional parameters
+    $Params.Add('Verbose', $VerbosePreference)
+    $Params.Add('Debug', $DebugPreference)
+
+    ## Invoke InactiveDeviceCleanup with specified parameters
+    $InactiveDevices = Invoke-ADInactiveDeviceCleanup @Params
+}
+Catch {
+    Write-Log -Message "Script [$ScriptFullName] Failed!`n$(Resolve-Error)" -Severity 3
+    Throw $PSItem
+}
+Finally {
+
+    ## Splatting Format-HTMLReport table headers
+    If (-not $InactiveDevices) { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
+    If ($NewTableHeaders)      { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
+    If ($InactiveDevices)      { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
+
+    ## If we found devices, convert result to CSV, else add custom message to the result
+    If ($InactiveDevices) { $InactiveDevicesCSV = "`n$($InactiveDevices | ConvertTo-Csv -NoTypeInformation | Out-String)" }
+    Else { $InactiveDevices = "No devices with an inactivity threshold larger than $DaysInactive days found!" }
+
+    ## Write to log
+    Write-Log -Message $InactiveDevicesCSV -LogType 'Legacy'
+
+    ## Formating html report
+    [object]$InactiveDevicesHTML = Format-HTMLReport @HTMLReportConfig
+
+    ## Send mail report if specified
+    If ($SendMailConfig) {
+        #  Show progress
+        Show-Progress -Status 'Sending mail report...' -Delay 1000 -Step $Steps
+        #  Set credential
+        [PSCredential]$Credential = New-Object System.Management.Automation.PSCredential ($SendMailConfig.UserName, $SendMailConfig.Password)
+        $SendMailConfig.Add('Credential', $Credential)
+        $SendMailConfig.Remove('User')
+        $SendMailConfig.Remove('Password')
+        #  Set Mail subject
+        $SendMailConfig.Add('Subject', $HTMLReportConfig.ReportName)
+        #  Set Mail body
+        $SendMailConfig.Add('Body', $InactiveDevicesHTML)
+        #  Set Mail body as html
+        $SendMailConfig.Add('BodyAsHtml', $true)
+        #  Send mail using Mailkit and Mailmime
+        Send-MailkitMessage @SendMailConfig
+    }
+
+    ## Write html report to disk
+    [string]$HTMLFileName = -join ($ScriptName, '.html')
+    [string]$HTMLFilePath = Join-Path -Path $script:LogFileDirectory -ChildPath $HTMLFileName
+    Out-File -InputObject $InactiveDevicesHTML -FilePath $HTMLFilePath -Force
+
+    ## Show progress status and write it to the event log
+    Show-Progress -Status "$($ScriptConfig.HTMLReportConfig.ReportName) completed!" -Delay 1000 -Step 100 -Steps 100 -ID 0
+    ## Write execution to log
+    Write-Log -Message "Check the log [$Script:LogFilePath] for more information!" -VerboseMessage -LogDebugMessage $true -LoggingOptions 'EventLog'
+    Write-Log -Message "Script [$ScriptFullName] finished!" -VerboseMessage -LogDebugMessage $true
+}
 
 #endregion
 ##*=============================================
