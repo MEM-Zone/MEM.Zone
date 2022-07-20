@@ -24,9 +24,9 @@
 .LINK
     https://MEM.Zone/Invoke-ADInactiveDeviceCleanup
 .LINK
-    https://MEM.Zone/Invoke-ADInactiveDeviceCleanup/CHANGELOG
+    https://MEM.Zone/Invoke-ADInactiveDeviceCleanup-CHANGELOG
 .LINK
-    https://MEM.Zone/Invoke-ADInactiveDeviceCleanup/GIT
+    https://MEM.Zone/Invoke-ADInactiveDeviceCleanup-GIT
 .LINK
     https://MEM.Zone/Issues
 .COMPONENT
