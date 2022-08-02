@@ -7,7 +7,7 @@
     Specifies the script configuration json file path.
     Default is: 'ScriptPath\ScriptName.json'.
 .PARAMETER NewConfigFile
-    Specifies to create a new json configuraiton file. This switch must be used in conjunction with the 'ConfigFilePath' parameter.
+    Specifies to create a new json configuration file. This switch must be used in conjunction with the 'ConfigFilePath' parameter.
 .EXAMPLE
     Add-ADComputerToGroup.ps1 -ConfigFilePath 'C:\Scripts\Add-ADComputerToGroup.json'
 .EXAMPLE
