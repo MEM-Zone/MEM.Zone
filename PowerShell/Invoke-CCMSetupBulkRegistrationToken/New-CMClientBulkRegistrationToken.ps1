@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-    Creates a new MEMCM Client registration Token.
+    Generates a new MEMCM Client Bulk Registration Token.
 .DESCRIPTION
-    Creates a new MEMCM Client registration Token, and optionally uploads it to azure blob storage.
+    Generates a new MEMCM Client Bulk Registration Token, and optionally uploads it to Azure Blob Storage.
 .PARAMETER Lifetime
     Specifies the Lifetime in minutes for the generated token.
     Default value is 1440 minutes (1 day).
@@ -15,13 +15,14 @@
 .EXAMPLE
     New-CMClientBulkRegistrationToken.ps1 -Lifetime 10 -File 'C:\temp\token.json'
 .EXAMPLE
-    New-CMClientBulkRegistrationToken.ps1 -Lifetime 10 -File 'C:\temp\token.json' -Url 'https://mystorage.blob.core.windows.net/mycontainer' -SasToken '?sv=2015-12-11&st=2017-01-01T00:00:00Z&se=2017-01-01T00:00:00Z&sr=c&sp=rw&sig=mySasToken'
+    New-CMClientBulkRegistrationToken.ps1 -Lifetime 10 -File 'C:\temp\token.json' -Url 'https://mystorageaccount.blob.core.windows.net/mycontainer' -SasToken '?sv=2015-12-11&st=2017-01-01T00:00:00Z&se=2017-01-01T00:00:00Z&sr=c&sp=rw&sig=mySasToken'
 .INPUTS
     None.
 .OUTPUTS
     System.Object
 .NOTES
     Created by Ioan Popovici
+    Requires Local Administrator Access on the CM Site Server.
 .LINK
     https://MEM.Zone
 .LINK
@@ -35,41 +36,36 @@
 .COMPONENT
     MEMCM
 .FUNCTIONALITY
-    Generates Client Bulk Registration Token
+    Generates a Client Bulk Registration Token
 #>
 
 ## Set script requirements
 #Requires -Version 5.0
 
-##*=============================================
-##* VARIABLE DECLARATION
-##*=============================================
-#region VariableDeclaration
-
 ## Get script parameters
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName = 'Default')]
 Param (
     [Parameter(ParameterSetName = 'Default', HelpMessage = 'Bulk Registration Token Lifetime in minutes', Position = 0)]
     [Parameter(ParameterSetName = 'File', HelpMessage = 'Bulk Registration Token Lifetime in minutes', Position = 0)]
     [Parameter(ParameterSetName = 'UploadToBlob', HelpMessage = 'Bulk Registration Token Lifetime in minutes', Position = 0)]
     [Alias('Validity')]
     [int32]$Lifetime = 1440,
-    [Parameter(ParameterSetName = 'Default', HelpMessage = 'Token Output File Path:', Position = 1)]
-    [Parameter(ParameterSetName = 'File', HelpMessage = 'Token Output File Path:', Position = 1)]
+    [Parameter(Mandatory = $true, ParameterSetName = 'File', HelpMessage = 'Token Output File Path:', Position = 1)]
     [Parameter(Mandatory = $true, ParameterSetName = 'UploadToBlob', HelpMessage = 'Token Output File Path:', Position = 1)]
     [Alias('Path')]
     [string]$File,
-    [Parameter(ParameterSetName = 'Default', HelpMessage = 'Blob URL:', Position = 2)]
-    [Parameter(Mandatory = $true, ParameterSetName = 'File', HelpMessage = 'Blob URL:', Position = 2)]
     [Parameter(Mandatory = $true, ParameterSetName = 'UploadToBlob', HelpMessage = 'Blob URL:', Position = 2)]
     [Alias('BlobUrl')]
     [string]$Url,
-    [Parameter(ParameterSetName = 'Default', HelpMessage = 'Blob SAS Token:', Position = 3)]
-    [Parameter(ParameterSetName = 'File', HelpMessage = 'Blob SAS Token:', Position = 3)]
     [Parameter(ParameterSetName = 'UploadToBlob', HelpMessage = 'Blob SAS Token:', Position = 3)]
     [Alias('Sas')]
     [string]$SasToken
 )
+
+##*=============================================
+##* VARIABLE DECLARATION
+##*=============================================
+#region VariableDeclaration
 
 #endregion
 ##*=============================================
@@ -213,7 +209,6 @@ Function New-CMClientBulkRegistrationToken {
 
         ## Assemble bulk registration token tool path
         $BulkRegistrationTokenToolPath = $($ENV:SMS_ADMIN_UI_PATH).Replace('\AdminConsole\','\').Replace('i386', 'X64\bulkregistrationtokentool.exe')
-
     }
     Process {
         Try {
@@ -257,11 +252,14 @@ Function New-CMClientBulkRegistrationToken {
 
 Try {
 
+    ## Display ParameterSet Used
+    Write-Debug -Message "Selected '$($PSCmdlet.ParameterSetName)' ParameterSet."
+
     ## Generate a new token
     $Output = New-CMClientBulkRegistrationToken
 
     ## Remove BOM from OTF8 Encoding and output to file
-    If ($($PSCmdlet.ParameterSetName) -eq 'File') {
+    If ($($PSCmdlet.ParameterSetName) -in ('File','UploadToBlob' )) {
         $Content = $Output | ConvertTo-Json -Depth 4
         $Utf8NoBomEncoding = [System.Text.UTF8Encoding]::new($false)
         [System.IO.File]::WriteAllLines($File, $Content, $Utf8NoBomEncoding)
@@ -269,7 +267,9 @@ Try {
 
     ## Upload file to Azure Blob Storage
     If ($($PSCmdlet.ParameterSetName) -eq 'UploadToBlob') {
-        $Output = Set-RestAzureBlobStorageContent -File $File -Url $Url -SasToken $SasToken
+        $Output = Set-RestAzureBlobStorageContent -File $File -Url $Url -SasToken $SasToken -ErrorAction 'Stop'
+    ## Remove Token File
+    Remove-Item -Path $File -Force -ErrorAction 'SilentlyContinue'
     }
 }
 Catch {

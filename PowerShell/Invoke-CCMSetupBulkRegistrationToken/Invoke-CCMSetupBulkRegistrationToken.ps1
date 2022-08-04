@@ -11,14 +11,14 @@
 .PARAMETER CMGAddress
     Specifies the Cloud Management Gateway address. Do not specify 'https://' prefix.
 .EXAMPLE
-    Invoke-CCMTokenInstall.ps1 -Url 'https://mystorage.blob.core.windows.net/mycontainer' -SasToken '?sv=2015-12-11&st=2017-01-01T00:00:00Z&se=2017-01-01T00:00:00Z&sr=c&sp=rw&sig=mySasToken' -CMGAddress 'mycmg.domain.com/CCM_Proxy_MutualAuth/72057594037928022'
+    Invoke-CCMSetupBulkRegistrationToken.ps1 -Url 'https://mystorage.blob.core.windows.net/mycontainer' -SasToken '?sv=2015-12-11&st=2017-01-01T00:00:00Z&se=2017-01-01T00:00:00Z&sr=c&sp=rw&sig=mySasToken' -CMGAddress 'mycmg.domain.com/CCM_Proxy_MutualAuth/72057594037928022'
 .INPUTS
     None.
 .OUTPUTS
     System.Object
 .NOTES
     Created by Ioan Popovici
-    'New-CMBulkRegistrationToken' needs to run on the server side to generate the token and upload it to Azure Blob Storage.
+    'New-CMClientBulkRegistrationToken' needs to run on the server side to generate the token and upload it to Azure Blob Storage.
 .LINK
     https://MEM.Zone
 .LINK
@@ -38,7 +38,7 @@
 ## Set script requirements
 #Requires -Version 5.0
 
-## Get script parameters.
+## Get script parameters
 [CmdletBinding()]
 Param (
     [Parameter(Mandatory = $true, HelpMessage = 'Blob URL:', Position = 0)]
