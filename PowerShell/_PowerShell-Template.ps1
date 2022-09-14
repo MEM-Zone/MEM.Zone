@@ -4,7 +4,7 @@
 .DESCRIPTION
     LongDescription.
 .PARAMETER ParameterName
-    ParameterName.
+    ParameterDescription.
 .EXAMPLE
     ApprovedVerb-WhatItDoes(Use Singular).ps1
 .INPUTS
@@ -66,7 +66,7 @@ Function Verb- {
 .DESCRIPTION
     LongDescription.
 .PARAMETER ParameterName
-    ParameterName.
+    ParameterDescription.
 .EXAMPLE
     ApprovedVerb-WhatItDoes(Use Singular).ps1
 .INPUTS
