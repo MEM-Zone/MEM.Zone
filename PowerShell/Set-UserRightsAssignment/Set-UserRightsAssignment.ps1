@@ -1,13 +1,14 @@
 <#
 .SYNOPSIS
-    Add or Remove user rights assignment.
+    Add, Remove or replace user rights assignment.
 .DESCRIPTION
-    Add or Remove user rights assignment to a local computer.
+    Add, Remove or replace user rights assignment to a local computer.
 .PARAMETER Action
     Specify the action to perform.
     Valid values:
         - Add
         - Remove
+        - Replace
 .PARAMETER Identity
     Defines the Identity under which the service should run.
     Default is the current user.
@@ -53,6 +54,8 @@
     Set-UserRightsAssignment.ps1 -Add -Identity 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
 .EXAMPLE
     Set-UserRightsAssignment.ps1 -Remove -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+.EXAMPLE
+    Set-UserRightsAssignment.ps1 -Replace -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
 .INPUTS
     None.
 .OUTPUTS
@@ -71,7 +74,7 @@
 .COMPONENT
     User Rights Assignment
 .FUNCTIONALITY
-    Adds or Remove User Rights Assigment.
+    Sets User Rights Assigment.
 #>
 <#
     [CmdletBinding()]
@@ -113,14 +116,15 @@
 Function Set-UserRightsAssignment {
 <#
 .SYNOPSIS
-    Add or Remove user rights assignment.
+    Add, Remove or replace user rights assignment.
 .DESCRIPTION
-    Add or Remove user rights assignment to a local computer.
+    Add, Remove or replace user rights assignment to a local computer.
 .PARAMETER Action
     Specify the action to perform.
     Valid values:
         - Add
         - Remove
+        - Replace
 .PARAMETER Identity
     Defines the Identity under which the service should run.
     Default is the current user.
@@ -166,6 +170,8 @@ Function Set-UserRightsAssignment {
     Set-UserRightsAssignment -Add -Identity 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
 .EXAMPLE
     Set-UserRightsAssignment -Remove -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+.EXAMPLE
+    Set-UserRightsAssignment -Replace -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
 .INPUTS
     None.
 .OUTPUTS
@@ -181,7 +187,7 @@ Function Set-UserRightsAssignment {
 .COMPONENT
     User Rights Assignment
 .FUNCTIONALITY
-    Adds or Remove User Rights Assignment.
+    Sets User Rights Assignment.
 #>
     [CmdletBinding()]
     Param (
@@ -241,8 +247,9 @@ Function Set-UserRightsAssignment {
 
                 ## Add or remove user right to the SIDList
                 Switch ($Action) {
-                    'Add'    { $SIDList = "$SIDs,*$SID"; Break }
-                    'Remove' { $SIDList = $($SIDs.Replace("*$SID", '').Replace($Identity, '').Replace(',,', ',').Replace('= ,', '= ')); Break }
+                    'Add'     { $SIDList = "$SIDs,*$SID"; Break }
+                    'Remove'  { $SIDList = $($SIDs.Replace("*$SID", '').Replace($Identity, '').Replace(',,', ',').Replace('= ,', '= ')); Break }
+                    'Replace' { $SIDList = "*$SID"; Break }
                 }
 
                 ## Assemble the import file to use with secedit
@@ -291,16 +298,21 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
 
 ## Assemble scriptblock
 [scriptblock]$SetUserRightsAssignments = {
+    #  Set ErrorActionPreference to SilentlyContinue
+    $SavedErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
     #  Set user rights
-    Set-UserRightsAssignment -Action 'Add' -Identity 'BUILTIN\Administrators'       -Privileges 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege' -ErrorAction 'SilentlyContinue'
-    Set-UserRightsAssignment -Action 'Add' -Identity 'BUILTIN\Users'                -Privileges 'SeRemoteInteractiveLogonRight', 'SeUndockPrivilege'                                                    -ErrorAction 'SilentlyContinue'
-    Set-UserRightsAssignment -Action 'Add' -Identity 'BUILTIN\Remote Desktop Users' -Privileges 'SeRemoteInteractiveLogonRight'                                                                         -ErrorAction 'SilentlyContinue'
-    Set-UserRightsAssignment -Action 'Add' -Identity 'BUILTIN\Guests'               -Privileges 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'                                                      -ErrorAction 'SilentlyContinue'
-    Set-UserRightsAssignment -Action 'Add' -Identity 'NT AUTHORITY\LOCAL SERVICE'   -Privileges 'SeAssignPrimaryTokenPrivilege'                                                                         -ErrorAction 'SilentlyContinue'
-    Set-UserRightsAssignment -Action 'Add' -Identity 'NT AUTHORITY\NETWORK SERVICE' -Privileges 'SeAssignPrimaryTokenPrivilege'                                                                         -ErrorAction 'SilentlyContinue'
-    Set-UserRightsAssignment -Action 'Add' -Identity 'NT SERVICE\WdiServiceHost'    -Privileges 'SeSystemProfilePrivilege'                                                                              -ErrorAction 'SilentlyContinue'
+    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Administrators'       -Privileges 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Users'                -Privileges 'SeShutdownPrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Remote Desktop Users' -Privileges 'SeRemoteInteractiveLogonRight'
+    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Guests'               -Privileges 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
+    Set-UserRightsAssignment -Action 'Replace' -Identity 'NT AUTHORITY\LOCAL SERVICE'   -Privileges 'SeAssignPrimaryTokenPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Identity 'NT AUTHORITY\NETWORK SERVICE' -Privileges 'SeAssignPrimaryTokenPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Identity 'NT SERVICE\WdiServiceHost'    -Privileges 'SeSystemProfilePrivilege'
     #  Update Group Policy
     $null = gpupdate /force
+    #  Restore ErrorActionPreference to original value
+    $ErrorActionPreference = $SavedErrorActionPreference
     Write-Verbose -Message $("Script '{0}\{1}' completed." -f $ScriptPath, $ScriptName) -Verbose
 }
 
