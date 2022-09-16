@@ -9,8 +9,8 @@
         - Add
         - Remove
         - Replace
-.PARAMETER Identity
-    Defines the Identity under which the service should run.
+.PARAMETER Principal
+    Defines the Principal under which the service should run.
     Default is the current user.
 .PARAMETER Privilege
     Defines the User Right(s) you want to set.
@@ -51,11 +51,13 @@
         SeUndockPrivilege
         SeUnsolicitedInputPrivilege
 .EXAMPLE
-    Set-UserRightsAssignment.ps1 -Add -Identity 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment.ps1 -Add -Principal 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment.ps1 -Remove -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment.ps1 -Add -Principal 'S-1-5-21-1234567890-1234567890-1234567890-500' -Privileges 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment.ps1 -Replace -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment.ps1 -Remove -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+.EXAMPLE
+    Set-UserRightsAssignment.ps1 -Replace -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
 .INPUTS
     None.
 .OUTPUTS
@@ -80,16 +82,26 @@
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory = $true, HelpMessage = 'Add/Remove user right.', Position = 0)]
-        [ValidateSet('Add', 'Remove', IgnoreCase = $true)]
+        [ValidateSet('Add', 'Remove', 'Replace', IgnoreCase = $true)]
         [Alias('Task')]
         [string]$Action,
         [Parameter(Mandatory = $false, Position = 1)]
         [Alias('User')]
-        [string]$Identity = -join ($env:USERDOMAIN, '\', $env:USERNAME),
+        [string]$Principal = -join ($env:USERDOMAIN, '\', $env:USERNAME),
         [Parameter(Mandatory = $true, Position = 2)]
-        [ValidateSet('SeNetworkLogonRight', 'SeBackupPrivilege', 'SeChangeNotifyPrivilege', 'SeSystemtimePrivilege', 'SeCreatePagefilePrivilege', 'SeDebugPrivilege', 'SeRemoteShutdownPrivilege', 'SeAuditPrivilege', 'SeIncreaseQuotaPrivilege', 'SeIncreaseBasePriorityPrivilege', 'SeLoadDriverPrivilege', 'SeBatchLogonRight', 'SeServiceLogonRight', 'SeInteractiveLogonRight', 'SeSecurityPrivilege', 'SeSystemEnvironmentPrivilege', 'SeProfileSingleProcessPrivilege', 'SeSystemProfilePrivilege', 'SeAssignPrimaryTokenPrivilege', 'SeRestorePrivilege', 'SeShutdownPrivilege', 'SeTakeOwnershipPrivilege', 'SeDenyNetworkLogonRight', 'SeDenyInteractiveLogonRight', 'SeUndockPrivilege', 'SeManageVolumePrivilege', 'SeRemoteInteractiveLogonRight', 'SeImpersonatePrivilege', 'SeCreateGlobalPrivilege', 'SeIncreaseWorkingSetPrivilege', 'SeTimeZonePrivilege', 'SeCreateSymbolicLinkPrivilege', 'SeDelegateSessionUserImpersonatePrivilege', 'SeMachineAccountPrivilege', 'SeTrustedCredManAccessPrivilege', 'SeTcbPrivilege', 'SeCreateTokenPrivilege', 'SeCreatePermanentPrivilege', 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight', 'SeDenyRemoteInteractiveLogonRight', 'SeEnableDelegationPrivilege', 'SeLockMemoryPrivilege', 'SeRelabelPrivilege', 'SeSyncAgentPrivilege', IgnoreCase = $true)]
+        [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
+            'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
+            'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
+            'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
+            'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
+            'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
+            'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
+            'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
+            'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
+            'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
+        )]
         [Alias('Rights')]
-        [array]$Privilege
+        [string[]]$Privilege
     )
 #>
 
@@ -112,6 +124,96 @@
 ##*=============================================
 #region FunctionListings
 
+#region Function Resolve-Principal
+Function Resolve-Principal {
+<#
+.SYNOPSIS
+    Resolves a Principal or Principals.
+.DESCRIPTION
+    Resolves a Principal or Principals to SID or Principal Name.
+.PARAMETER Principal
+    Specifies the Principal to resolve.
+.EXAMPLE
+    Resolve-Principal -Principal 'CONTOSO\User'
+.EXAMPLE
+    Resolve-Principal -Principal 'CONTOSO\User', 'CONTOSO\Group', 'BUILTIN\Administrators'
+.EXAMPLE
+    Resolve-Principal -Principal 'S-1-5-21-1234567890-1234567890-1234567890-500'
+.EXAMPLE
+    Resolve-Principal -Principal 'S-1-5-21-1234567890-1234567890-1234567890-500', 'S-1-5-21-1234567890-1234567890-1234567890-501'
+.INPUTS
+    System.Array
+.OUTPUTS
+    System.Object
+    System.Exception
+.NOTES
+    Created by Ioan Popovici
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/GIT
+.LINK
+    https://MEM.Zone/ISSUES
+.COMPONENT
+    Security Principal
+.FUNCTIONALITY
+    Resolves a Principal or Principals to SID or Principal Name.
+#>
+    [CmdletBinding()]
+    Param (
+        [Parameter(Mandatory = $true, Position = 0)]
+        [ValidateNotNullorEmpty()]
+        [Alias('SecurityPrincipal')]
+        [string[]]$Principal
+    )
+    Begin {
+
+        ## Set SID regex match Pattern
+        [regex]$Pattern = 'S-\d-(?:\d+-){1,14}\d+'
+    }
+    Process {
+        Try {
+
+            ## Resolve Principal
+            $Output = ForEach ($PrincipalItem in $Principal) {
+                Try {
+                    #  Set Principal type
+                    [string]$SIDMatch = (Select-String -Pattern $Pattern -InputObject $PrincipalItem).Matches.Value
+                    [string]$PrincipalType = If ([string]::IsNullOrEmpty($SIDMatch)) { 'PrincipalName' } Else { 'PrincipalSID' }
+                    #  Resolve Principal
+                    Switch ($PrincipalType) {
+                        'PrincipalName' {
+                            $NTAccountObject = New-Object System.Security.Principal.NTAccount($PrincipalItem)
+                            $NTAccountObject.Translate([System.Security.Principal.SecurityIdentifier]).Value
+                            Break
+                        }
+                        'PrincipalSID' {
+                            $SIDObject = New-Object System.Security.Principal.SecurityIdentifier($PrincipalItem.Replace('*',''))
+                            $SIDObject.Translate([Security.Principal.NTAccount]).Value
+                            Break
+                        }
+                    }
+                }
+                Catch {
+
+                    ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
+                    $Exception     = [Exception]::new($PsItem.Exception.Message)
+                    $ExceptionType = [Management.Automation.ErrorCategory]::ObjectNotFound
+                    $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $PrincipalItem)
+                    $PSCmdlet.WriteError($ErrorRecord)
+                }
+            }
+        }
+        Catch {
+            $PSCmdlet.WriteError()
+        }
+        Finally {
+            Write-Output -InputObject $Output
+        }
+    }
+}
+#endregion
+
 #region Function Set-UserRightsAssignment
 Function Set-UserRightsAssignment {
 <#
@@ -125,8 +227,8 @@ Function Set-UserRightsAssignment {
         - Add
         - Remove
         - Replace
-.PARAMETER Identity
-    Defines the Identity under which the service should run.
+.PARAMETER Principal
+    Defines the Principal under which the service should run.
     Default is the current user.
 .PARAMETER Privileges
     Defines the User Right(s) you want to set.
@@ -167,15 +269,18 @@ Function Set-UserRightsAssignment {
         SeUndockPrivilege
         SeUnsolicitedInputPrivilege
 .EXAMPLE
-    Set-UserRightsAssignment -Add -Identity 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment -Add -Principal 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment -Remove -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment -Add -Principal 'S-1-5-21-1234567890-1234567890-1234567890-500' -Privileges 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment -Replace -Identity 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment -Remove -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+.EXAMPLE
+    Set-UserRightsAssignment -Replace -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
 .INPUTS
     None.
 .OUTPUTS
-    None.
+    System.Object
+    System.Exception
 .NOTES
     Created by Ioan Popovici
 .LINK
@@ -192,78 +297,103 @@ Function Set-UserRightsAssignment {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory = $true, HelpMessage = 'Add/Remove user right.', Position = 0)]
-        [ValidateSet('Add', 'Remove', IgnoreCase = $true)]
+        [ValidateSet('Add', 'Remove', 'Replace', IgnoreCase = $true)]
         [Alias('Task')]
         [string]$Action,
         [Parameter(Mandatory = $false, Position = 1)]
         [Alias('User')]
-        [string]$Identity = -join ($env:USERDOMAIN, '\', $env:USERNAME),
+        [string]$Principal = -join ($env:USERDOMAIN, '\', $env:USERNAME),
         [Parameter(Mandatory = $true, Position = 2)]
-        [ValidateSet('SeNetworkLogonRight', 'SeBackupPrivilege', 'SeChangeNotifyPrivilege', 'SeSystemtimePrivilege', 'SeCreatePagefilePrivilege', 'SeDebugPrivilege', 'SeRemoteShutdownPrivilege', 'SeAuditPrivilege', 'SeIncreaseQuotaPrivilege', 'SeIncreaseBasePriorityPrivilege', 'SeLoadDriverPrivilege', 'SeBatchLogonRight', 'SeServiceLogonRight', 'SeInteractiveLogonRight', 'SeSecurityPrivilege', 'SeSystemEnvironmentPrivilege', 'SeProfileSingleProcessPrivilege', 'SeSystemProfilePrivilege', 'SeAssignPrimaryTokenPrivilege', 'SeRestorePrivilege', 'SeShutdownPrivilege', 'SeTakeOwnershipPrivilege', 'SeDenyNetworkLogonRight', 'SeDenyInteractiveLogonRight', 'SeUndockPrivilege', 'SeManageVolumePrivilege', 'SeRemoteInteractiveLogonRight', 'SeImpersonatePrivilege', 'SeCreateGlobalPrivilege', 'SeIncreaseWorkingSetPrivilege', 'SeTimeZonePrivilege', 'SeCreateSymbolicLinkPrivilege', 'SeDelegateSessionUserImpersonatePrivilege', 'SeMachineAccountPrivilege', 'SeTrustedCredManAccessPrivilege', 'SeTcbPrivilege', 'SeCreateTokenPrivilege', 'SeCreatePermanentPrivilege', 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight', 'SeDenyRemoteInteractiveLogonRight', 'SeEnableDelegationPrivilege', 'SeLockMemoryPrivilege', 'SeRelabelPrivilege', 'SeSyncAgentPrivilege', IgnoreCase = $true)]
+        [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
+            'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
+            'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
+            'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
+            'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
+            'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
+            'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
+            'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
+            'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
+            'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
+        )]
         [Alias('Rights')]
-        [array]$Privileges
+        [string[]]$Privilege
     )
-
     Begin {
 
-        ## Cleanup
-        [string]$TempFolderPath = [System.IO.Path]::GetTempPath()
-        [string]$ImportFile = Join-Path -Path $TempFolderPath -ChildPath 'import.inf'
-        If (Test-Path -Path $ImportFile) { Remove-Item -Path $ImportFile -Force }
-        [string]$ExportFile = Join-Path -Path $TempFolderPath -ChildPath 'export.inf'
-        If (Test-Path $ExportFile) { Remove-Item -Path $ExportFile -Force }
-        [string]$SecedtFile = Join-Path -Path $TempFolderPath -ChildPath 'secedt.sdb'
-        If (Test-Path -Path $SecedtFile) { Remove-Item -Path $SecedtFile -Force }
+        ## Set paths
+        $Path = [System.IO.Path]
+        [string]$TempFolderPath = $Path::GetTempPath()
+        [scriptblock]$RandomFileName = { $Path::GetRandomFileName() }
+        [string]$ExportFilePath = Join-Path -Path $TempFolderPath -ChildPath $Path::ChangeExtension($RandomFileName.Invoke(),'.ini')
+        [string]$ImportFilePath = Join-Path -Path $TempFolderPath -ChildPath $Path::ChangeExtension($RandomFileName.Invoke(),'.ini')
+        [string]$SecedtFilePath = Join-Path -Path $TempFolderPath -ChildPath $Path::ChangeExtension($RandomFileName.Invoke(),'.sdb')
+        [string]$System32Path   = [Environment]::GetFolderPath([Environment+SpecialFolder]::System)
 
         ## Set output Object
         $Result = [ordered]@{
-            SID          = 'N/A'
-            Identity     = $Identity
-            Privilege    = 'N/A'
-            Action       = $Action
-            Operation    = 'N/A'
+            PrincipalSID  = 'N/A'
+            PrincipalName = $Principal
+            Privilege     = 'N/A'
+            Action        = $Action
+            Operation     = 'N/A'
         }
+
+        ## Set SID regex match Pattern
+        [regex]$Pattern = 'S-\d-(?:\d+-){1,14}\d+'
+
     }
     Process {
         Try {
 
             ## Check for Admin Rights
-            $IsAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
+            [boolean]$IsAdministrator = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")
             If (-not $IsAdministrator) { Throw 'You must have administrative privileges to run this script!' }
 
-                ## Set user rights
-                $Output = ForEach ($Privilege in $Privileges) {
-                $Result.Privilege = $Privilege
+            ## Set ScEdit.exe path
+            [string]$SecEdit = Join-Path -Path $System32Path -ChildPath 'SecEdit.exe' -Resolve
 
-                ## Get user SID
-                $SID = ((New-Object System.Security.Principal.NTAccount($Identity)).Translate([System.Security.Principal.SecurityIdentifier])).Value
-                $Result.SID = $SID
+            ## Check if Principal is SID
+            [string]$SIDMatch = (Select-String -Pattern $Pattern -InputObject $Principal).Matches.Value
+            If ([string]::IsNullOrEmpty($SIDMatch)) {
+                $SID = Resolve-Principal -Principal $Principal
+                $Result.PrincipalSID = $SID
+            }
+            Else {
+                $SID = $Principal
+                $Principal = Resolve-Principal -Principal $SID
+                $Result.PrincipalName = $Principal
+                $Result.PrincipalSID = $SID
+            }
+
+            ## Set user rights
+            $Output = ForEach ($PrivilegeItem in $Privilege) {
+                $Result.Privilege = $PrivilegeItem
 
                 ## Export current user rights
-                $null = secedit /export /cfg $ExportFile
+                $null = & $SecEdit /export /cfg $ExportFilePath
 
                 ## Select the user right to modify
-                $SIDs = (Select-String $ExportFile -Pattern $Privilege).Line
+                $SIDs = (Select-String $ExportFilePath -Pattern $PrivilegeItem).Line
 
                 ## Add or remove user right to the SIDList
                 Switch ($Action) {
                     'Add'     { $SIDList = "$SIDs,*$SID"; Break }
-                    'Remove'  { $SIDList = $($SIDs.Replace("*$SID", '').Replace($Identity, '').Replace(',,', ',').Replace('= ,', '= ')); Break }
+                    'Remove'  { $SIDList = $($SIDs.Replace("*$SID", '').Replace($Principal, '').Replace(',,', ',').Replace('= ,', '= ')); Break }
                     'Replace' { $SIDList = "*$SID"; Break }
                 }
 
                 ## Assemble the import file to use with secedit
-                $Lines = @('[Unicode]', 'Unicode=yes', '[System Access]', '[Event Audit]', '[Registry Values]', '[Version]', "Signature=`"`$CHICAGO$`"", 'Revision=1', '[Profile Description]', "Description=$Action $Priviledge for $Identity", "[Privilege Rights]", "$SIDList")
-                ForEach ($Line in $Lines) { Add-Content -Path $ImportFile -Value $Line }
+                $Lines = @('[Unicode]', 'Unicode=yes', '[System Access]', '[Event Audit]', '[Registry Values]', '[Version]', "Signature=`"`$CHICAGO$`"", 'Revision=1', '[Profile Description]', "Description=$Action $PrivilegeItem for $Principal", "[Privilege Rights]", "$SIDList")
+                ForEach ($Line in $Lines) { Add-Content -Path $ImportFilePath -Value $Line }
 
                 ## Use secedit to set user rights by importing the previously created import file
-                $null = secedit /import /db $SecedtFile /cfg $ImportFile
-                $null = secedit /configure /db $SecedtFile
+                $null = & $SecEdit /import /db $SecedtFilePath /cfg $ImportFilePath
+                $null = & $SecEdit /configure /db $SecedtFilePath
 
                 ## Cleanup
-                Remove-Item -Path $ImportFile -Force -ErrorAction 'SilentlyContinue'
-                Remove-Item -Path $ExportFile -Force -ErrorAction 'SilentlyContinue'
-                Remove-Item -Path $SecedtFile -Force -ErrorAction 'SilentlyContinue'
+                Remove-Item -Path $ImportFilePath -Force -ErrorAction 'SilentlyContinue'
+                Remove-Item -Path $ExportFilePath -Force -ErrorAction 'SilentlyContinue'
+                Remove-Item -Path $SecedtFilePath -Force -ErrorAction 'SilentlyContinue'
 
                 ## Return results
                 $Result.Operation = 'Successful'
@@ -273,7 +403,7 @@ Function Set-UserRightsAssignment {
         Catch {
             $Result.Operation = 'Failed'
             $Output += $Result
-            $ErrorMessage = "Error granting '{0}' to '{1}' on '{2}'!" -f $Privilege, $Identity, $env:COMPUTERNAME, $($PsItem.Exception.Message)
+            $ErrorMessage = "Error granting '{0}' to '{1}' on '{2}'!" -f $PrivilegeItem, $Principal, $env:COMPUTERNAME, $($PsItem.Exception.Message)
             Throw (New-Object System.Exception($ErrorMessage, $PsItem.Exception))
         }
         Finally {
@@ -302,18 +432,17 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
     $SavedErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'SilentlyContinue'
     #  Set user rights
-    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Administrators'       -Privileges 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Users'                -Privileges 'SeShutdownPrivilege', 'SeUndockPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Remote Desktop Users' -Privileges 'SeRemoteInteractiveLogonRight'
-    Set-UserRightsAssignment -Action 'Replace' -Identity 'BUILTIN\Guests'               -Privileges 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
-    Set-UserRightsAssignment -Action 'Replace' -Identity 'NT AUTHORITY\LOCAL SERVICE'   -Privileges 'SeAssignPrimaryTokenPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Identity 'NT AUTHORITY\NETWORK SERVICE' -Privileges 'SeAssignPrimaryTokenPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Identity 'NT SERVICE\WdiServiceHost'    -Privileges 'SeSystemProfilePrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Administrators'       -Privilege 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Users'                -Privilege 'SeShutdownPrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Remote Desktop Users' -Privilege 'SeRemoteInteractiveLogonRight'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Guests'               -Privilege 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'NT AUTHORITY\LOCAL SERVICE'   -Privilege 'SeAssignPrimaryTokenPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'NT AUTHORITY\NETWORK SERVICE' -Privilege 'SeAssignPrimaryTokenPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'NT SERVICE\WdiServiceHost'    -Privilege 'SeSystemProfilePrivilege'
     #  Update Group Policy
     $null = gpupdate /force
     #  Restore ErrorActionPreference to original value
     $ErrorActionPreference = $SavedErrorActionPreference
-    Write-Verbose -Message $("Script '{0}\{1}' completed." -f $ScriptPath, $ScriptName) -Verbose
 }
 
 ## Execute scriptblock
