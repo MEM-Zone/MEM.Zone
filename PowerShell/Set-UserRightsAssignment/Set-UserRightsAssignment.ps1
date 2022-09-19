@@ -1,19 +1,20 @@
 <#
 .SYNOPSIS
-    Add, Remove or replace user rights assignment.
+    Add, Replace or Remove user rights assignment.
 .DESCRIPTION
-    Add, Remove or replace user rights assignment to a local computer.
+    Add, Replace or Remove user rights assignment to a local computer.
 .PARAMETER Action
     Specify the action to perform.
     Valid values:
-        - Add
-        - Remove
-        - Replace
+        - Add       : Add user rights assignment.
+        - Replace   : Replace user rights assignment.
+        - Remove    : Remove user rights assignment.
+        - RemoveAll : Remove all user rights assignments for the specified principal.
 .PARAMETER Principal
     Defines the Principal under which the service should run.
     Default is the current user.
 .PARAMETER Privilege
-    Defines the User Right(s) you want to set.
+    Defines the User Right(s) you want to set. If 'RemoveAll' Action is specified, this parameter can't be set.
     Valid values are:
         SeAssignPrimaryTokenPrivilege
         SeAuditPrivilege
@@ -51,13 +52,15 @@
         SeUndockPrivilege
         SeUnsolicitedInputPrivilege
 .EXAMPLE
-    Set-UserRightsAssignment.ps1 -Add -Principal 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment.ps1 -Add -Principal 'CONTOSO\User' -Privilege 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment.ps1 -Add -Principal 'S-1-5-21-1234567890-1234567890-1234567890-500' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment.ps1 -Add -Principal 'S-1-5-21-1234567890-1234567890-1234567890-500' -Privilege 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment.ps1 -Remove -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment.ps1 -Remove -Principal 'CONTOSO\Group' -Privilege 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment.ps1 -Replace -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment.ps1 -RemoveAll -Principal 'CONTOSO\Group'
+.EXAMPLE
+    Set-UserRightsAssignment.ps1 -Replace -Principal 'CONTOSO\Group' -Privilege 'SeServiceLogonRight'
 .INPUTS
     None.
 .OUTPUTS
@@ -82,27 +85,58 @@
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory = $true, HelpMessage = 'Add/Remove user right.', Position = 0)]
-        [ValidateSet('Add', 'Remove', 'Replace', IgnoreCase = $true)]
+        [ValidateSet('Add', 'Remove', 'RemoveAll', 'Replace', IgnoreCase = $true)]
         [Alias('Task')]
         [string]$Action,
         [Parameter(Mandatory = $false, Position = 1)]
         [Alias('User')]
-        [string]$Principal = -join ($env:USERDOMAIN, '\', $env:USERNAME),
-        [Parameter(Mandatory = $true, Position = 2)]
-        [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
-            'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
-            'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
-            'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
-            'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
-            'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
-            'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
-            'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
-            'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
-            'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
-        )]
-        [Alias('Rights')]
-        [string[]]$Privilege
+        [string]$Principal = -join ($env:USERDOMAIN, '\', $env:USERNAME)
     )
+
+    ## Declare dynamic parameter to be required if 'RemoveAll' action is not specified
+    DynamicParam {
+        If ($Action -ne 'RemoveAll') {
+
+            ## Declare the PrivilegeList attribute value
+            [string[]]$PrivilegeList = @('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
+                'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
+                'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
+                'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
+                'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
+                'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
+                'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
+                'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
+                'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
+                'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege'
+            )
+
+            ## Create a new ParameterAttribute Object
+            $ParameterAttribute = [System.Management.Automation.ParameterAttribute]::new()
+            #  Specify parameter attributes
+            $ParameterAttribute.Position = 2
+            $ParameterAttribute.Mandatory = $true
+
+            ## Create a new ValidateSetAttribute object
+            $ValidateSetAttribute = [System.Management.Automation.ValidateSetAttribute]::new($PrivilegeList)
+
+            ## Create an AttributeCollection object for the created attributes.
+            $AttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+
+            ## Add the Parameter Atributes
+            $AttributeCollection.Add($ParameterAttribute)
+            $AttributeCollection.Add($ValidateSetAttribute)
+
+            ## Add the paramater specifying the attribute collection
+            $PrivilegeParameter = [System.Management.Automation.RuntimeDefinedParameter]::new('Privilege', [string[]], $AttributeCollection)
+
+            ## Expose the name of the parameter
+            $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+            $ParamDictionary.Add('Privilege', $PrivilegeParameter)
+
+            ## Return the dictionary object to the pipeline
+            Write-Output -InputObject $ParamDictionary
+        }
+    }
 #>
 
 ##*=============================================
@@ -218,20 +252,21 @@ Function Resolve-Principal {
 Function Set-UserRightsAssignment {
 <#
 .SYNOPSIS
-    Add, Remove or replace user rights assignment.
+    Add, Replace or Remove user rights assignment.
 .DESCRIPTION
-    Add, Remove or replace user rights assignment to a local computer.
+    Add, Replace or Remove user rights assignment to a local computer.
 .PARAMETER Action
     Specify the action to perform.
     Valid values:
-        - Add
-        - Remove
-        - Replace
+        - Add       : Add user rights assignment.
+        - Replace   : Replace user rights assignment.
+        - Remove    : Remove user rights assignment.
+        - RemoveAll : Remove all user rights assignments for the specified principal.
 .PARAMETER Principal
     Defines the Principal under which the service should run.
     Default is the current user.
-.PARAMETER Privileges
-    Defines the User Right(s) you want to set.
+.PARAMETER Privilege
+    Defines the User Right(s) you want to set. If 'RemoveAll' Action is specified, this parameter can't be set.
     Valid values are:
         SeAssignPrimaryTokenPrivilege
         SeAuditPrivilege
@@ -269,13 +304,15 @@ Function Set-UserRightsAssignment {
         SeUndockPrivilege
         SeUnsolicitedInputPrivilege
 .EXAMPLE
-    Set-UserRightsAssignment -Add -Principal 'CONTOSO\User' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment -Add -Principal 'CONTOSO\User' -Privilege 'SeServiceLogonRight'
 .EXAMPLE
     Set-UserRightsAssignment -Add -Principal 'S-1-5-21-1234567890-1234567890-1234567890-500' -Privileges 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment -Remove -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment -Remove -Principal 'CONTOSO\Group' -Privilege 'SeServiceLogonRight'
 .EXAMPLE
-    Set-UserRightsAssignment -Replace -Principal 'CONTOSO\Group' -Privileges 'SeServiceLogonRight'
+    Set-UserRightsAssignment -RemoveAll -Principal 'CONTOSO\Group'
+.EXAMPLE
+    Set-UserRightsAssignment -Replace -Principal 'CONTOSO\Group' -Privilege 'SeServiceLogonRight'
 .INPUTS
     None.
 .OUTPUTS
@@ -297,27 +334,59 @@ Function Set-UserRightsAssignment {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory = $true, HelpMessage = 'Add/Remove user right.', Position = 0)]
-        [ValidateSet('Add', 'Remove', 'Replace', IgnoreCase = $true)]
+        [ValidateSet('Add', 'Remove', 'RemoveAll', 'Replace', IgnoreCase = $true)]
         [Alias('Task')]
         [string]$Action,
         [Parameter(Mandatory = $false, Position = 1)]
         [Alias('User')]
-        [string]$Principal = -join ($env:USERDOMAIN, '\', $env:USERNAME),
-        [Parameter(Mandatory = $true, Position = 2)]
-        [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
-            'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
-            'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
-            'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
-            'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
-            'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
-            'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
-            'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
-            'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
-            'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
-        )]
-        [Alias('Rights')]
-        [string[]]$Privilege
+        [string]$Principal = -join ($env:USERDOMAIN, '\', $env:USERNAME)
     )
+
+    ## Declare dynamic parameter to be required if 'RemoveAll' action is not specified
+    DynamicParam {
+        If ($Action -ne 'RemoveAll') {
+
+            ## Declare the PrivilegeList attribute value
+            [string[]]$PrivilegeList = @('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
+                'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
+                'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
+                'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
+                'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
+                'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
+                'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
+                'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
+                'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
+                'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege'
+            )
+
+            ## Create a new ParameterAttribute Object
+            $ParameterAttribute = [System.Management.Automation.ParameterAttribute]::new()
+
+            #  Specify parameter attributes
+            $ParameterAttribute.Position = 2
+            $ParameterAttribute.Mandatory = $true
+
+            ## Create a new ValidateSetAttribute object
+            $ValidateSetAttribute = [System.Management.Automation.ValidateSetAttribute]::new($PrivilegeList)
+
+            ## Create an AttributeCollection object for the created attributes.
+            $AttributeCollection = [System.Collections.ObjectModel.Collection[System.Attribute]]::new()
+
+            ## Add the Parameter Atributes
+            $AttributeCollection.Add($ParameterAttribute)
+            $AttributeCollection.Add($ValidateSetAttribute)
+
+            ## Add the paramater specifying the attribute collection
+            $PrivilegeParameter = [System.Management.Automation.RuntimeDefinedParameter]::new('Privilege', [string[]], $AttributeCollection)
+
+            ## Expose the name of the parameter
+            $ParamDictionary = [System.Management.Automation.RuntimeDefinedParameterDictionary]::new()
+            $ParamDictionary.Add('Privilege', $PrivilegeParameter)
+
+            ## Return the dictionary object to the pipeline
+            Write-Output -InputObject $ParamDictionary
+        }
+    }
     Begin {
 
         ## Set paths
@@ -338,9 +407,18 @@ Function Set-UserRightsAssignment {
             Operation     = 'N/A'
         }
 
+        ## Set the Privilege variable according to the action
+        If ($Action -eq 'RemoveAll') {
+            $Privilege = $PrivilegeList
+            $Action = 'Remove'
+        }
+        Else {
+            #  Set the Privilege variable to the bound parameter, otherwise it will be $null
+            $Privilege = $PSBoundParameters['Privilege']
+        }
+
         ## Set SID regex match Pattern
         [regex]$Pattern = 'S-\d-(?:\d+-){1,14}\d+'
-
     }
     Process {
         Try {
@@ -352,21 +430,28 @@ Function Set-UserRightsAssignment {
             ## Set ScEdit.exe path
             [string]$SecEdit = Join-Path -Path $System32Path -ChildPath 'SecEdit.exe' -Resolve
 
+            ## Export current user rights
+            $null = & $SecEdit /export /cfg $ExportFilePath
+
             ## Check if Principal is SID
             [string]$SIDMatch = (Select-String -Pattern $Pattern -InputObject $Principal).Matches.Value
             If ([string]::IsNullOrEmpty($SIDMatch)) {
                 $SID = Resolve-Principal -Principal $Principal
+                #  Set output Object
                 $Result.PrincipalSID = $SID
             }
             Else {
                 $SID = $Principal
                 $Principal = Resolve-Principal -Principal $SID
+                #  Set output Object
                 $Result.PrincipalName = $Principal
                 $Result.PrincipalSID = $SID
             }
 
             ## Set user rights
             $Output = ForEach ($PrivilegeItem in $Privilege) {
+
+                ## Set output Object
                 $Result.Privilege = $PrivilegeItem
 
                 ## Export current user rights
@@ -375,11 +460,11 @@ Function Set-UserRightsAssignment {
                 ## Select the user right to modify
                 $SIDs = (Select-String $ExportFilePath -Pattern $PrivilegeItem).Line
 
-                ## Add or remove user right to the SIDList
+                ## Add or remove user right to the SIDList to be imported
                 Switch ($Action) {
-                    'Add'     { $SIDList = "$SIDs,*$SID"; Break }
+                    'Add'     { $SIDList = '{0},*{1}' -f $SIDs, $SID; Break }
                     'Remove'  { $SIDList = $($SIDs.Replace("*$SID", '').Replace($Principal, '').Replace(',,', ',').Replace('= ,', '= ')); Break }
-                    'Replace' { $SIDList = "*$SID"; Break }
+                    'Replace' { $SIDList = '{0} = *{1}' -f $PrivilegeItem, $SID; Break }
                 }
 
                 ## Assemble the import file to use with secedit
@@ -392,7 +477,6 @@ Function Set-UserRightsAssignment {
 
                 ## Cleanup
                 Remove-Item -Path $ImportFilePath -Force -ErrorAction 'SilentlyContinue'
-                Remove-Item -Path $ExportFilePath -Force -ErrorAction 'SilentlyContinue'
                 Remove-Item -Path $SecedtFilePath -Force -ErrorAction 'SilentlyContinue'
 
                 ## Return results
@@ -410,6 +494,9 @@ Function Set-UserRightsAssignment {
             Write-Output -InputObject $Output
         }
     }
+    End {
+        Remove-Item -Path $ExportFilePath -Force -ErrorAction 'SilentlyContinue'
+    }
 }
 #endregion
 
@@ -426,6 +513,16 @@ Function Set-UserRightsAssignment {
 ## Write verbose info
 Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName) -Verbose
 
+## Set the Privilege variable according to the action
+If ($Action -eq 'RemoveAll') {
+    $Privilege = $PrivilegeList
+    $Action = 'Remove'
+}
+Else {
+    #  Set the Privilege variable to the bound parameter, otherwise it will be $null
+    $Privilege = $PSBoundParameters['Privilege']
+}
+
 ## Assemble scriptblock
 [scriptblock]$SetUserRightsAssignments = {
     #  Set ErrorActionPreference to SilentlyContinue
@@ -433,16 +530,16 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
     $ErrorActionPreference = 'SilentlyContinue'
     #  Set user rights
     Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Administrators'       -Privilege 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Users'                -Privilege 'SeShutdownPrivilege', 'SeUndockPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Remote Desktop Users' -Privilege 'SeRemoteInteractiveLogonRight'
     Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Guests'               -Privilege 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
     Set-UserRightsAssignment -Action 'Replace' -Principal 'NT AUTHORITY\LOCAL SERVICE'   -Privilege 'SeAssignPrimaryTokenPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Principal 'NT AUTHORITY\NETWORK SERVICE' -Privilege 'SeAssignPrimaryTokenPrivilege'
-    Set-UserRightsAssignment -Action 'Replace' -Principal 'NT SERVICE\WdiServiceHost'    -Privilege 'SeSystemProfilePrivilege'
-    #  Update Group Policy
-    $null = gpupdate /force
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'BUILTIN\Remote Desktop Users' -Privilege 'SeRemoteInteractiveLogonRight'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'BUILTIN\Users'                -Privilege 'SeShutdownPrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'NT AUTHORITY\NETWORK SERVICE' -Privilege 'SeAssignPrimaryTokenPrivilege'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'NT SERVICE\WdiServiceHost'    -Privilege 'SeSystemProfilePrivilege'
     #  Restore ErrorActionPreference to original value
     $ErrorActionPreference = $SavedErrorActionPreference
+    #  Update Group Policy to apply the changes
+    $null = gpupdate /force
 }
 
 ## Execute scriptblock
@@ -455,7 +552,7 @@ Write-Output -InputObject $Output
 Write-Verbose -Message $("Script '{0}\{1}' completed." -f $ScriptPath, $ScriptName) -Verbose
 
 ## Handle exit codes for proactive remediations
-If ($Output -contains 'Failed') { Exit 1}
+If ($Output -contains 'Failed') { Exit 1 }
 Else { Exit 0 }
 
 #endregion

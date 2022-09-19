@@ -1,5 +1,11 @@
 # Set-UserRightsAssignment release history
 
+## 2.1.0 - 2022-09-19
+
+* Added `RemoveAll` support for the `Action` parameter
+* Added some code optimizations
+* `Privilege` parameter is now dynamic
+
 ## 2.0.0 - 2022-09-16
 
 * Added `SID` Support for `Principal`
