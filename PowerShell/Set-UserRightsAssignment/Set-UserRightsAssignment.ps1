@@ -69,9 +69,9 @@
     Created by Ioan Popovici
     Original script by Bill Loytty (weloytty)
 .LINK
-    https://MEM.Zone/UserRightsAssignment
+    https://MEM.Zone/Set-UserRightsAssignment
 .LINK
-    https://MEM.Zone/UserRightsAssignment-GIT
+    https://MEM.Zone/Set-UserRightsAssignment-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .LINK
