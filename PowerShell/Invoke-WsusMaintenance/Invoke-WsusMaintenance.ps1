@@ -2,7 +2,7 @@
 .SYNOPSIS
     Runs WSUS maintenance tasks.
 .DESCRIPTION
-    Runs WSUS maintenance tasks by running specified optimization and cleanup tasks.
+    Runs WSUS maintenance tasks by performing various optimization and cleanup tasks.
 .PARAMETER Task
     Specifies maintenance task to run.
     Valid values are:
@@ -12,12 +12,13 @@
         - 'DeclineExpiredUpdates'         - Declines expired updates
         - 'DeclineSupersededUpdates'      - Declines superseded updates
         - 'CleanupObsoleteUpdates'        - Cleans up obsolete updates
-        - 'CompressUpdates'               - Deletes unneded update revisions
+        - 'CompressUpdates'               - Deletes unneeded update revisions
         - 'CleanupObsoleteComputers'      - Cleans up obsolete computers that are no longer active
         - 'CleanupUnneededContentFiles'   - Cleans up unneeded content files that are no longer referenced
 .PARAMETER ServerInstance
     Specifies a character string or SQL Server Management Objects (SMO) object that specifies the name of an instance of the Database Engine.
     For default instances, only specify the computer name: MyComputer. For named instances, use the format ComputerName\InstanceName.
+    By Default the SQL Server instance is autodetected.
 .PARAMETER Database
     Specifies the name of a database. This cmdlet connects to this database in the instance that is specified in the ServerInstance parameter.
     Default is: 'SUSDB'
@@ -48,10 +49,10 @@
 ## Get Script Parameters
 [CmdletBinding()]
 Param (
-    [Parameter(Mandatory = $true, HelpMessage = 'SQL server and instance name', Position = 0)]
+    [Parameter(Mandatory = $false, HelpMessage = 'SQL server and instance name', Position = 0)]
     [ValidateNotNullorEmpty()]
     [Alias('Server')]
-    [string]$ServerInstance,
+    [string]$ServerInstance = (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Update Services\Server\Setup' -Name 'SqlServerName').SqlServerName,
     [Parameter(Mandatory = $false, HelpMessage = 'Database name', Position = 1)]
     [ValidateNotNullorEmpty()]
     [Alias('Dbs')]
@@ -86,128 +87,72 @@ Param (
 ##*=============================================
 #region FunctionListings
 
-#region Function Invoke-SQLQuery
-Function Invoke-SQLQuery {
+
+#region Function Import-Resource
+Function Import-Resource {
 <#
 .SYNOPSIS
-    Runs an SQL query.
+    Imports a script resource.
 .DESCRIPTION
-    Runs an SQL query without any dependencies except .net.
-.PARAMETER ServerInstance
-    Specifies a character string or SQL Server Management Objects (SMO) object that specifies the name of an instance of the Database Engine.
-    For default instances, only specify the computer name: MyComputer. For named instances, use the format ComputerName\InstanceName.
-.PARAMETER Database
-    Specifies the name of a database. This cmdlet connects to this database in the instance that is specified in the ServerInstance parameter.
-.PARAMETER Username
-    Specifies the login ID for making a SQL Server Authentication connection to an instance of the Database Engine.
-    If Username and Password are not specified, this cmdlet attempts a Windows Authentication connection using the Windows account running the
-    Windows PowerShell session. When possible, use Windows Authentication.
-.PARAMETER Password
-    Specifies the password for the SQL Server Authentication login ID that was specified in the Username parameter.
-    If Username and Password are not specified, this cmdlet attempts a Windows Authentication connection using the Windows account running the
-    Windows PowerShell session. When possible, use Windows Authentication.
-.PARAMETER Query
-    Specifies one or more queries that this cmdlet runs.
-.PARAMETER ConnectionTimeout
-    Specifies the number of seconds when this cmdlet times out if it cannot successfully connect to an instance of the Database Engine.
-    The timeout value must be an integer value between 0 and 65534. If 0 is specified, connection attempts does not time out.
-    Default is: '0'.
-.PARAMETER UseSQLAuthentication
-    Specifies to use SQL Server Authentication instead of Windows Authentication. You will be asked for credentials if this switch is used.
+    Imports a script resource from a specified path.
+.PARAMETER Path
+    Specifies the path to the script resource.
+    Default is: [System.IO.Path]::Combine($PSScriptRoot, 'Resources')
+.PARAMETER Name
+    Specifies the name of the script resource.
 .EXAMPLE
-    Invoke-SQLQuery -ServerInstance 'CM-SQL-RS-01A' -Database 'CM_XXX' -Query 'SELECT * TOP 5 FROM v_UpdateInfo' -ConnectionTimeout 20
-.EXAMPLE
-    Invoke-SQLQuery -ServerInstance 'CM-SQL-RS-01A' -Database 'CM_XXX' -Query 'SELECT * TOP 5 FROM v_UpdateInfo' -ConnectionTimeout 20 -UseSQLAuthentication
+    Import-Resource -Name 'CleanupObsoleteComputers'
 .INPUTS
     None.
 .OUTPUTS
-    System.Data.DataRow
     System.String
     System.Exception
 .NOTES
     This is an private function and should tipically not be called directly.
 .LINK
-    https://stackoverflow.com/questions/8423541/how-do-you-run-a-sql-server-query-from-powershell
-.LINK
     https://MEM.Zone/
-.LINK
-    https://MEM.Zone/Invoke-SQLQuery-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
-    SQL
+    Invoke-WSUSMaintenance
 .FUNCTIONALITY
-    Runs an SQL query.
+    Imports a script resource.
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory = $true, HelpMessage = 'SQL server and instance name', Position = 0)]
+        [Parameter(Mandatory = $false, HelpMessage = 'Path to the script resource')]
         [ValidateNotNullorEmpty()]
-        [Alias('Server')]
-        [string]$ServerInstance,
-        [Parameter(Mandatory = $true, HelpMessage = 'Database name', Position = 1)]
+        [string]$Path = [System.IO.Path]::Combine($PSScriptRoot, 'Resources'),
+        [Parameter(Mandatory = $true, HelpMessage = 'Name of the script resource')]
         [ValidateNotNullorEmpty()]
-        [Alias('Dbs')]
-        [string]$Database,
-        [Parameter(Mandatory = $true, Position = 4)]
-        [ValidateNotNullorEmpty()]
-        [Alias('Qry')]
-        [string]$Query,
-        [Parameter(Mandatory = $false, Position = 5)]
-        [ValidateNotNullorEmpty()]
-        [Alias('Tmo')]
-        [int]$ConnectionTimeout = 0,
-        [Parameter(Mandatory = $false, Position = 6)]
-        [ValidateNotNullorEmpty()]
-        [Alias('SQLAuth')]
-        [switch]$UseSQLAuthentication
+        [string]$Name
     )
     Begin {
-
-        ## Assemble connection string
-        [string]$ConnectionString = "Server=$ServerInstance; Database=$Database; "
-        #  Set connection string for integrated or non-integrated authentication
-        If ($UseSQLAuthentication) {
-            # Get credentials if SQL Server Authentication is used
-            $Credentials = Get-Credential -Message 'SQL Credentials'
-            [string]$Username = $($Credentials.UserName)
-            [securestring]$Password = $($Credentials.Password)
-            # Set connection string
-            $ConnectionString += "User ID=$Username; Password=$Password;"
-        }
-        Else { $ConnectionString += 'Trusted_Connection=Yes; Integrated Security=SSPI;' }
+        $Output = $null
     }
     Process {
         Try {
 
-            ## Connect to the database
-            Write-Verbose -Message "Connecting to [$Database]..."
-            $DBConnection = New-Object System.Data.SqlClient.SqlConnection($ConnectionString)
-            $DBConnection.Open()
+            ## Asseble and test file path
+            [string]$FilePath = Join-Path -Path $Path -ChildPath $Name -Resolve -ErrorAction 'Stop'
 
-            ## Assemble query object
-            $Command = $DBConnection.CreateCommand()
-            $Command.CommandText = $Query
-            $Command.CommandTimeout = $ConnectionTimeout
+            ## Set output
+            Write-Verbose -Message "Importing resource '$FilePath'" -Verbose
+            $Output = Get-Content -Path $FilePath -Raw
+            If ([string]::IsNullOrWhiteSpace($Output)) {
 
-            ## Run query
-            Write-Verbose -Message 'Running SQL query...'
-            $DataAdapter = New-Object System.Data.SqlClient.SqlDataAdapter -ArgumentList $Command
-            $DataSet = New-Object System.Data.DataSet
-            $DataAdapter.Fill($DataSet) | Out-Null
-
-            ## Return the first collection of results or an empty array
-            If ($null -ne $($DataSet.Tables[0])) { $Table = $($DataSet.Tables[0]) }
-            ElseIf ($($Table.Rows.Count) -eq 0) { $Table = New-Object System.Collections.ArrayList }
-
-            ## Close database connection
-            $DBConnection.Close()
+                ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
+                $Exception     = [System.Exception]::new('Resource File is Empty!')
+                $ExceptionType = [System.Management.Automation.ErrorCategory]::InvalidResult
+                $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $FilePath)
+                $PSCmdlet.WriteError($ErrorRecord)
+             }
         }
         Catch {
-            Throw (New-Object System.Exception("Error running query! $($PsItem.Exception.Message)", $PsItem.Exception))
+            $PSCmdlet.WriteError($PsItem)
         }
         Finally {
-            Write-Output $Table
+            Write-Output $Output
         }
     }
 }
@@ -225,7 +170,7 @@ Function Get-WsusIISLocalizedPath {
 .INPUTS
     None.
 .OUTPUTS
-    System.Object
+    System.String
     System.Exception
 .NOTES
     This is an private function and should tipically not be called directly.
@@ -247,11 +192,18 @@ Function Get-WsusIISLocalizedPath {
         Try {
             $IISSitePhysicalPath = Get-ItemPropertyValue -Path 'HKLM:\SOFTWARE\Microsoft\Update Services\Server\Setup\' -Name 'TargetDir'
             $IISLocalizedString = (Get-Website).Where({ $PsItem.PhysicalPath.StartsWith($IISSitePhysicalPath) }).Name
-            $Output = Join-Path -Path 'IIS:\Sites\' -ChildPath $IISLocalizedString | Join-Path -ChildPath 'ClientWebService'
-            If ([string]::IsNullOrEmpty($Output)) { Throw 'Unable to get IIS localized path!' }
+            $Output = [System.IO.Path]::Combine('IIS:\Sites\', $IISLocalizedString, 'ClientWebService')
+            If ([string]::IsNullOrWhiteSpace($Output)) {
+
+                ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
+                $Exception     = [System.Exception]::new('Unable to get IIS Localized Path!')
+                $ExceptionType = [System.Management.Automation.ErrorCategory]::ObjectNotFound
+                $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $Output)
+                $PSCmdlet.WriteError($ErrorRecord)
+            }
         }
         Catch {
-            Throw (New-Object System.Exception("Error getting IIS Localized Path! $($PsItem.Exception.Message)", $PsItem.Exception))
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output $Output
@@ -380,7 +332,12 @@ Function Get-WsusIISConfig {
             If (-not $CheckRecommendedValues) { $Output = $Output | Select-Object -Property 'Name', 'Value' }
         }
         Catch {
-            Throw (New-Object System.Exception("Error testing WSUS configuration values! $($PsItem.Exception.Message)", $PsItem.Exception))
+
+            ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
+            $Exception     = [System.Exception]::new('Error testing WSUS configuration value!')
+            $ExceptionType = [System.Management.Automation.ErrorCategory]::InvalidResult
+            $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $Settings)
+            $PSCmdlet.WriteError($ErrorRecord)
         }
         Finally {
             Write-Output $Output
@@ -747,7 +704,7 @@ Function Optimize-WsusConfiguration {
     Begin {
 
         ## Intialize output
-        $Output = @{}
+        $Output = $null
     }
     Process {
         Try {
@@ -800,9 +757,11 @@ Function Optimize-WsusDatabase {
         'RebuildIndexes'       - Identifies indexes that are fragmented, and defragments them. For certain tables, a fill factor is set to improve
                                  insert performance. Updates potentially out-of-date table statistics.
         'SlowDeleteUpdateFix'  - Sets a primary key on the @revisionList temporary table in order to speed up the delete update operation.
+        Default value is: @('CreateIndexes', 'RebuildIndexes', 'SlowDeleteUpdateFix').
 .PARAMETER ServerInstance
     Specifies a character string or SQL Server Management Objects (SMO) object that specifies the name of an instance of the Database Engine. For default instances, only specify the computer name: MyComputer.
     For named instances, use the format ComputerName\InstanceName.
+    Default value is automatically detected.
 .PARAMETER Database
     Specifies the name of a database. This cmdlet connects to this database in the instance that is specified in the ServerInstance parameter.
     Default is: 'SUSDB'
@@ -826,10 +785,10 @@ Function Optimize-WsusDatabase {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory = $true, HelpMessage = 'SQL server and instance name', Position = 0)]
+        [Parameter(Mandatory = $false, HelpMessage = 'SQL server and instance name', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Server')]
-        [string]$ServerInstance,
+        [string]$ServerInstance = (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Update Services\Server\Setup' -Name 'SqlServerName').SqlServerName,
         [Parameter(Mandatory = $false, HelpMessage = 'Database name', Position = 1)]
         [ValidateNotNullorEmpty()]
         [Alias('Dbs')]
@@ -843,270 +802,71 @@ Function Optimize-WsusDatabase {
 
     Begin {
 
-        ## Define Result object
-        $Result = [orderd]@{
-            'OptimizationTask' = 'N/A'
+        ## Intitialize Output
+        $Output = [System.Collections.Generic.List[object]]::new()
+
+        ## Define Result Template
+        [hashtable]$OutputProps = [ordered]@{
+            'Task' = 'N/A'
+            'Output' = 'N/A'
             'Operation' = 'N/A'
         }
-
-        ## Define SQL queries
-        [string]$CreateIndexes =
-@'
-            IF EXISTS (SELECT name FROM sys.indexes WHERE name = N'IX_tbRevisionSupersedesUpdate')
-                BEGIN
-                    DROP INDEX [IX_tbRevisionSupersedesUpdate] ON [dbo].[tbRevisionSupersedesUpdate];
-                END
-            IF EXISTS (SELECT name FROM sys.indexes WHERE name = N'IX_tbLocalizedPropertyForRevision')
-                BEGIN
-                    DROP INDEX [IX_tbLocalizedPropertyForRevision] ON [dbo].tbLocalizedPropertyForRevision;
-                END
-            CREATE NONCLUSTERED INDEX [IX_tbRevisionSupersedesUpdate] ON [dbo].[tbRevisionSupersedesUpdate]([SupersededUpdateID]);
-            CREATE NONCLUSTERED INDEX [IX_tbLocalizedPropertyForRevision] ON [dbo].tbLocalizedPropertyForRevision([LocalizedPropertyID]);
-'@
-        [string]$RebuildIndexes =
-@'
-            SET NOCOUNT ON;
-
-            -- Rebuild or reorganize indexes based on their fragmentation levels
-            DECLARE @work_to_do TABLE (
-                objectid int
-                , indexid int
-                , pagedensity float
-                , fragmentation float
-                , numrows int
-            )
-
-            DECLARE @objectid int;
-            DECLARE @indexid int;
-            DECLARE @schemaname nvarchar(130);
-            DECLARE @objectname nvarchar(130);
-            DECLARE @indexname nvarchar(130);
-            DECLARE @numrows int
-            DECLARE @density float;
-            DECLARE @fragmentation float;
-            DECLARE @command nvarchar(4000);
-            DECLARE @fillfactorset bit
-            DECLARE @numpages int
-
-            -- Select indexes that need to be defragmented based on the following
-            -- * Page density is low
-            -- * External fragmentation is high in relation to index size
-            PRINT 'Estimating fragmentation: Begin. ' + convert(nvarchar, getdate(), 121)
-            INSERT @work_to_do
-            SELECT
-                f.object_id
-                , index_id
-                , avg_page_space_used_in_percent
-                , avg_fragmentation_in_percent
-                , record_count
-            FROM
-                sys.dm_db_index_physical_stats (DB_ID(), NULL, NULL , NULL, 'SAMPLED') AS f
-            WHERE
-                (f.avg_page_space_used_in_percent < 85.0 and f.avg_page_space_used_in_percent/100.0 * page_count < page_count - 1)
-                or (f.page_count > 50 and f.avg_fragmentation_in_percent > 15.0)
-                or (f.page_count > 10 and f.avg_fragmentation_in_percent > 80.0)
-
-            PRINT 'Number of indexes to rebuild: ' + cast(@@ROWCOUNT as nvarchar(20))
-
-            PRINT 'Estimating fragmentation: End. ' + convert(nvarchar, getdate(), 121)
-
-            SELECT @numpages = sum(ps.used_page_count)
-            FROM
-                @work_to_do AS fi
-                INNER JOIN sys.indexes AS i ON fi.objectid = i.object_id and fi.indexid = i.index_id
-                INNER JOIN sys.dm_db_partition_stats AS ps on i.object_id = ps.object_id and i.index_id = ps.index_id
-
-            -- Declare the cursor for the list of indexes to be processed.
-            DECLARE curIndexes CURSOR FOR SELECT * FROM @work_to_do
-
-            -- Open the cursor.
-            OPEN curIndexes
-
-            -- Loop through the indexes
-            WHILE (1=1)
-            BEGIN
-                FETCH NEXT FROM curIndexes
-                INTO @objectid, @indexid, @density, @fragmentation, @numrows;
-                IF @@FETCH_STATUS < 0 BREAK;
-
-                SELECT
-                    @objectname = QUOTENAME(o.name)
-                    , @schemaname = QUOTENAME(s.name)
-                FROM
-                    sys.objects AS o
-                    INNER JOIN sys.schemas as s ON s.schema_id = o.schema_id
-                WHERE
-                    o.object_id = @objectid;
-
-                SELECT
-                    @indexname = QUOTENAME(name)
-                    , @fillfactorset = CASE fill_factor WHEN 0 THEN 0 ELSE 1 END
-                FROM
-                    sys.indexes
-                WHERE
-                    object_id = @objectid AND index_id = @indexid;
-
-                IF ((@density BETWEEN 75.0 AND 85.0) AND @fillfactorset = 1) OR (@fragmentation < 30.0)
-                    SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REORGANIZE';
-                ELSE IF @numrows >= 5000 AND @fillfactorset = 0
-                    SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REBUILD WITH (FILLFACTOR = 90)';
-                ELSE
-                    SET @command = N'ALTER INDEX ' + @indexname + N' ON ' + @schemaname + N'.' + @objectname + N' REBUILD';
-                PRINT convert(nvarchar, getdate(), 121) + N' Executing: ' + @command;
-                EXEC (@command);
-                PRINT convert(nvarchar, getdate(), 121) + N' Done.';
-            END
-
-            -- Close and deallocate the cursor.
-            CLOSE curIndexes;
-            DEALLOCATE curIndexes;
-
-
-            IF EXISTS (SELECT * FROM @work_to_do)
-            BEGIN
-                PRINT 'Estimated number of pages in fragmented indexes: ' + cast(@numpages as nvarchar(20))
-                SELECT @numpages = @numpages - sum(ps.used_page_count)
-                FROM
-                    @work_to_do AS fi
-                    INNER JOIN sys.indexes AS i ON fi.objectid = i.object_id and fi.indexid = i.index_id
-                    INNER JOIN sys.dm_db_partition_stats AS ps on i.object_id = ps.object_id and i.index_id = ps.index_id
-
-                PRINT 'Estimated number of pages freed: ' + cast(@numpages as nvarchar(20))
-            END
-
-
-            --Update all statistics
-            PRINT 'Updating all statistics.' + convert(nvarchar, getdate(), 121)
-            EXEC sp_updatestats
-            PRINT 'Done updating statistics.' + convert(nvarchar, getdate(), 121)
-'@
-        [string]$SlowDeleteUpdateFix =
-@'
-            ALTER PROCEDURE [dbo].[spDeleteUpdate]
-                @localUpdateID int
-            AS
-            SET NOCOUNT ON
-            BEGIN TRANSACTION
-            SAVE TRANSACTION DeleteUpdate
-            DECLARE @retcode INT
-            DECLARE @revisionID INT
-            DECLARE @revisionList TABLE(RevisionID INT PRIMARY KEY)
-            INSERT INTO @revisionList (RevisionID)
-                SELECT r.RevisionID FROM dbo.tbRevision r
-                    WHERE r.LocalUpdateID = @localUpdateID
-            IF EXISTS (SELECT b.RevisionID FROM dbo.tbBundleDependency b WHERE b.BundledRevisionID IN (SELECT RevisionID FROM @revisionList))
-            OR EXISTS (SELECT p.RevisionID FROM dbo.tbPrerequisiteDependency p WHERE p.PrerequisiteRevisionID IN (SELECT RevisionID FROM @revisionList))
-            BEGIN
-                RAISERROR('spDeleteUpdate got error: cannot delete update as it is still referenced by other update(s)', 16, -1)
-                ROLLBACK TRANSACTION DeleteUpdate
-                COMMIT TRANSACTION
-                RETURN(1)
-            END
-            INSERT INTO @revisionList (RevisionID)
-                SELECT DISTINCT b.BundledRevisionID FROM dbo.tbBundleDependency b
-                    INNER JOIN dbo.tbRevision r ON r.RevisionID = b.RevisionID
-                    INNER JOIN dbo.tbProperty p ON p.RevisionID = b.BundledRevisionID
-                    WHERE r.LocalUpdateID = @localUpdateID
-                        AND p.ExplicitlyDeployable = 0
-            IF EXISTS (SELECT IsLocallyPublished FROM dbo.tbUpdate WHERE LocalUpdateID = @localUpdateID AND IsLocallyPublished = 1)
-            BEGIN
-                INSERT INTO @revisionList (RevisionID)
-                    SELECT DISTINCT pd.PrerequisiteRevisionID FROM dbo.tbPrerequisiteDependency pd
-                        INNER JOIN dbo.tbUpdate u ON pd.PrerequisiteLocalUpdateID = u.LocalUpdateID
-                        INNER JOIN dbo.tbProperty p ON pd.PrerequisiteRevisionID = p.RevisionID
-                        WHERE u.IsLocallyPublished = 1 AND p.UpdateType = 'Category'
-            END
-            DECLARE #cur CURSOR LOCAL FAST_FORWARD FOR
-                SELECT t.RevisionID FROM @revisionList t ORDER BY t.RevisionID DESC
-            OPEN #cur
-            FETCH #cur INTO @revisionID
-            WHILE (@@ERROR=0 AND @@FETCH_STATUS=0)
-            BEGIN
-                IF EXISTS (SELECT b.RevisionID FROM dbo.tbBundleDependency b WHERE b.BundledRevisionID = @revisionID
-                            AND b.RevisionID NOT IN (SELECT RevisionID FROM @revisionList))
-                OR EXISTS (SELECT p.RevisionID FROM dbo.tbPrerequisiteDependency p WHERE p.PrerequisiteRevisionID = @revisionID
-                                AND p.RevisionID NOT IN (SELECT RevisionID FROM @revisionList))
-                BEGIN
-                    DELETE FROM @revisionList WHERE RevisionID = @revisionID
-                    IF (@@ERROR <> 0)
-                    BEGIN
-                        RAISERROR('Deleting disqualified revision from temp table failed', 16, -1)
-                        GOTO Error
-                    END
-                END
-                FETCH NEXT FROM #cur INTO @revisionID
-            END
-            IF (@@ERROR <> 0)
-            BEGIN
-                RAISERROR('Fetching a cursor to value a revision', 16, -1)
-                GOTO Error
-            END
-            CLOSE #cur
-            DEALLOCATE #cur
-            DECLARE #cur CURSOR LOCAL FAST_FORWARD FOR
-                SELECT t.RevisionID FROM @revisionList t ORDER BY t.RevisionID DESC
-            OPEN #cur
-            FETCH #cur INTO @revisionID
-            WHILE (@@ERROR=0 AND @@FETCH_STATUS=0)
-            BEGIN
-                EXEC @retcode = dbo.spDeleteRevision @revisionID
-                IF @@ERROR <> 0 OR @retcode <> 0
-                BEGIN
-                    RAISERROR('spDeleteUpdate got error from spDeleteRevision', 16, -1)
-                    GOTO Error
-                END
-                FETCH NEXT FROM #cur INTO @revisionID
-            END
-            IF (@@ERROR <> 0)
-            BEGIN
-                RAISERROR('Fetching a cursor to delete a revision', 16, -1)
-                GOTO Error
-            END
-            CLOSE #cur
-            DEALLOCATE #cur
-            COMMIT TRANSACTION
-            RETURN(0)
-            Error:
-                CLOSE #cur
-                DEALLOCATE #cur
-                IF (@@TRANCOUNT > 0)
-                BEGIN
-                    ROLLBACK TRANSACTION DeleteUpdate
-                    COMMIT TRANSACTION
-                END
-                RETURN(1)
-'@
     }
     Process {
         Try {
-            $Output = Switch ($PSBoundParameters['Task']) {
+            Switch ($PSBoundParameters['Task']) {
                 'CreateIndexes' {
-                    $Result.OptimizationTask = 'CreateIndexes'
+                    #  Update Result
+                    $Result = $OutputProps.Clone()
+                    $Result.Task = 'CreateIndexes'
+                    #  Import SQL query
+                    $CreateIndexes  = Import-Resource -Name 'CreateIndexes.sql'-ErrorAction 'Stop'
                     Write-Verbose -Message "Creating 'IX_tbRevisionSupersedesUpdate' and 'IX_tbLocalizedPropertyForRevision' indexes..." -Verbose
-                    Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $CreateIndexes
+                    #  Execute query
+                    Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query $CreateIndexes -QueryTimeout 0
+                    #  Update Result
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'RebuildIndexes' {
-                    $Result.OptimizationTask = 'RebuildIndexes'
+                    #  Update Result
+                    $Result = $OutputProps.Clone()
+                    $Result.Task = 'RebuildIndexes'
+                    #  Import SQL query
+                    $RebuildIndexes = Import-Resource -Name 'RebuildIndexes.sql' -ErrorAction 'Stop'
                     Write-Verbose -Message 'Rebuilding indexes, please wait...' -Verbose
-                    Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $RebuildIndexes
+                    #  Execute query
+                    Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query $RebuildIndexes -QueryTimeout 0
+                    #  Update Result
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'SlowDeleteUpdateFix' {
-                    $Result.OptimizationTask = 'SlowDeleteUpdateFix'
+                    #  Update Result
+                    $Result = $OutputProps.Clone()
+                    $Result.Task = 'SlowDeleteUpdateFix'
+                    #  Import SQL query
+                    $SlowDeleteUpdateFix = Import-Resource -Name 'SlowDeleteUpdateFix.sql' -ErrorAction 'Stop'
                     Write-Verbose -Message 'Applying spDeleteUpdate performance fix...' -Verbose
-                    Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $SlowDeleteUpdateFix
+                    #  Execute query
+                    Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query $SlowDeleteUpdateFix -QueryTimeout 0
+                    #  Update Result
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
             }
         }
         Catch {
-            $Result.Operation = 'Failed wirh error: ' + $PsItem.Exception.Message
-            $Output += $Result
-            Throw (New-Object System.Exception("Error running optimization task! $($PsItem.Exception.Message)", $PsItem.Exception))
+
+            ## Set Output
+            $Result.Operation = 'Failed'
+            $Output.Add([pscustomobject]$Result)
+
+            ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
+            $Exception     = [System.Exception]::new("Error running optimization task! $($PsItem.Exception.Message)")
+            $ExceptionType = [System.Management.Automation.ErrorCategory]::OperationStopped
+            $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $Result.OptimizationTask)
+            $PSCmdlet.ThrowTerminatingError($ErrorRecord)
         }
         Finally {
             Write-Output -InputObject $Output
@@ -1121,7 +881,7 @@ Function Invoke-WSUSMaintenance {
 .SYNOPSIS
     Runs WSUS maintenance tasks.
 .DESCRIPTION
-    Runs WSUS maintenance tasks by running specified optimization and cleanup tasks.
+    Runs WSUS maintenance tasks by performing various optimization and cleanup tasks.
 .PARAMETER Task
     Specifies maintenance task to run.
     Valid values are:
@@ -1131,7 +891,7 @@ Function Invoke-WSUSMaintenance {
         - 'DeclineExpiredUpdates'         - Declines expired updates
         - 'DeclineSupersededUpdates'      - Declines superseded updates
         - 'CleanupObsoleteUpdates'        - Cleans up obsolete updates
-        - 'CompressUpdates'               - Deletes unneded update revisions
+        - 'CompressUpdates'               - Deletes unneeded update revisions
         - 'CleanupObsoleteComputers'      - Cleans up obsolete computers that are no longer active
         - 'CleanupUnneededContentFiles'   - Cleans up unneeded content files that are no longer referenced
 .PARAMETER ServerInstance
@@ -1145,7 +905,7 @@ Function Invoke-WSUSMaintenance {
 .INPUTS
     None.
 .OUTPUTS
-    System.Object
+    System.System.Collections.Generic.List
     System.Exception
 .NOTES
     This is an private function and should tipically not be called directly.
@@ -1160,10 +920,10 @@ Function Invoke-WSUSMaintenance {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true, HelpMessage = 'SQL server and instance name', Position = 0)]
+        [Parameter(Mandatory = $false, HelpMessage = 'SQL server and instance name', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Server')]
-        [string]$ServerInstance,
+        [string]$ServerInstance = (Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Update Services\Server\Setup' -Name 'SqlServerName').SqlServerName,
         [Parameter(Mandatory = $false, HelpMessage = 'Database name', Position = 1)]
         [ValidateNotNullorEmpty()]
         [Alias('Dbs')]
@@ -1180,104 +940,111 @@ Function Invoke-WSUSMaintenance {
     )
     Begin {
 
-        ## Define Result object
-        $Result = [orderd]@{
+        ## Intitialize Output
+        $Output = [System.Collections.Generic.List[object]]::new()
+
+        ## Define Result Template
+        [hashtable]$OutputProps = [ordered]@{
             'Task' = 'N/A'
             'Output' = 'N/A'
             'Operation' = 'N/A'
         }
-
-        ## Define SQL queries
-        [string]$spDeclineExpiredUpdates       = 'EXEC spDeclineExpiredUpdates'
-        [string]$spDeclineSupersededUpdates    = 'EXEC spDeclineSupersededUpdates'
-        [string]$spCleanupObsoleteComputers    = 'EXEC spCleanupObsoleteComputers'
-        [string]$spGetObsoleteUpdatesToCleanup = 'EXEC spGetObsoleteUpdatesToCleanup'
-        [string]$spGetUpdatesToCompress        = 'EXEC spGetUpdatesToCompress'
-        [string]$spUpdateToCompress            = 'EXEC spUpdateToCompress @LocalUpdateID='
-        [string]$spDeleteUpdate                = 'EXEC spDeleteUpdate @LocalUpdateID='
-        [string]$spCleanupUnneededContentFiles = 'EXEC spCleanupUnneededContentFiles'
     }
     Process {
         Try {
-            $Output = Switch ($PSBoundParameters['Task']) {
+            Switch ($PSBoundParameters['Task']) {
                 'DisableDriverSync' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'DisableDriverSync'
                     Write-Verbose -Message 'Disable WSUS driver sync...' -Verbose
                     $WsusClassification = (Get-WsusClassification).Where({ $PSItem.Classification.Title -in ('Drivers', 'Driver Sets') })
-                    $WsusClassification | Set-WsusClassification -Disable
+                    $null = $WsusClassification | Set-WsusClassification -Disable
+                    $Result.Output = $WsusClassification.Count
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'OptimizeConfiguration' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'OptimizeConfiguration'
                     Write-Verbose -Message 'Optimize WSUS configuration...' -Verbose
                     Optimize-WsusConfiguration
+                    $Result.Output = 'Optimized'
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'OptimizeDatabase' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'OptimizeDatabase'
                     Write-Verbose -Message 'Optimize WSUS database...' -Verbose
-                    Optimize-WsusDatabase
+                    $null = Optimize-WsusDatabase -ServerInstance $ServerInstance -Database $Database -Task CreateIndexes, RebuildIndexes, SlowDeleteUpdateFix
+                    $Result.Output = 'Optimized'
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'DeclineExpiredUpdates' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'DeclineExpiredUpdates'
                     Write-Verbose -Message 'Declining expired updates. This may take a while...' -Verbose
-                    Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $spDeclineExpiredUpdates
+                    $Result.Output = (Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query 'EXEC spDeclineExpiredUpdates' -QueryTimeout 0).Column1
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'DeclineSupersededUpdates' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'DeclineSupersededUpdates'
                     Write-Verbose -Message 'Declining superseded updates. This may take a while...' -Verbose
-                    Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $spDeclineSupersededUpdates
+                    $Result.Output = (Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query 'EXEC spDeclineSupersededUpdates' -QueryTimeout 0).Column1
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'CleanupObsoleteUpdates' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'CleanupObsoleteUpdates'
+                    [string]$CleanupObsoleteUpdates = Import-Resource -Name 'CleanupObsoleteUpdates.sql'
                     Write-Verbose -Message 'Deleting obsolete updates. This may take a while...' -Verbose
-                    $ObsoleteUpdates = Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $spGetObsoleteUpdatesToCleanup
-                    ForEach ($ObsoleteUpdate in $ObsoleteUpdates) {
-                        $Query = -join $spDeleteUpdate, $ObsoleteUpdate.LocalUpdateID
-                        Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $Query
-                    }
+                    $Result.Output = (Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query $CleanupObsoleteUpdates -QueryTimeout 0).Column1
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'CompressUpdates' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'CompressUpdates'
+                    [string]$CompressUpdates = Import-Resource -Name 'CompressUpdates.sql'
                     Write-Verbose -Message 'Deleting update revisions. This may take a while...' -Verbose
-                    $UpdatesToCompress = Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $spGetUpdatesToCompress
-                    ForEach ($UpdateToCompress in $UpdatesToCompress) {
-                        $Query = -join $spUpdateToCompress, $UpdateToCompress.LocalUpdateID
-                        Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $Query
-                    }
+                    $Result.Output = (Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query $CompressUpdates -QueryTimeout 0).Column1
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'CleanupObsoleteComputers' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'CleanupObsoleteComputers'
-                    Write-Verbose -Message 'Cleaning up obsolete computers...' -Verbose
-                    Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $spCleanupObsoleteComputers
+                    Write-Verbose -Message 'Cleaning up obsolete computers. This make take a while...' -Verbose
+                    $Result.Output = (Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query 'EXEC spCleanupObsoleteComputers' -QueryTimeout 0).Column1
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
                 'CleanupUnneededContentFiles' {
+                    $Result = $OutputProps.Clone()
                     $Result.Task = 'CleanupUnneededContentFiles'
-                    Write-Verbose -Message 'Cleaning up uneeded content files...' -Verbose
-                    Invoke-SQLQuery -ServerInstance $ServerInstance -Database $Database -Query $spCleanupUnneededContentFiles
+                    Write-Verbose -Message 'Cleaning up uneeded content files. This make take a while...' -Verbose
+                    $null = Invoke-SQLCmd -ServerInstance $ServerInstance -Database $Database -Query 'EXEC spCleanupUnneededContentFiles' -QueryTimeout 0
+                    $Result.Output = 'Cleaned'
                     $Result.Operation = 'Successful'
-                    [pscustomobject]$Result
+                    $Output.Add([pscustomobject]$Result)
                 }
             }
         }
         Catch {
+
+            ## Set Output
             $Result.Operation = 'Failed'
-            $Output += $Result
-            Throw (New-Object System.Exception("Error running cleanup task! $($PsItem.Exception.Message)", $PsItem.Exception))
+            $Output.Add([pscustomobject]$Result)
+
+            ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
+            $Exception     = [System.Exception]::new("Error running cleanup task! $($PsItem.Exception.Message)")
+            $ExceptionType = [System.Management.Automation.ErrorCategory]::OperationStopped
+            $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $Result.Task)
+            $PSCmdlet.ThrowTerminatingError($ErrorRecord)
         }
         Finally {
             Write-Output -InputObject $Output

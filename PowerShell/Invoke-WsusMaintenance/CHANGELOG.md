@@ -1,5 +1,5 @@
 # Invoke-WSUSMaintenance release history
 
-## 1.0.0 - 2022-09-14
+## 1.0.0 - 2022-09-28
 
-* Runs WSUS maintenance tasks by running specified optimization and cleanup tasks.
+* Runs WSUS maintenance tasks by performing various optimization and cleanup tasks.
