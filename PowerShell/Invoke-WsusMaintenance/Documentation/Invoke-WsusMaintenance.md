@@ -10,7 +10,7 @@ Maintaining a clean, lean WSUS server and to improve overall performance.
 
 ## Design
 
-The solution consists of a powershell script and various other resources which are stored in the  'Resources' folder.
+The solution consists of a powershell script and various other resources which are stored in the `Resources` folder.
 
 ```PowerShell
 Invoke-WsusMaintenance.ps1
@@ -21,7 +21,7 @@ Invoke-WsusMaintenance.ps1
 
 ## Prerequisites
 
-The 'Invoke-SQLcmd' commandlet is needed. In order to install it you need to run the command below. This module will be included in the final version.
+The `Invoke-SQLcmd` commandlet is needed. In order to install it you need to run the command below. This module will be included in the final version.
 
 ```PowerShell
 Install-Module -Name 'SqlServer'
@@ -55,12 +55,17 @@ Cleans up unneeded content files that are no longer referenced.
 
 ### -ServerInstance
 
-Specifies a character string or SQL Server Management Objects (SMO) object that specifies the name of an instance of the Database Engine.For default instances, only specify the computer name: MyComputer.For named instances, use the format ComputerName\InstanceName.By Default the SQL Server instance is autodetected.
-DatabaseSpecifies the name of a database. This cmdlet connects to this database in the instance that is specified in the ServerInstance parameter.
+Specifies a character string or SQL Server Management Objects (SMO) object that specifies the name of an instance of the Database Engine.For default instances, only specify the computer name: `MyComputer`.
+For named instances, use the format `ComputerName\InstanceName`.
+By Default the SQL Server instance is autodetected.
+
+### -Database
+
+Specifies the name of a database. This cmdlet connects to this database in the instance that is specified in the `ServerInstance` parameter.
 `Default is: 'SUSDB'`
 
 >Notes
->All the tasks can be run by adding a semicolon ',' after each task.
+>All the tasks can be run by adding a semicolon `,` after each task.
 
 ## Example
 
