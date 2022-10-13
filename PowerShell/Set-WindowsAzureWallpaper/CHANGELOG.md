@@ -1,5 +1,11 @@
 # Set-WindowsAzureWallpaper release history
 
+## 4.0.0 - 2022-10-13
+
+* Updated Azure Storage Rest Functions
+* Updated Descriptions
+* Some code refactoring
+
 ## 3.0.0 - 2022-04-22
 
 * Removed authentication requirement for Azure Blob and File storage.
