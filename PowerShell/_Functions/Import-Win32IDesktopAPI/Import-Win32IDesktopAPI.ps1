@@ -81,7 +81,7 @@ Function Import-Win32IDesktopAPI {
     Begin {
 
         #region VariableDeclaration
-        [string[]]$ReferencedAssemblies = @('System.Windows.Forms','System.Drawing', 'System.Management', 'System.Management.Automation')
+        [string[]]$ReferencedAssemblies = @('System.Windows.Forms', 'System.Drawing', 'System.Management', 'System.Management.Automation')
         [string]$TypeDefinition =
 @'
         using System.Collections.Generic;
@@ -854,7 +854,7 @@ Function Import-Win32IDesktopAPI {
             Write-Verbose -Message 'Successfully imported Win32 IDesktop API.'
         }
         Catch {
-            $PSCmdlet.ThrowTerminatingError($PSItem)
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $Win32API
