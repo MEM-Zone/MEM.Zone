@@ -402,8 +402,8 @@ Function Select-Certificate {
         Try {
 
             ## Set filter depending on the parameter set
-            If ($($PSCmdlet.ParameterSetName) -eq 'Subject') { $Filter =  [Scriptblock]::Create($PSItem.Subject -eq $SubjectName) }
-            If ($($PSCmdlet.ParameterSetName) -eq 'Serial')  { $Filter =  [Scriptblock]::Create($PSItem.SerialNumber -eq $SerialNumber) }
+            If ($($PSCmdlet.ParameterSetName) -eq 'Subject') { [string]$FilterResolved = '$PSItem.Subject -eq $SubjectName' }
+            If ($($PSCmdlet.ParameterSetName) -eq 'Serial')  { [string]$FilterResolved = '$PSItem.SerialNumber -eq $SerialNumber' }
 
             ## Build filter by prefixing each valid parameter with '$PSItem.' and then converting the output to a scriptblock.
             #  If 'TemplateOID' is specified, we check if it matches the certificate's template and return the OID for matching with the 'TemplateOID' parameter value.
@@ -432,11 +432,11 @@ Function Select-Certificate {
                     }
                 #  Join the filter items back together into a single string
                 ) -join ' '
-
-                ## Convert the resolved filter to a scriptblock
-                [Scriptblock]$Filter = [Scriptblock]::Create($FilterResolved)
-                Write-Verbose -Message "-- Filter Resolved -- `n$FilterResolved"
             }
+
+            ## Convert the resolved filter to a scriptblock. Note that we are changing the $Filter variable type from string to scriptblock.
+            [scriptblock]$Filter = [scriptblock]::Create($FilterResolved)
+            Write-Verbose -Message "-- Filter Resolved -- `n$FilterResolved"
 
             ## Get the certificate details by running the Filter script block
             $SelectCertificate = $CertificateStore.Certificates | Where-Object { $(&$Filter) } | Select-Object -Property 'EnhancedKeyUsageList', 'DnsNameList', 'FriendlyName', 'NotAfter', 'NotBefore', 'HasPrivateKey', 'SerialNumber', 'Thumbprint', 'Version', 'Issuer', 'Subject'
@@ -506,6 +506,7 @@ Try {
         If ($Summarization -eq 'On') { $Result = 'Compliant' }
     }
     Else {
+        #  Return 'Non-Compliant'
         If ($Summarization -eq 'On') { $Result = 'Non-Compliant' }
     }
 }

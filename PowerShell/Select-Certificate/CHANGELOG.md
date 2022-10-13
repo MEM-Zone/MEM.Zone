@@ -1,5 +1,9 @@
 # Select-Certificate release history
 
+## 3.1.0 - 2022-13-10
+
+* Fixed `ScriptBlock` creation when using `SerialNumber` or `SubjectName`
+
 ## 3.0.0 - 2022-02-09
 
 * Added TemplateOID support
