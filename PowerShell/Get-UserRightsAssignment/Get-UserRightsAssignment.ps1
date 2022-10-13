@@ -357,7 +357,7 @@ Function Get-UserRightsAssignment {
                     $Output = ForEach ($UniquePrincipal in $UniquePrincipals) {
                         $FilterResult = ($Result.Where({ $PsItem.PrincipalName -eq $UniquePrincipal }))
                         [pscustomobject]@{
-                            PrincipalSID  = $FilterResult.PrincipalSID
+                            PrincipalSID  = Resolve-Principal -Principal $UniquePrincipal
                             PrincipalName = $UniquePrincipal
                             Privilege     = $FilterResult.Privilege
                         }
@@ -397,8 +397,8 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
 
     ## Set privileges to check
     $PrivilegesToCheck = [hashtable]@{
-        'BUILTIN\Administrators'       = 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
-        'BUILTIN\Users'                = 'SeShutdownPrivilege', 'SeUndockPrivilege'
+        'BUILTIN\Administrators'       = 'SeInteractiveLogonRight', 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
+        'BUILTIN\Users'                = 'SeInteractiveLogonRight', 'SeShutdownPrivilege', 'SeUndockPrivilege'
         'BUILTIN\Remote Desktop Users' = 'SeRemoteInteractiveLogonRight'
         'BUILTIN\Guests'               = 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
         'NT AUTHORITY\LOCAL SERVICE'   = 'SeAssignPrimaryTokenPrivilege'
@@ -410,7 +410,11 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
     ForEach ($Privilege in $PrivilegesToCheck.GetEnumerator()) {
         $UserRightsAssignment = (Get-UserRightsAssignment -Principal $Privilege.Name -ErrorAction 'SilentlyContinue')
         $PrivilegesToEvaluate = [pscustomobject]@{ PrincipalName = $Privilege.Name; Privilege = $Privilege.Value }
-        $EvaluateCompliance   = Compare-Object -ReferenceObject $UserRightsAssignment.Privilege -DifferenceObject $PrivilegesToEvaluate.Privilege -PassThru
+        #  Set NonCompliantPrivileges to the PrivilegesToCheck values if there are no User Rights Assignments for this specific principal. (Non-compliant for all privileges in the PrivilegesToCheck hashtable)
+        If (-not [string]::IsNullOrWhiteSpace($UserRightsAssignment.Privilege)) {
+            $EvaluateCompliance = $(Compare-Object -ReferenceObject $UserRightsAssignment.Privilege -DifferenceObject $PrivilegesToEvaluate.Privilege -PassThru).Where({ $PSItem.SideIndicator -eq '=>' })
+        }
+        Else { $EvaluateCompliance = $PrivilegesToEvaluate.Privilege }
         [pscustomobject]@{
             PrincipalName = $Privilege.Name
             IsCompliant   = If ($EvaluateCompliance.Count -eq 0) { $true } Else { $false }
