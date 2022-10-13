@@ -53,15 +53,15 @@
 #region ScriptParameters
 [CmdletBinding()]
 Param (
-    [Parameter(Mandatory=$true,HelpMessage='Destination Path:',Position=0)]
+    [Parameter(Mandatory = $true, HelpMessage = 'Destination Path:', Position = 0)]
     [ValidateNotNullorEmpty()]
     [Alias('Destination')]
     [string]$Path,
-    [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=1)]
+    [Parameter(Mandatory = $true, HelpMessage = 'Share URL:', Position = 1)]
     [ValidateNotNullorEmpty()]
     [Alias('Location')]
     [string]$Url,
-    [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=2)]
+    [Parameter(Mandatory = $false, HelpMessage = 'Share SAS Token:', Position = 2)]
     [Alias('Sas')]
     [string]$SasToken,
     [Alias('Overwrite')]
@@ -114,15 +114,15 @@ Function Format-Spacer {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,ValueFromPipeline,HelpMessage='Specify input:',Position=0)]
+        [Parameter(Mandatory = $true, ValueFromPipeline, HelpMessage = 'Specify input:', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Variable')]
         [string]$Message,
-        [Parameter(Mandatory=$false,Position=1)]
-        [ValidateSet('Console','Verbose')]
+        [Parameter(Mandatory = $false, Position = 1)]
+        [ValidateSet('Console', 'Verbose')]
         [string]$Type = 'Console',
-        [Parameter(Mandatory=$false,Position=2)]
-        [ValidateSet('No','Before','After','BeforeAndAfter')]
+        [Parameter(Mandatory = $false, Position = 2)]
+        [ValidateSet('No', 'Before', 'After', 'BeforeAndAfter')]
         [string]$AddEmptyRow = 'No'
     )
     Begin {
@@ -179,9 +179,9 @@ Function Format-Spacer {
 }
 #endregion
 
-#region Function Get-AzureBlobStorageItem
-Function Get-AzureBlobStorageItem {
-<#
+#region Function Get-RestAzureBlobStorageItem
+Function Get-RestAzureBlobStorageItem {
+    <#
 .SYNOPSIS
     Lists blobs for an azure blob storage path.
 .DESCRIPTION
@@ -191,9 +191,9 @@ Function Get-AzureBlobStorageItem {
 .PARAMETER SasToken
     Specifies the azure blob SAS token. If this parameter is not specified, no authentication is used.
 .EXAMPLE
-    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>' -SasToken 'SomeAccessToken'
+    Get-RestAzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>' -SasToken 'SomeAccessToken'
 .EXAMPLE
-    Get-AzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>/<blob>' -SasToken 'SomeAccessToken'
+    Get-RestAzureBlobStorageItem -Url 'https://<storageaccount>.blob.core.windows.net/<Container>/<blob>' -SasToken 'SomeAccessToken'
 .INPUTS
     None.
 .OUTPUTS
@@ -214,11 +214,11 @@ Function Get-AzureBlobStorageItem {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Blob URL:',Position=0)]
+        [Parameter(Mandatory = $true, HelpMessage = 'Blob URL:', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$false,HelpMessage='Blob SAS Token:',Position=1)]
+        [Parameter(Mandatory = $false, HelpMessage = 'Blob SAS Token:', Position = 1)]
         [Alias('Sas')]
         [string]$SasToken
     )
@@ -242,30 +242,38 @@ Function Get-AzureBlobStorageItem {
 
             ## If URL is a single blob, get the properties
             If (-not [string]::IsNullOrEmpty($BlobName)) {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($Url, $SasToken) } Else { $Url }
-                #  Invoke REST API
-                $Blob = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
-                #  Build the output object
-                $AzureBlobList = [pscustomobject]@{
+
+                ## Invoke REST API
+                $Response = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
+
+                ## Build the output object
+                $Output = [pscustomobject]@{
                     'Name'     = $BlobName
-                    'Size(KB)' = '{0:N2}' -f ($Blob.Headers.'Content-Length' / 1KB)
+                    'Size(KB)' = '{0:N2}' -f ($Response.Headers.'Content-Length' / 1KB)
                     'Url'      = $Url
                 }
             }
 
             ## Else list the directory content
             Else {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}&{2}' -f ($Url, 'restype=container&comp=list', $SasToken) } Else { '{0}?{1}' -f ($Url, 'restype=container&comp=list') }
-                #  Invoke REST API
+
+                ## Invoke REST API
                 $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
-                #  Cleanup response and convert to XML
+
+                ## Cleanup response and convert to XML
                 $Xml = [xml]$Response.Substring($Response.IndexOf('<'))
-                #  Get the file objects
+
+                ## Get the file objects
                 $Blobs = $Xml.ChildNodes.Blobs.Blob
-                #  Build the output object
-                $AzureBlobList = ForEach ($Blob in $Blobs) {
+
+                ## Build the output object
+                $Output = ForEach ($Blob in $Blobs) {
                     [pscustomobject]@{
                         'Name'     = $($Blob.Name | Split-Path -Leaf)
                         'Size(KB)' = '{0:N2}' -f ($Blob.Properties.'Content-Length' / 1KB)
@@ -278,7 +286,7 @@ Function Get-AzureBlobStorageItem {
             $PSCmdlet.WriteError($PSItem)
         }
         Finally {
-            Write-Output -InputObject $AzureBlobList
+            Write-Output -InputObject $Output
         }
     }
     End {
@@ -286,19 +294,19 @@ Function Get-AzureBlobStorageItem {
 }
 #endregion
 
-#region Function Get-AzureFileStorageItem
-Function Get-AzureFileStorageItem {
+#region Function Get-RestAzureFileStorageItem
+Function Get-RestAzureFileStorageItem {
 <#
 .SYNOPSIS
-    Lists directories and files for a path.
+    Lists directories and files for a azure file storage path.
 .DESCRIPTION
-    Lists directories and files for a path storage using REST API.
+    Lists directories and files for a azure file storage path using REST API.
 .PARAMETER Url
     Specifies the azure share URL.
 .PARAMETER SasToken
     Specifies the azure share SAS token. Specifies the azure share SAS token. If this parameter is not specified, no authentication is used.
 .EXAMPLE
-    Get-AzureFileStorageItem -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken'
+    Get-RestAzureFileStorageItem -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken'
 .INPUTS
     None.
 .OUTPUTS
@@ -315,15 +323,16 @@ Function Get-AzureFileStorageItem {
 .COMPONENT
     Azure File Storage Rest API
 .FUNCTIONALITY
-    List Items
+    List Azure File Storage Items
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
+        [Parameter(Mandatory = $true, HelpMessage = 'Share URL:', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=1)]
+        [Parameter(Mandatory = $false, HelpMessage = 'Share SAS Token:', Position = 1)]
+        [ValidateNotNullorEmpty()]
         [Alias('Sas')]
         [string]$SasToken
     )
@@ -337,7 +346,7 @@ Function Get-AzureFileStorageItem {
         If ($SasToken[0] -eq '?') { $SasToken = $SasToken -replace ('\?', '') }
 
         ## Set file name regex pattern
-        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]*$'
+        [regex]$RegexPattern = '[^\/]+\.[A-Za-z0-9]{1,3}$'
     }
     Process {
         Try {
@@ -347,30 +356,38 @@ Function Get-AzureFileStorageItem {
 
             ## If URL is a file, get the properties
             If (-not [string]::IsNullOrEmpty($FileName)) {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($Url, $SasToken) } Else { $Url }
-                #  Invoke REST API
-                $File = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
-                #  Build the output object
-                $AzureFileList = [pscustomobject]@{
+
+                ## Invoke REST API
+                $Response = Invoke-WebRequest -Uri $Uri -Method 'Head' -UseBasicParsing
+
+                ##  Build the output object
+                $Output = [pscustomobject]@{
                     'Name'     = $FileName
-                    'Size(KB)' = '{0:N2}' -f ($File.Headers.'Content-Length' / 1KB)
+                    'Size(KB)' = '{0:N2}' -f ($Response.Headers.'Content-Length' / 1KB)
                     'Url'      = $Url
                 }
             }
 
             ## Else list the directory content
             Else {
-                #  Build URI
+
+                ## Build URI
                 [string]$Uri = If ($IsSecure) { '{0}?{1}&{2}' -f ($Url, 'restype=directory&comp=list', $SasToken) } Else { '{0}?{1}' -f ($Url, 'restype=directory&comp=list') }
-                #  Invoke REST API
+
+                ## Invoke REST API
                 $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -Verbose:$false
-                #  Cleanup response and convert to XML
+
+                ## Cleanup response and convert to XML
                 $Xml = [xml]$Response.Substring($Response.IndexOf('<'))
-                #  Get the file objects
+
+                ## Get the file objects
                 $Files = $Xml.ChildNodes.Entries.File
-                #  Build the output object
-                $AzureFileList = ForEach ($File in $Files) {
+
+                ## Build the output object
+                $Output = ForEach ($File in $Files) {
                     [pscustomobject]@{
                         'Name'     = $File.Name
                         'Size(KB)' = '{0:N2}' -f ($File.Properties.'Content-Length' / 1KB)
@@ -383,7 +400,7 @@ Function Get-AzureFileStorageItem {
             $PSCmdlet.WriteError($PSItem)
         }
         Finally {
-            Write-Output -InputObject $AzureFileList
+            Write-Output -InputObject $Output
         }
     }
     End {
@@ -391,27 +408,36 @@ Function Get-AzureFileStorageItem {
 }
 #endregion
 
-#region Function Start-AzureStorageFileTransfer
-Function Start-AzureStorageFileTransfer {
+#region Function Start-RestAzureStorageTransfer
+Function Start-RestAzureStorageTransfer {
 <#
 .SYNOPSIS
-    Transfers the contents of a file.
+    Starts an azure storage transfer.
 .DESCRIPTION
-    Transfers the contents of a file from Azure File or Blob storage using BITS.
+    Starts an azure storage transfer using bits or outputs a single file or blob content to the pipeline.
 .PARAMETER Url
     Specifies the azure share URL.
 .PARAMETER SasToken
-    Specifies the azure share SAS security token. If this parameter is not specified no authentication is performed.
+    Specifies the azure share SAS security token.
 .PARAMETER Path
-    Specifies the destination path.
+    Specifies the destination path for the dowloaded files or blob.
 .PARAMETER Force
     Overwrites the existing file even if it has the same name and size. I can't think why this would be needed but I added it anyway.
+.PARAMETER ContentOnly
+    This switch specifies return the content of the file or blob to the pipeline if the azure share URL points to a single file or blob.
 .EXAMPLE
-    Start-AzureStorageFileTransfer -Url 'https://<storageaccount>.file.core.windows.net/<SomeShare/SomeFolder>' -SasToken 'SomeAccessToken' -Path 'D:\Temp'
+    Start-RestAzureStorageTransfer -Url 'https://<storageaccount>.file.core.windows.net/<Share>/<FolderPath>' -SasToken '<AccessToken>' -Path 'D:\Temp' -Force
+.EXAMPLE
+    Start-RestAzureStorageTransfer -Url 'https://<storageaccount>.file.core.windows.net/<Share/<FilePath>' -SasToken '<AccessToken>' -ContentOnly
+.EXAMPLE
+    Start-RestAzureStorageTransfer -Url 'https://<storageaccount>.blob.core.windows.net/<Containter>' -SasToken '<AccessToken>' -Path 'D:\Temp' -Force
+.EXAMPLE
+    Start-RestAzureStorageTransfer -Url 'https://<storageaccount>.blob.core.windows.net/<Container>/<Blob>' -SasToken '<AccessToken>' -ContentOnly
 .INPUTS
     None.
 .OUTPUTS
     System.Array.
+    System.String.
 .NOTES
     If the file is already present and has the same size, Operation will return 'Skipped'.
     If the file is already present and has the same size, but 'Force' parameter has been specified, Operation will return 'Overwritten'.
@@ -426,24 +452,32 @@ Function Start-AzureStorageFileTransfer {
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
-    Azure File Storage Rest API
+    Azure Storage Rest API
 .FUNCTIONALITY
-    Transfer to local storage
+    Downloads File or Blob to Local Storage
 #>
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'GetItem')]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=0)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'GetItem', HelpMessage = 'Share URL:', Position = 0)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'GetContent',HelpMessage = 'Share URL:', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=1)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'GetItem', HelpMessage = 'Share SAS Token:', Position = 1)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'GetContent', HelpMessage = 'Share SAS Token:', Position = 1)]
+        [ValidateNotNullorEmpty()]
         [Alias('Sas')]
         [string]$SasToken,
-        [Parameter(Mandatory=$true,HelpMessage='Local Transfer Path:',Position=2)]
+        [Parameter(Mandatory = $true, ParameterSetName = 'GetItem', HelpMessage = 'Local Download Path:', Position = 2)]
+        [Parameter(Mandatory = $false, ParameterSetName = 'GetContent', HelpMessage = 'Local Download Path:', Position = 2)]
         [Alias('Destination')]
         [string]$Path,
+        [Parameter(Mandatory = $false, ParameterSetName = 'GetItem')]
         [Alias('Overwrite')]
-        [switch]$Force
+        [switch]$Force,
+        [Parameter(Mandatory = $false, ParameterSetName = 'GetContent')]
+        [Alias('GetContent')]
+        [switch]$ContentOnly
     )
 
     Begin {
@@ -457,45 +491,79 @@ Function Start-AzureStorageFileTransfer {
     Process {
         Try {
 
-            ## Get azure file list depending on the storage type
-            If ($Url -match '.blob.') { $AzureFileList = Get-AzureBlobStorageItem -Url $Url -Sas $SasToken }
-            Else { $AzureFileList = Get-AzureFileStorageItem -Url $Url -Sas $SasToken }
+            ## Get azure storage item list depending on the storage type
+            If ($Url -match '.blob.') { $AzureItemList = Get-RestAzureBlobStorageItem -Url $Url -Sas $SasToken }
+            Else { $AzureItemList = Get-RestAzureFileStorageItem -Url $Url -Sas $SasToken }
 
-            ## Get local file list
-            $LocalFileList = Get-ChildItem -Path $Path -ErrorAction 'SilentlyContinue' | Select-Object -Property 'Name', @{Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($PSItem.Length / 1KB)}}
+            ## If $GetContent is specified and there is just one blob, get blob content.
+            If ($PSCmdlet.ParameterSetName -eq 'GetContent') {
 
-            ## Create destination folder
-            If (-not [System.IO.Directory]::Exists($Path)) { [System.IO.Directory]::CreateDirectory($Path) }
+                ## Check if just one item is found
+                If (($AzureItemList | Measure-Object).Count -eq 1) {
 
-            ## Process files one by one
-            $CopiedFileList = ForEach ($File in $AzureFileList) {
+                    ## Build URI
+                    [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($Url, $SasToken) } Else { $Url }
 
-                ## If the file is already present and the same size, set the 'Skip' flag.
-                [psobject]$LocalFileLookup = $LocalFileList | Where-Object { $PSItem.Name -eq $File.Name -and $PSItem.'Size(KB)' -eq $File.'Size(KB)' } | Select-Object -Property 'Name'
-                $SkipFile = [boolean](-not [string]::IsNullOrEmpty($LocalFileLookup))
+                    ## Invoke REST API
+                    $Response = Invoke-RestMethod -Uri $Uri -Method 'Get' -UseBasicParsing -ErrorAction 'Continue'
 
-                ## Assemble Destination and URI
-                [string]$Destination = Join-Path -Path $Path -ChildPath $File.Name
-                [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($File.Url, $SasToken) } Else { $File.Url }
-                $Overwrite = [boolean]($Force -and $SkipFile)
+                    ## Check if last operation was successful and set error message
+                    [boolean]$ShowError = If ($?) { $false; $ErrorMessage = $null } Else { $true; $ErrorMessage = -join ('Error: ', $Error[0].Exception.Message) };
 
-                ## Tansfer file using BITS
-                If (-not $SkipFile -or $Force) { Start-BitsTransfer -Source $Uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $File.Url -ErrorAction 'Stop' }
+                    ## Build output object
+                    $Output = [pscustomobject]@{
+                        'Name'      = $AzureItemList.Name
+                        'Size(KB)'  = '{0:N2}' -f ($AzureItemList.'Size(KB)')
+                        'Url'       = $AzureItemList.Url
+                        'Operation' = Switch ($true) {
+                            $ShowError { $ErrorMessage; Break }
+                            Default    { 'Downloaded' }
+                        }
+                        'Content'   = $Response
+                    }
+                }
+                Else { Throw 'Cannot get content for more than one file or blob at a time!' }
+            }
+            Else {
 
-                ## Check if last operation was successful and set error message
-                [boolean]$ShowError = If ($?) { $false; $ErrorMessage = $null } Else { $true; $ErrorMessage = -join ('Error: ', $Error[0].Exception.Message) };
+                ## Get local file list
+                $LocalFileList = Get-ChildItem -Path $Path -ErrorAction 'SilentlyContinue' | Select-Object -Property 'Name', @{
+                    Name = 'Size(KB)'; Expression = {'{0:N2}' -f ($PSItem.Length / 1KB)}
+                }
 
-                ## Build output object
-                [pscustomobject]@{
-                    'Name'      = $File.Name
-                    'Size(KB)'  = '{0:N2}' -f ($File.'Size(KB)')
-                    'Url'       = $File.Url
-                    'Path'      = $Path
-                    'Operation' = Switch ($true) {
-                        $ShowError { $ErrorMessage; Break }
-                        $Overwrite { 'Overwritten'; Break }
-                        $SkipFile  { 'Skipped' ; Break }
-                        Default    { 'Transfered' }
+                ## Create destination folder
+                If (-not [System.IO.Directory]::Exists($Path)) { [System.IO.Directory]::CreateDirectory($Path) }
+
+                ## Process items one by one
+                $Output = ForEach ($AzureItem in $AzureItemList) {
+
+                    ## If the file is already present and the same size, set the 'Skip' flag.
+                    [psobject]$LocalFileLookup = $LocalFileList | Where-Object { $PSItem.Name -eq $AzureItem.Name -and $PSItem.'Size(KB)' -eq $AzureItem.'Size(KB)' } | Select-Object -Property 'Name'
+                    $SkipItem = [boolean](-not [string]::IsNullOrEmpty($LocalFileLookup))
+
+                    ## Assemble Destination and URI
+                    [string]$Destination = Join-Path -Path $Path -ChildPath $AzureItem.Name
+                    [string]$Uri = If ($IsSecure) { '{0}?{1}' -f ($AzureItem.Url, $SasToken) } Else { $AzureItem.Url }
+                    $Overwrite = [boolean]($Force -and $SkipItem)
+
+                    ## Tansfer file using BITS
+                    If (-not $SkipItem -or $Force) { Start-BitsTransfer -Source $Uri -Destination $Destination -HttpMethod 'Get' -Description $Destination -DisplayName $AzureItem.Url -ErrorAction 'Continue' }
+
+                    ## Check if last operation was successful and set error message
+                    [boolean]$ShowError = If ($?) { $false; $ErrorMessage = $null } Else { $true; $ErrorMessage = -join ('Error: ', $Error[0].Exception.Message) };
+
+                    ## Build output object
+                    [pscustomobject]@{
+                        'Name'      = $AzureItem.Name
+                        'Size(KB)'  = '{0:N2}' -f ($AzureItem.'Size(KB)')
+                        'Url'       = $AzureItem.Url
+                        'Path'      = $Path
+                        'Operation' = Switch ($true) {
+                            $ShowError { $ErrorMessage; Break }
+                            $Overwrite { 'Overwritten'; Break }
+                            $SkipItem  { 'Skipped' ; Break }
+                            Default    { 'Transfered' }
+                        }
                     }
                 }
             }
@@ -504,7 +572,7 @@ Function Start-AzureStorageFileTransfer {
             $PSCmdlet.WriteError($PSItem)
         }
         Finally {
-            Write-Output -InputObject $CopiedFileList
+            Write-Output -InputObject $Output
         }
     }
     End {
@@ -560,15 +628,15 @@ Function Set-WindowsAzureTheme {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,HelpMessage='Destination Path:',Position=0)]
+        [Parameter(Mandatory = $true, HelpMessage = 'Destination Path:', Position = 0)]
         [ValidateNotNullorEmpty()]
         [Alias('Destination')]
         [string]$Path,
-        [Parameter(Mandatory=$true,HelpMessage='Share URL:',Position=1)]
+        [Parameter(Mandatory = $true, HelpMessage = 'Share URL:', Position = 1)]
         [ValidateNotNullorEmpty()]
         [Alias('Location')]
         [string]$Url,
-        [Parameter(Mandatory=$false,HelpMessage='Share SAS Token:',Position=2)]
+        [Parameter(Mandatory = $false, HelpMessage = 'Share SAS Token:', Position = 2)]
         [Alias('Sas')]
         [string]$SasToken,
         [Alias('Overwrite')]
@@ -587,8 +655,8 @@ Function Set-WindowsAzureTheme {
         Try {
 
             ## Get Azure theme depending on the storage account type
-            If ($Url -match '.blob.') { [psobject]$AzureThemeFile = Get-AzureBlobStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
-            Else { [psobject]$AzureThemeFile = Get-AzureStorageFile -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
+            If ($Url -match '.blob.') { [psobject]$AzureThemeFile = Get-RestAzureBlobStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
+            Else { [psobject]$AzureThemeFile = Get-RestAzureFileStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
 
             ## Show Azure theme list
             Format-Spacer -Message 'Azure Theme' -Type 'Verbose'
@@ -610,7 +678,7 @@ Function Set-WindowsAzureTheme {
                 ## Download the theme file
                 $Output.Operation = 'Downloading'
                 Format-Spacer -Message 'Downloading Theme' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
-                $DownloadTheme = Start-AzureStorageFileTransfer -Url $Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                $DownloadTheme = Start-RestAzureStorageTransfer -Url $Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
                 Write-Verbose -Message $($DownloadTheme | Out-String)
 
                 ## Set Theme
