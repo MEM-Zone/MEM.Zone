@@ -204,6 +204,9 @@ Function Resolve-Principal {
 
         ## Set SID regex match Pattern
         [regex]$Pattern = 'S-\d-(?:\d+-){1,14}\d+'
+
+        ## Initialize output object
+        $Output = $null
     }
     Process {
         Try {
@@ -217,6 +220,7 @@ Function Resolve-Principal {
                     #  Resolve Principal
                     Switch ($PrincipalType) {
                         'PrincipalName' {
+                            Write-Warning -Message 'You specified a Principal Name. This is not recommended if the names are not localized for the OS this script will be running on. Please use SID instead.'
                             $NTAccountObject = New-Object System.Security.Principal.NTAccount($PrincipalItem)
                             $NTAccountObject.Translate([System.Security.Principal.SecurityIdentifier]).Value
                             Break
@@ -239,7 +243,7 @@ Function Resolve-Principal {
             }
         }
         Catch {
-            $PSCmdlet.WriteError()
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $Output
@@ -416,9 +420,14 @@ Function Set-UserRightsAssignment {
             #  Set the Privilege variable to the bound parameter, otherwise it will be $null
             $Privilege = $PSBoundParameters['Privilege']
         }
+        #  Set preliminary Result privilege
+        $Result.Privilege = $Privilege
 
         ## Set SID regex match Pattern
         [regex]$Pattern = 'S-\d-(?:\d+-){1,14}\d+'
+
+        ## Initialize output object
+        $Output = @()
     }
     Process {
         Try {
@@ -436,13 +445,13 @@ Function Set-UserRightsAssignment {
             ## Check if Principal is SID
             [string]$SIDMatch = (Select-String -Pattern $Pattern -InputObject $Principal).Matches.Value
             If ([string]::IsNullOrEmpty($SIDMatch)) {
-                $SID = Resolve-Principal -Principal $Principal
+                $SID = Resolve-Principal -Principal $Principal -ErrorAction 'Stop'
                 #  Set output Object
                 $Result.PrincipalSID = $SID
             }
             Else {
                 $SID = $Principal
-                $Principal = Resolve-Principal -Principal $SID
+                $Principal = Resolve-Principal -Principal $SID -ErrorAction 'SilentlyContinue'
                 #  Set output Object
                 $Result.PrincipalName = $Principal
                 $Result.PrincipalSID = $SID
@@ -486,9 +495,14 @@ Function Set-UserRightsAssignment {
         }
         Catch {
             $Result.Operation = 'Failed'
-            $Output += $Result
-            $ErrorMessage = "Error granting '{0}' to '{1}' on '{2}'!" -f $PrivilegeItem, $Principal, $env:COMPUTERNAME, $($PsItem.Exception.Message)
-            Throw (New-Object System.Exception($ErrorMessage, $PsItem.Exception))
+            $Output += [pscustomobject]$Result
+
+            ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
+            $Message       = [string]"Error granting '{0}' to '{1}' on '{2}'!" -f $($Result.Privilege), $Principal, $env:COMPUTERNAME, $($PsItem.Exception.Message)
+            $Exception     = [Exception]::new($Message)
+            $ExceptionType = [Management.Automation.ErrorCategory]::OperationStopped
+            $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $PrincipalItem)
+            $PSCmdlet.ThrowTerminatingError($ErrorRecord)
         }
         Finally {
             Write-Output -InputObject $Output
@@ -529,11 +543,11 @@ Else {
     $SavedErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = 'SilentlyContinue'
     #  Set user rights
-    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Administrators'       -Privilege 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Administrators'       -Privilege 'SeInteractiveLogonRight', 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
     Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Guests'               -Privilege 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
     Set-UserRightsAssignment -Action 'Replace' -Principal 'NT AUTHORITY\LOCAL SERVICE'   -Privilege 'SeAssignPrimaryTokenPrivilege'
     Set-UserRightsAssignment -Action 'Add'     -Principal 'BUILTIN\Remote Desktop Users' -Privilege 'SeRemoteInteractiveLogonRight'
-    Set-UserRightsAssignment -Action 'Add'     -Principal 'BUILTIN\Users'                -Privilege 'SeShutdownPrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'BUILTIN\Users'                -Privilege 'SeInteractiveLogonRight', 'SeShutdownPrivilege', 'SeUndockPrivilege'
     Set-UserRightsAssignment -Action 'Add'     -Principal 'NT AUTHORITY\NETWORK SERVICE' -Privilege 'SeAssignPrimaryTokenPrivilege'
     Set-UserRightsAssignment -Action 'Add'     -Principal 'NT SERVICE\WdiServiceHost'    -Privilege 'SeSystemProfilePrivilege'
     #  Restore ErrorActionPreference to original value

@@ -1,5 +1,12 @@
 # Set-UserRightsAssignment release history
 
+## 2.2.0 - 2022-10-14
+
+* Added `Locale` warning when using `Principal Name` instead of a `SID`
+* Added force stop if the `SID` cannot be resolved
+* Added custom error handling
+* Fixed empty `Privilege` on error
+
 ## 2.1.0 - 2022-09-19
 
 * Added `RemoveAll` support for the `Action` parameter
