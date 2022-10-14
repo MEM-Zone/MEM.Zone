@@ -5,6 +5,7 @@
     Gets user rights assignment for a local computer, and performs a compliance check.
 .PARAMETER Principal
     Defines the Principal to get the rights for.
+    If you use the Principal Name instead of a SID you need to localize your Principal Names with the locale of the OS this script will be running on.
     Default is: '*'. Supports wildcards.
 .PARAMETER Privilege
     Defines the User Right(s) to get the principals for.
@@ -160,6 +161,9 @@ Function Resolve-Principal {
 
         ## Set SID regex match Pattern
         [regex]$Pattern = 'S-\d-(?:\d+-){1,14}\d+'
+
+        ## Initialize output object
+        $Output = $null
     }
     Process {
         Try {
@@ -173,6 +177,7 @@ Function Resolve-Principal {
                     #  Resolve Principal
                     Switch ($PrincipalType) {
                         'PrincipalName' {
+                            Write-Warning -Message 'You specified a Principal Name. This is not recommended if the names are not localized for the OS this script will be running on. Please use SID instead.'
                             $NTAccountObject = New-Object System.Security.Principal.NTAccount($PrincipalItem)
                             $NTAccountObject.Translate([System.Security.Principal.SecurityIdentifier]).Value
                             Break
@@ -195,7 +200,7 @@ Function Resolve-Principal {
             }
         }
         Catch {
-            $PSCmdlet.WriteError()
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $Output
@@ -310,6 +315,9 @@ Function Get-UserRightsAssignment {
 
         ## Set SID regex match Pattern
         [regex]$Pattern = 'S-\d-(?:\d+-){1,14}\d+'
+
+        ## Set output object
+        $Output = $null
     }
     Process {
         Try {
@@ -320,7 +328,7 @@ Function Get-UserRightsAssignment {
 
             ## Check if Principal is SID
             [string]$SIDMatch = (Select-String -Pattern $Pattern -InputObject $Principal).Matches.Value
-            If (-not [string]::IsNullOrEmpty($SIDMatch)) { $Principal = Resolve-Principal -Principal $Principal }
+            If (-not [string]::IsNullOrEmpty($SIDMatch)) { $Principal = Resolve-Principal -Principal $Principal -ErrorAction 'Stop' }
 
             ## Set ScEdit.exe path
             [string]$SecEdit = Join-Path -Path $System32Path -ChildPath 'SecEdit.exe' -Resolve
@@ -338,7 +346,7 @@ Function Get-UserRightsAssignment {
                 [pscustomobject]@{
                     Privilege     = $UserRightsMatch.Matches[0].Groups[1].Value
                     PrincipalSID  = $SID
-                    PrincipalName = Resolve-Principal -Principal $SID -ErrorAction 'SilentlyContinue'
+                    PrincipalName = Resolve-Principal -Principal $SID
                 }
             }
 
@@ -347,7 +355,8 @@ Function Get-UserRightsAssignment {
                 If ($Principal -ne '*') {
                     $FilterResult = $Result.Where({ $PsItem.PrincipalName -like $Principal })
                     $Output = [pscustomobject]@{
-                        PrincipalSID  = Resolve-Principal -Principal $Principal -ErrorAction 'SilentlyContinue'
+                        #  Stop on unresolved SID, account should exist
+                        PrincipalSID  = Resolve-Principal -Principal $Principal -ErrorAction 'Stop'
                         PrincipalName = $Principal
                         Privilege     = $FilterResult.Privilege
                     }
@@ -357,7 +366,8 @@ Function Get-UserRightsAssignment {
                     $Output = ForEach ($UniquePrincipal in $UniquePrincipals) {
                         $FilterResult = ($Result.Where({ $PsItem.PrincipalName -eq $UniquePrincipal }))
                         [pscustomobject]@{
-                            PrincipalSID  = Resolve-Principal -Principal $UniquePrincipal
+                            #  Continue on unresolved SID, account might be deleted
+                            PrincipalSID  = Resolve-Principal -Principal $UniquePrincipal -ErrorAction 'SilentlyContinue'
                             PrincipalName = $UniquePrincipal
                             Privilege     = $FilterResult.Privilege
                         }
@@ -367,7 +377,7 @@ Function Get-UserRightsAssignment {
             Else { $Output = $Result.Where({ $Privilege -contains $PsItem.Privilege }) }
         }
         Catch {
-            $PSCmdlet.WriteError()
+            $PSCmdlet.WriteError($PSItem)
         }
         Finally {
             Write-Output -InputObject $Output
@@ -414,10 +424,13 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
         If (-not [string]::IsNullOrWhiteSpace($UserRightsAssignment.Privilege)) {
             $EvaluateCompliance = $(Compare-Object -ReferenceObject $UserRightsAssignment.Privilege -DifferenceObject $PrivilegesToEvaluate.Privilege -PassThru).Where({ $PSItem.SideIndicator -eq '=>' })
         }
-        Else { $EvaluateCompliance = $PrivilegesToEvaluate.Privilege }
+        #  If the SID was not resolved there was an error
+        ElseIf ([string]::IsNullOrWhiteSpace($UserRightsAssignment.PrincipalSID)) { $EvaluateCompliance = 'N/A' }
+        #  If the Get-UserAssignment returns no privileges, set all privileges as non-compliant
+        Else  { $EvaluateCompliance = $PrivilegesToEvaluate.Privilege }
         [pscustomobject]@{
             PrincipalName = $Privilege.Name
-            IsCompliant   = If ($EvaluateCompliance.Count -eq 0) { $true } Else { $false }
+            IsCompliant   = If ($EvaluateCompliance.Count -eq 0) { $true } ElseIf ($EvaluateCompliance -eq 'N/A') { 'Error' } Else { $false }
             NonCompliantPrivileges = $EvaluateCompliance
         }
     }
