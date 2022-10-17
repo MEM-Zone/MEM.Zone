@@ -429,8 +429,8 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
         #  If the Get-UserAssignment returns no privileges, set all privileges as non-compliant
         Else  { $EvaluateCompliance = $PrivilegesToEvaluate.Privilege }
         [pscustomobject]@{
-            PrincipalName = $Privilege.Name
-            IsCompliant   = If ($EvaluateCompliance.Count -eq 0) { $true } ElseIf ($EvaluateCompliance -eq 'N/A') { 'Error' } Else { $false }
+            Principal              = $Privilege.Name
+            IsCompliant            = If ($EvaluateCompliance.Count -eq 0) { $true } ElseIf ($EvaluateCompliance -eq 'N/A') { 'Error' } Else { $false }
             NonCompliantPrivileges = $EvaluateCompliance
         }
     }

@@ -1,5 +1,9 @@
 # Get-UserRightsAssignment release history
 
+## 1.1.2 - 2022-10-17
+
+* Changed output `PrincipalName` to `Principal`
+
 ## 1.1.1 - 2022-10-17
 
 * Fixed `Principal Name` spam
