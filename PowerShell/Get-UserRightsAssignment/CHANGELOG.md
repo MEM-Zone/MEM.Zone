@@ -1,5 +1,9 @@
 # Get-UserRightsAssignment release history
 
+## 1.1.1 - 2022-10-17
+
+* Fixed `Principal Name` spam
+
 ## 1.1.0 - 2022-10-14
 
 * Added `Locale` warning when using `Principal Name` instead of a `SID`

@@ -177,7 +177,6 @@ Function Resolve-Principal {
                     #  Resolve Principal
                     Switch ($PrincipalType) {
                         'PrincipalName' {
-                            Write-Warning -Message 'You specified a Principal Name. This is not recommended if the names are not localized for the OS this script will be running on. Please use SID instead.'
                             $NTAccountObject = New-Object System.Security.Principal.NTAccount($PrincipalItem)
                             $NTAccountObject.Translate([System.Security.Principal.SecurityIdentifier]).Value
                             Break
@@ -329,6 +328,7 @@ Function Get-UserRightsAssignment {
             ## Check if Principal is SID
             [string]$SIDMatch = (Select-String -Pattern $Pattern -InputObject $Principal).Matches.Value
             If (-not [string]::IsNullOrEmpty($SIDMatch)) { $Principal = Resolve-Principal -Principal $Principal -ErrorAction 'Stop' }
+            Else { Write-Warning -Message 'You specified a Principal Name. This is not recommended if the names are not localized for the OS this script will be running on. Please use SID instead.' }
 
             ## Set ScEdit.exe path
             [string]$SecEdit = Join-Path -Path $System32Path -ChildPath 'SecEdit.exe' -Resolve
