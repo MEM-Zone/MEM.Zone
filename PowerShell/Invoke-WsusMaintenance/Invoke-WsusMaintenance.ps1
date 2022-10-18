@@ -1,3 +1,16 @@
+## TODO:
+<#
+
+Add 'SqlServer' module as a payload or use the code below to install it:
+
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Install-PackageProvider -Name 'NuGet'
+Install-Module -Name 'SqlServer'
+
+#>
+
+
+
 <#
 .SYNOPSIS
     Runs WSUS maintenance tasks.
@@ -33,6 +46,8 @@
     Created by Ioan Popovici
 .LINK
     https://MEM.Zone/Invoke-WSUSMaintenance
+.LINK
+    https://MEM.Zone/Invoke-WSUSMaintenance-CHANGELOG
 .LINK
     https://MEM.Zone/Invoke-WSUSMaintenance-GIT
 .LINK
