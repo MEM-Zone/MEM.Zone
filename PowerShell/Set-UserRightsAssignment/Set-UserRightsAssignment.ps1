@@ -71,6 +71,8 @@
 .LINK
     https://MEM.Zone/Set-UserRightsAssignment
 .LINK
+    https://MEM.Zone/Set-UserRightsAssignment-CHANGELOG
+.LINK
     https://MEM.Zone/Set-UserRightsAssignment-GIT
 .LINK
     https://MEM.Zone/ISSUES

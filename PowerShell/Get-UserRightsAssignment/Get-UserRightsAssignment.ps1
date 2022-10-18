@@ -63,6 +63,8 @@
 .LINK
     https://MEM.Zone/Get-UserRightsAssignment
 .LINK
+    https://MEM.Zone/Get-UserRightsAssignment-CHANGELOG
+.LINK
     https://MEM.Zone/Get-UserRightsAssignment-GIT
 .LINK
     https://MEM.Zone/ISSUES
