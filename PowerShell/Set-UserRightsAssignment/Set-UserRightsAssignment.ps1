@@ -150,6 +150,9 @@
 [string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
 [string]$ScriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
 
+## Set log file path
+[string]$LogFilePath = [System.IO.Path]::Combine($env:SystemRoot + '\Logs\', $ScriptName, $ScriptName + '.log')
+
 #endregion
 ##*=============================================
 ##* END VARIABLE DECLARATION
@@ -529,6 +532,9 @@ Function Set-UserRightsAssignment {
 ## Write verbose info
 Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName) -Verbose
 
+## Start logging
+Start-Transcript -Path $LogFilePath -Append -Force
+
 ## Set the Privilege variable according to the action
 If ($Action -eq 'RemoveAll') {
     $Privilege = $PrivilegeList
@@ -563,6 +569,9 @@ $Output = $SetUserRightsAssignments.Invoke()
 
 ## Write output
 Write-Output -InputObject $Output
+
+## Stop logging
+Stop-Transcript
 
 ## Write verbose info
 Write-Verbose -Message $("Script '{0}\{1}' completed." -f $ScriptPath, $ScriptName) -Verbose

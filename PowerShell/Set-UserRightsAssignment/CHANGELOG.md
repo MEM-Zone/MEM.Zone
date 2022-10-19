@@ -1,5 +1,9 @@
 # Set-UserRightsAssignment release history
 
+## 2.2.1 - 2022-10-19
+
+* Added logging support
+
 ## 2.2.0 - 2022-10-14
 
 * Added `Locale` warning when using `Principal Name` instead of a `SID`
