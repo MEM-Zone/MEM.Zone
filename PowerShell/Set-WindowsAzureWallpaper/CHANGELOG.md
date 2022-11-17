@@ -1,5 +1,9 @@
 # Set-WindowsAzureWallpaper release history
 
+## 4.0.1 - 2022-11-17
+
+* Fixed display resolution detection for non scalled displays. Scalled displays will return scalled resolution.
+
 ## 4.0.0 - 2022-10-13
 
 * Updated Azure Storage Rest Functions

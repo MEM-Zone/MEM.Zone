@@ -1021,8 +1021,8 @@ Function Import-Win32IDesktopAPI {
                             string monitorID = GetMonitorID(monitorIndex);
 
                             // Get monitor bounds
-                            string screenBoundsWidth  = screen.Bounds.Width.ToString();
-                            string screenBoundsHeight = screen.Bounds.Height.ToString();
+                            string screenBoundsWidth  = desktopWallpaper.GetMonitorRECT(monitorID).Right.ToString();
+                            string screenBoundsHeight = desktopWallpaper.GetMonitorRECT(monitorID).Bottom.ToString();
 
                             // Assemble monitor resolution
                             string monitorResolution = screenBoundsWidth + 'x' + screenBoundsHeight;
@@ -1046,8 +1046,8 @@ Function Import-Win32IDesktopAPI {
                         string monitorID = GetMonitorID(monitorIndex);
 
                         // Get monitor bounds
-                        string screenBoundsWidth  = Screen.PrimaryScreen.Bounds.Width.ToString();
-                        string screenBoundsHeight = Screen.PrimaryScreen.Bounds.Height.ToString();
+                        string screenBoundsWidth  = desktopWallpaper.GetMonitorRECT(monitorID).Right.ToString();
+                        string screenBoundsHeight = desktopWallpaper.GetMonitorRECT(monitorID).Bottom.ToString();
 
                         // Assemble monitor resolution
                         string monitorResolution = screenBoundsWidth + 'x' + screenBoundsHeight;
