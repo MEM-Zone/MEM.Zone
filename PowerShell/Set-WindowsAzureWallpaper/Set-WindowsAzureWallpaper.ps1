@@ -1615,8 +1615,8 @@ Function Set-WindowsAzureWallpaper {
         Try {
 
             ## Get Azure wallpapers depending on the storage account type
-            If ($Url -match '.blob.') { [psobject]$AzureWallpaperFiles = Get-AzureBlobStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
-            Else { [psobject]$AzureWallpaperFiles = Get-AzureFileStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
+            If ($Url -match '.blob.') { [psobject]$AzureWallpaperFiles = Get-RestAzureBlobStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
+            Else { [psobject]$AzureWallpaperFiles = Get-RestAzureFileStorageItem -Url $Url -SasToken $SasToken -ErrorAction 'Stop' }
 
             ## If Wallpaper Parameter Set is used, set wallpaper otherwise set slideshow
             If ($PsCmdlet.ParameterSetName -eq 'Wallpaper') {
@@ -1665,7 +1665,7 @@ Function Set-WindowsAzureWallpaper {
 
                         ## Download wallpaper
                         Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
-                        $DownloadWallpaper = Start-AzureStorageFileTransfer -Url $($DefaultWallpaper.Url) -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                        $DownloadWallpaper = Start-RestAzureStorageTransfer -Url $($DefaultWallpaper.Url) -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
                         Write-Verbose -Message $($DownloadWallpaper | Out-String)
 
                         ## Set wallpaper
@@ -1714,7 +1714,7 @@ Function Set-WindowsAzureWallpaper {
                 ## Download the specified wallpaper set
                 Format-Spacer -Message 'Downloading Wallpaper' -Type 'Verbose' -AddEmptyRow 'BeforeAndAfter'
                 ForEach ($AzureWallpaper in $AzureWallpaperMatch) {
-                    $DownloadWallpaper = Start-AzureStorageFileTransfer -Url $AzureWallpaper.Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
+                    $DownloadWallpaper = Start-RestAzureStorageTransfer -Url $AzureWallpaper.Url -SasToken $SasToken -Path $Path -Force:$Force -ErrorAction 'Stop'
                     Write-Verbose -Message $($DownloadWallpaper | Out-String)
                 }
 
