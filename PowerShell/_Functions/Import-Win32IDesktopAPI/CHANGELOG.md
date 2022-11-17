@@ -1,5 +1,9 @@
 # Import-Win32IDesktopAPI release history
 
+## 1.2.1 - 2022-11-17
+
+* Fixed display resolution detection for non scalled displays. Scalled displays will return scalled resolution.
+
 ## 1.2.0 - 2021-12-09
 
 * Fixed all methods, everything works correctly now
