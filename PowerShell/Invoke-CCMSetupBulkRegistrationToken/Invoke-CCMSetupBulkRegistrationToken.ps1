@@ -10,15 +10,40 @@
     Specifies the azure blob SAS token. Specifies the azure blob SAS token. If this parameter is not specified, no authentication is used.
 .PARAMETER CMGAddress
     Specifies the Cloud Management Gateway address. Do not specify 'https://' prefix.
+.PARAMETER SMSSITECODE
+    Specifies the SMS site code. To be used if the computer is workgroup joined.
+.PARAMETER SMSMP
+    Specifies the SMS management point. To be used if the computer is workgroup joined.
+.PARAMETER RESETKEYINFORMATION
+    Specifies whether to reset the key information. To be used if the computer is workgroup joined.
+.PARAMETER SMSPublicRootKey
+    Specifies the SMS public root key. You can find it in the mobile.ctf file. To be used if the computer is workgroup joined.
+.PARAMETER UninstallClientFirst
+    Specifies whether to uninstall the client first. To be used if the computer is workgroup joined.
 .EXAMPLE
     Invoke-CCMSetupBulkRegistrationToken.ps1 -Url 'https://mystorage.blob.core.windows.net/mycontainer' -SasToken '?sv=2015-12-11&st=2017-01-01T00:00:00Z&se=2017-01-01T00:00:00Z&sr=c&sp=rw&sig=mySasToken' -CMGAddress 'mycmg.domain.com/CCM_Proxy_MutualAuth/72057594037928022'
+.EXAMPLE
+    [hashtable]$Parameters = @{
+        [string]$Url                   = 'https://company.blob.core.windows.net/memcmtoken/New-CMClientBulkRegistrationToken.json'
+        [string]$SASToken              = 'sp=racwd&st=2022-06-22T06:00:00Z&se=2023-06-22T06:00:00Z&spr=https&sv=2021-06-08&sr=c&sig=6Wn1nYb0aj9pwdf0FRhviF3EwVwewk5tv22qbqwQZuc%3D'
+        [string]$CMGAddress            = 'CMG.COMPANY.COM/CCM_Proxy_MutualAuth/72067594037928032'
+        [string]$SMSSITECODE           = 'ABC'
+        [string]$SMSMP                 = 'https://MP.COMPANY.COM'
+        [string]$RESETKEYINFORMATION   = 'TRUE'
+        [string]$SMSPublicRootKey      = '0602000000A40000525341210008000001000100930194140D96A30D15588A99CF57E5ADDB2A8199C7B6057B066CE8F52C49979D96EC8DB75B26E610A93D98BB19999...'
+        [boolean]$UninstallClientFirst = $true
+    }
+    Invoke-CCMSetupBulkRegistrationToken.ps1 @Parameters
 .INPUTS
     None.
 .OUTPUTS
     System.Object
 .NOTES
     Created by Ioan Popovici
-    'New-CMClientBulkRegistrationToken' needs to run on the server side to generate the token and upload it to Azure Blob Storage.
+
+    ## Requirements ##
+        'New-CMClientBulkRegistrationToken' needs to run on the server side to generate the token and upload it to Azure Blob Storage.
+    ## Requirements ##
 .LINK
     https://MEM.Zone
 .LINK
@@ -38,18 +63,36 @@
 ## Set script requirements
 #Requires -Version 5.0
 
-## Get script parameters
-[CmdletBinding()]
+## Get script parameters, comment this section if using inline parameters
+[CmdletBinding(DefaultParameterSetName = 'Domain')]
 Param (
-    [Parameter(Mandatory = $true, HelpMessage = 'Blob URL:', Position = 0)]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Domain', HelpMessage = 'Blob URL:', Position = 0)]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Workgroup', HelpMessage = 'Blob URL:', Position = 0)]
     [Alias('BlobUrl')]
     [string]$Url,
-    [Parameter(HelpMessage = 'Blob SAS Token:', Position = 1)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'Domain', HelpMessage = 'Blob SAS Token:', Position = 1)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'Workgroup', HelpMessage = 'Blob SAS Token:', Position = 1)]
     [Alias('Sas')]
     [string]$SasToken,
-    [Parameter(Mandatory = $true, HelpMessage = 'CMG Address:', Position = 2)]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Domain', HelpMessage = 'CMG Address:', Position = 2)]
+    [Parameter(Mandatory = $true, ParameterSetName = 'Workgroup', HelpMessage = 'CMG Address:', Position = 2)]
     [Alias('CMG')]
-    [string]$CMGaddress
+    [string]$CMGaddress,
+    [Parameter(Mandatory = $true, ParameterSetName = 'Workgroup', HelpMessage = 'Site Code:', Position = 3)]
+    [Alias('SiteCode')]
+    [string]$SMSSITECODE,
+    [Parameter(Mandatory = $true, ParameterSetName = 'Workgroup', HelpMessage = 'Initial Management Point:', Position = 4)]
+    [Alias('MP')]
+    [string]$SMSMP,
+    [Parameter(Mandatory = $false, ParameterSetName = 'Workgroup', HelpMessage = 'Reset Trusted Key Information:', Position = 5)]
+    [Alias('ResetTrustedKey')]
+    [string]$RESETKEYINFORMATION = 'TRUE',
+    [Parameter(Mandatory = $true, ParameterSetName = 'Workgroup', HelpMessage = 'SMS Public Root Key (mobile.tcf):', Position = 6)]
+    [Alias('SMSRootKey')]
+    [string]$SMSPublicRootKey,
+    [Parameter(Mandatory = $false, ParameterSetName = 'Workgroup', HelpMessage = 'Uninstall ConfigMgr Before Starting Installation:', Position = 7)]
+    [Alias('UninstallFirst')]
+    [boolean]$UninstallClientFirst = $true
 )
 
 ##*=============================================
@@ -58,11 +101,19 @@ Param (
 #region VariableDeclaration
 
 <#
-## Set inline parameters if needed
-[string]$Url        = 'https://company.blob.core.windows.net/memcmtoken/New-CMClientBulkRegistrationToken.json'
-[string]$SASToken   = 'sp=racwd&st=2022-06-22T06:00:00Z&se=2023-06-22T06:00:00Z&spr=https&sv=2021-06-08&sr=c&sig=6Wn1nYb0aj9pwdf0FRhviF3EwVwewk5tv22qbqwQZuc%3D'
-[string]$CMGAddress = 'CMG.COMPANY.COM/CCM_Proxy_MutualAuth/72067594037928032'
+## Set inline parameters if needed, remeber to comment the section above!
+[string]$Url                   = 'https://company.blob.core.windows.net/memcmtoken/New-CMClientBulkRegistrationToken.json'
+[string]$SASToken              = 'sp=racwd&st=2022-06-22T06:00:00Z&se=2023-06-22T06:00:00Z&spr=https&sv=2021-06-08&sr=c&sig=6Wn1nYb0aj9pwdf0FRhviF3EwVwewk5tv22qbqwQZuc%3D'
+[string]$CMGAddress            = 'CMG.COMPANY.COM/CCM_Proxy_MutualAuth/72067594037928032'
+[string]$SMSSITECODE           = 'ABC'
+[string]$SMSMP                 = 'https://MP.COMPANY.COM'
+[string]$RESETKEYINFORMATION   = 'TRUE'
+[string]$SMSPublicRootKey      = '0602000000A40000525341210008000001000100930194140D96A30D15588A99CF57E5ADDB2A8199C7B6057B066CE8F52C49979D96EC8DB75B26E610A93D98BB19999...'
+[boolean]$UninstallClientFirst = $true
 #>
+
+## Set script variables, do not change anything beyond this point!
+[string]$ForceInstall = If ($UninstallClientFirst) { '/ForceInstall' } Else { '' }
 
 #endregion
 ##*=============================================
@@ -378,7 +429,8 @@ Try {
     [string]$TaskName      = 'Invoke-CCMTokenInstall'
     [string]$Execute       = 'C:\WINDOWS\System32\WindowsPowerShell\v1.0\powershell.exe'
     [string]$CCMSetupPath  = Join-Path -Path $env:SystemRoot -ChildPath 'ccmsetup\ccmsetup.exe'
-    [string]$ArgumentList  = "/mp:https://$CMGAddress CCMHOSTNAME=$CMGAddress /regtoken:$Output"
+    [string]$WorkgroupArgs = '{0} {1} {2} {3} {4}' -f ("SMSMP=$SMSMP", "SMSSITECODE=$SMSSITECODE", '/ForceInstall', "RESETKEYINFORMATION=$RESETKEYINFORMATION", "SMSPublicRootKey=$SMSPublicRootKey")
+    [string]$ArgumentList  = '{0} {1} {2} {3}' -f ("/mp:https://$CMGAddress", "CCMHOSTNAME=$CMGAddress", $WorkgroupArgs, "/regtoken:$Output")
 
     ## Assemble scheduled task command which triggers CCM setup using the token and then unregisters the scheudled task
     [string]$TaskCommand =
@@ -396,8 +448,9 @@ Try {
     ## Build the scheduled task
     $Action    = New-ScheduledTaskAction -Execute $Execute -Argument $Argument
     $Trigger   = New-ScheduledTaskTrigger -AtStartup
-    $Settings  = New-ScheduledTaskSettingsSet -DontStopIfGoingOnBatteries -AllowStartIfOnBatteries
-    $Principal = New-ScheduledTaskPrincipal -UserId 'NT Authority\System'
+    $Settings  = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -DontStopOnIdleEnd -MultipleInstances 'IgnoreNew' -RestartCount 6 -RestartInterval $(New-TimeSpan -Minutes 10) -RunOnlyIfNetworkAvailable -StartWhenAvailable -WakeToRun
+    #  Run as SYSTEM
+    $Principal = New-ScheduledTaskPrincipal -UserId 'S-1-5-18'
 
     ## Create the scheduled task
     Register-ScheduledTask -TaskName $TaskName -Trigger $Trigger -Action $Action -Settings $Settings -Principal $Principal

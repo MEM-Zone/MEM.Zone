@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+    <RegistrationInfo>
+        <Date>2021-09-03T17:04:05.0561221</Date>
+        <Author>Administrator</Author>
+        <Description>Generates a new MEMCM Client Bulk Registration Token, and optionally uploads
+it to Azure Blob Storage. Unfortunately bulkregistrationtokentool.exe requires User Context to run so this task will run only if someone from the 'Specific Group' is logged in.</Description>
+        <URI>\New-CMClientBulkRegistrationToken</URI>
+    </RegistrationInfo>
+    <Triggers>
+        <CalendarTrigger>
+            <StartBoundary>2022-08-03T08:00:00</StartBoundary>
+            <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+            <Enabled>true</Enabled>
+            <ScheduleByDay>
+                <DaysInterval>1</DaysInterval>
+            </ScheduleByDay>
+        </CalendarTrigger>
+    </Triggers>
+    <Principals>
+        <Principal id="Author">
+            <GroupId>S-1-5-32-545</GroupId>
+            <RunLevel>HighestAvailable</RunLevel>
+        </Principal>
+    </Principals>
+    <Settings>
+        <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+        <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+        <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+        <AllowHardTerminate>true</AllowHardTerminate>
+        <StartWhenAvailable>true</StartWhenAvailable>
+        <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+        <IdleSettings>
+            <StopOnIdleEnd>false</StopOnIdleEnd>
+            <RestartOnIdle>false</RestartOnIdle>
+        </IdleSettings>
+        <AllowStartOnDemand>true</AllowStartOnDemand>
+        <Enabled>true</Enabled>
+        <Hidden>true</Hidden>
+        <RunOnlyIfIdle>false</RunOnlyIfIdle>
+        <DisallowStartOnRemoteAppSession>false</DisallowStartOnRemoteAppSession>
+        <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+        <WakeToRun>false</WakeToRun>
+        <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+        <Priority>7</Priority>
+        <RestartOnFailure>
+            <Interval>PT10M</Interval>
+            <Count>6</Count>
+        </RestartOnFailure>
+    </Settings>
+    <Actions Context="Author">
+        <Exec>
+            <Command>C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe</Command>
+            <Arguments>.\New-CMClientBulkRegistrationToken.ps1 -Lifetime 1500 -File 'D:\Scripts\New-
+CMClientBulkRegistrationToken\New-CMClientBulkRegistrationToken.json' -Url 'https://storageaccount.blob.core.windows.net/cmclientbulkregistrationtoken' -SasToken 'Your SASToken'</Arguments>
+            <WorkingDirectory>E:\Scripts\New-CMClientBulkRegistrationToken</WorkingDirectory>
+        </Exec>
+    </Actions>
+</Task>
