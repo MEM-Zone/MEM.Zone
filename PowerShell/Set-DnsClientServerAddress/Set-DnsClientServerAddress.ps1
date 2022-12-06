@@ -30,7 +30,7 @@
 #region VariableDeclaration
 
 ## Detection  script: Set $Remediate to $false | Remediatin script: Set $Remediate to $true
-[boolean]$Remediate = $false
+[boolean]$Remediate = $true
 
 ## Get script path and name
 [string]$ScriptName = 'Set-DnsClientServerAddress'
@@ -39,14 +39,13 @@
 ## Display script path and name
 Write-Verbose -Message "Running script: $ScriptFullName" -Verbose
 
-## Set DNS server addresses
 $PrimaryDNS = @{
-    'OldDnsServer' = '101.127.1.28'
-    'NewDnsServer' = '8.8.8.8'
+    'OldDnsServer' = '10.188.209.31'
+    'NewDnsServer' = '10.188.209.31'
 }
 $SecondaryDNS = @{
-    'OldDnsServer' = '101.174.18.21'
-    'NewDnsServer' = '8.8.8.8'
+    'OldDnsServer' = '10.188.209.18'
+    'NewDnsServer' = '10.174.18.21'
 }
 
 ## Create DNS server addresses match list
@@ -80,26 +79,22 @@ Try {
     If ($IsCompliant) { $Output = 'Compliant' }
     ElseIf ($Remediate) {
         ForEach ($Interface in $Interfaces) {
-            If ($Interface.ServerAddresses.Count -ge 1) {
-                Write-Verbose -Message "DnsServers `n$($Interface.ServerAddresses)" -Verbose
-                For ($Index = 0; $Index -le $Interface.ServerAddresses.Count; $Index++) {
-                    Switch ($Interface.ServerAddresses[$Index]) {
+            [string[]]$ServerAddresses = $Interface.ServerAddresses
+            If ($ServerAddresses.Count -ge 1) {
+                Write-Verbose -Message "DnsServers `n$ServerAddresses" -Verbose
+                For ($Index = 0; $Index -le $ServerAddresses.Count; $Index++) {
+                    Switch ($ServerAddresses[$Index]) {
                         $PrimaryDNS.OldDnsServer {
-                            If ($Remediate) {
-                                Write-Verbose -Message "Setting [$($Interface.ServerAddresses[$Index])] --> $($PrimaryDNS.NewDnsServer)" -Verbose
-                                $Interface.ServerAddresses[$Index] = $PrimaryDNS.NewDnsServer
-                                Set-DnsClientServerAddress -InterfaceIndex $Interface.InterfaceIndex -ServerAddresses $Interface.ServerAddresses -ErrorAction 'Stop'
-                            }
+                            Write-Verbose -Message "Setting [($ServerAddresses[$Index]] --> $($PrimaryDNS.NewDnsServer)" -Verbose
+                            $ServerAddresses[$Index] = $PrimaryDNS.NewDnsServer
                         }
                         $SecondaryDNS.OldDnsServer {
-                            If ($Remediate) {
-                                Write-Verbose -Message "Setting [$($Interface.ServerAddresses[$Index])] --> $($SecondaryDNS.NewDnsServer)" -Verbose
-                                $Interface.ServerAddresses[$Index] = $SecondaryDNS.NewDnsServer
-                                Set-DnsClientServerAddress -InterfaceIndex $Interface.InterfaceIndex -ServerAddresses $Interface.ServerAddresses -ErrorAction 'Stop'
-                            }
+                            Write-Verbose -Message "Setting [$ServerAddresses[$Index]] --> $($SecondaryDNS.NewDnsServer)" -Verbose
+                            $ServerAddresses[$Index] = $SecondaryDNS.NewDnsServer
                         }
                     }
                 }
+                Set-DnsClientServerAddress -InterfaceIndex $Interface.InterfaceIndex -ServerAddresses $ServerAddresses -ErrorAction 'Stop'
             }
         }
         $Output = 'Compliant'
