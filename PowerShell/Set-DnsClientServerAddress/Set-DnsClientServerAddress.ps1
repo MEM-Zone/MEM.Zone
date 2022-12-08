@@ -2,9 +2,19 @@
 .SYNOPSIS
     Sets Primary and Secondary DNS server.
 .DESCRIPTION
-    Sets Primary and Secondary DNS server, and optionally matches and replaces existing DNS server values.
+    Sets Primary and Secondary DNS server by matching and replacing existing DNS address values.
+.PARAMETER PrimaryDNS
+    Specify Primary DNS server to match.
+.PARAMETER SecondaryDNS
+    Specify Secondary DNS server to match.
+.PARAMETER NewPrimaryDNS
+    Specify new Primary DNS server.
+.PARAMETER NewSecondaryDNS
+    Specify new Secondary DNS server.
+.PARAMETER Remediate
+    Set remediation to $true or $false. Default is $false.
 .EXAMPLE
-    Set-DnsClientServerAddress
+    Set-DnsClientServerAddress -PrimaryDNS '1.1.1.1' -SecondaryDNS '1.0.0.1' -NewPrimaryDNS '8.8.8.8' -NewSecondaryDNS '8.0.0.8' -Remediate $true
 .INPUTS
     None.
 .OUTPUTS
@@ -12,9 +22,13 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone
+    https://MEM.Zone/Set-DnsClientServerAddress
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/Set-DnsClientServerAddress-CHANGELOG
+.LINK
+    https://MEM.Zone/Set-DnsClientServerAddress-GIT
+.LINK
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Network Interface
 .FUNCTIONALITY
@@ -29,27 +43,58 @@
 ##*=============================================
 #region VariableDeclaration
 
-## Detection  script: Set $Remediate to $false | Remediatin script: Set $Remediate to $true
-[boolean]$Remediate = $true
+#region ScriptParameters (Comment this region with <# #> for hardcoded parameters)
+Param (
+    [Parameter(Mandatory = $true, HelpMessage = 'Specify primary DNS to match', Position = 0)]
+    [ValidateNotNullorEmpty()]
+    [Alias('Primary')]
+    [string]$PrimaryDNS,
+    [Parameter(Mandatory = $true, HelpMessage = 'Specify secondary DNS to match', Position = 1)]
+    [ValidateNotNullorEmpty()]
+    [Alias('Secondary')]
+    [string]$SecondaryDNS,
+    [Parameter(Mandatory = $true, HelpMessage = 'Specify new primary DNS', Position = 2)]
+    [ValidateNotNullorEmpty()]
+    [Alias('NewPrimary')]
+    [string]$NewPrimaryDNS,
+    [Parameter(Mandatory = $true, HelpMessage = 'Specify new secondary DNS', Position = 3)]
+    [ValidateNotNullorEmpty()]
+    [Alias('NewSecondary')]
+    [string]$NewSecondaryDNS,
+    [Parameter(Mandatory = $false, HelpMessage = 'Set remediation', Position = 4)]
+    [boolean]$Remediate = $false
+)
+#endregion
 
-## Get script path and name
-[string]$ScriptName = 'Set-DnsClientServerAddress'
-[string]$ScriptFullName = [System.IO.Path]::GetFileName($MyInvocation.MyCommand.Definition)
-
-## Display script path and name
-Write-Verbose -Message "Running script: $ScriptFullName" -Verbose
-
-$PrimaryDNS = @{
-    'OldDnsServer' = '10.188.209.31'
-    'NewDnsServer' = '10.188.209.31'
+#region HardcodedParameters (Uncomment this region by removing <# and #>, for hardcoded parameters)
+<#
+[hashtable]$PrimaryDNSConfig = @{
+    'CurrentAddress' = '1.1.1.1'
+    'NewAddress'     = '1.0.0.1'
 }
-$SecondaryDNS = @{
-    'OldDnsServer' = '10.188.209.18'
-    'NewDnsServer' = '10.174.18.21'
+[hashtable]$SecondaryDNSConfig = @{
+    'CurrentAddress' = '1.1.1.1'
+    'NewAddress'     = '8.8.8.8'
+}
+#endregion
+#>
+
+## !! Do not modify anything beyond this point !!
+
+## Set script paramters
+If ($PrimaryDNSConfig.count -eq 0) {
+    $PrimaryDNSConfig = @{
+        'CurrentAddress' = $PrimaryDNS
+        'NewAddress'     = $NewPrimaryDNS
+    }
+    $SecondaryDNSConfig = @{
+        'CurrentAddress' = $SecondaryDNS
+        'NewAddress'     = $NewSecondaryDNS
+    }
 }
 
 ## Create DNS server addresses match list
-[string[]]$DnsServerMatchList = @($PrimaryDNS.OldDnsServer, $SecondaryDNS.OldDnsServer)
+[string[]]$DnsServerMatchList = @($PrimaryDNSConfig.CurrentAddress, $SecondaryDNSConfig.CurrentAddress)
 
 ## Set output to NonCompliant
 [string]$Output = 'NonCompliant'
@@ -79,18 +124,22 @@ Try {
     If ($IsCompliant) { $Output = 'Compliant' }
     ElseIf ($Remediate) {
         ForEach ($Interface in $Interfaces) {
+            #  Create ServerAddresses writable variable
             [string[]]$ServerAddresses = $Interface.ServerAddresses
             If ($ServerAddresses.Count -ge 1) {
-                Write-Verbose -Message "DnsServers `n$ServerAddresses" -Verbose
+                Write-Verbose -Message "Current DnsServers: $ServerAddresses" -Verbose
+                #  Loop through all DNS server addresses
                 For ($Index = 0; $Index -le $ServerAddresses.Count; $Index++) {
                     Switch ($ServerAddresses[$Index]) {
-                        $PrimaryDNS.OldDnsServer {
-                            Write-Verbose -Message "Setting [($ServerAddresses[$Index]] --> $($PrimaryDNS.NewDnsServer)" -Verbose
-                            $ServerAddresses[$Index] = $PrimaryDNS.NewDnsServer
+                        $PrimaryDNSConfig.CurrentAddress {
+                            Write-Verbose -Message "Setting [$($ServerAddresses[$Index])] --> $($PrimaryDNSConfig.NewAddress)" -Verbose
+                            $ServerAddresses[$Index] = $PrimaryDNSConfig.NewAddress
                         }
-                        $SecondaryDNS.OldDnsServer {
-                            Write-Verbose -Message "Setting [$ServerAddresses[$Index]] --> $($SecondaryDNS.NewDnsServer)" -Verbose
-                            $ServerAddresses[$Index] = $SecondaryDNS.NewDnsServer
+                        $SecondaryDNSConfig.CurrentAddress {
+                            #  Move to the next DNS address if the secondary DNS is the same as the primary DNS address
+                            If ($SecondaryDNSConfig.CurrentAddress -eq $PrimaryDNSConfig.CurrentAddress) { $Index++ }
+                            Write-Verbose -Message "Setting [$($ServerAddresses[$Index])] --> $($SecondaryDNSConfig.NewAddress)" -Verbose
+                            $ServerAddresses[$Index] = $SecondaryDNSConfig.NewAddress
                         }
                     }
                 }
@@ -99,15 +148,13 @@ Try {
         }
         $Output = 'Compliant'
     }
-
-    ## Display success message
-    Write-Verbose -Message "$ScriptName ran successfully!" -Verbose
 }
 Catch {
     $Output = $($PsItem.Exception.Message)
     Throw $Output
 }
 Finally {
+    Write-Verbose -Message "Current DnsServers: $ServerAddresses" -Verbose
     Write-Output -InputObject $Output
 }
 
