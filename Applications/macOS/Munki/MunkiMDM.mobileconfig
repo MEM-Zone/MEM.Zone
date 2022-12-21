@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>HasRemovalPasscode</key>
+	<false/>
+	<key>PayloadContent</key>
+	<array>
+		<dict>
+            <key>SharedAccessSignature</key>
+            <string></string>
+			<key>AggressiveUpdateNotificationDays</key>
+			<integer>7</integer>
+			<key>ClientIdentifier</key>
+			<string>com.visma.munki.client</string>
+			<key>DaysBetweenNotifications</key>
+			<integer>0</integer>
+			<key>FollowHTTPRedirects</key>
+			<string>none</string>
+			<key>InstallAppleSoftwareUpdates</key>
+			<true/>
+			<key>MSULogEnabled</key>
+			<true/>
+			<key>PackageVerificationMode</key>
+			<string>none</string>
+			<key>PayloadDisplayName</key>
+			<string>Munki</string>
+			<key>PayloadIdentifier</key>
+			<string>ManagedInstalls</string>
+			<key>PayloadType</key>
+			<string>ManagedInstalls</string>
+			<key>PayloadUUID</key>
+			<string>ED05A72F-62FA-45D7-9B06-5F4764D84950</string>
+			<key>PayloadVersion</key>
+			<integer>1</integer>
+			<key>ShowOptionalInstallsForHigherOSVersions</key>
+			<true/>
+			<key>SoftwareRepoURL</key>
+			<string>https://vitmemmunki.blob.core.windows.net/munki</string>
+			<key>UnattendedAppleUpdates</key>
+			<true/>
+			<key>UseNotificationCenterDays</key>
+			<integer>14</integer>
+		</dict>
+	</array>
+	<key>PayloadDescription</key>
+	<string>Configures Munki Managed Software Center</string>
+	<key>PayloadDisplayName</key>
+	<string>Munki Managed Software Center</string>
+	<key>PayloadIdentifier</key>
+	<string>com.visma.munki.mdm</string>
+	<key>PayloadOrganization</key>
+	<string>Visma IT</string>
+	<key>PayloadRemovalDisallowed</key>
+	<true/>
+	<key>PayloadScope</key>
+	<string>System</string>
+	<key>PayloadType</key>
+	<string>Configuration</string>
+	<key>PayloadUUID</key>
+	<string>483026F0-F255-49F3-8BB1-B42E9A6568C4</string>
+	<key>PayloadVersion</key>
+	<integer>1</integer>
+	<key>RemovalDate</key>
+	<date>2024-01-01T16:01:07Z</date>
+	<key>TargetDeviceType</key>
+	<integer>5</integer>
+</dict>
+</plist>
