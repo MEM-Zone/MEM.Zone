@@ -73,29 +73,30 @@
 .FUNCTIONALITY
     Gets User Rights Assigment.
 #>
-
-[CmdletBinding(DefaultParameterSetName = 'Principal')]
-Param (
-    [Parameter(Mandatory = $false, ParameterSetName = 'Principal', Position = 0)]
-    [SupportsWildcards()]
-    [ValidateNotNullorEmpty()]
-    [Alias('PrincipalName')]
-    [string]$Principal = '*',
-    [Parameter(Mandatory = $true, ParameterSetName = 'Privileges', Position = 1)]
-    [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
-        'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
-        'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
-        'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
-        'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
-        'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
-        'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
-        'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
-        'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
-        'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
-    )]
-    [Alias('Rights')]
-    [string[]]$Privilege
-)
+<#
+    [CmdletBinding(DefaultParameterSetName = 'Principal')]
+    Param (
+        [Parameter(Mandatory = $false, ParameterSetName = 'Principal', Position = 0)]
+        [SupportsWildcards()]
+        [ValidateNotNullorEmpty()]
+        [Alias('PrincipalName')]
+        [string]$Principal = '*',
+        [Parameter(Mandatory = $true, ParameterSetName = 'Privileges', Position = 1)]
+        [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
+            'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
+            'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
+            'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
+            'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
+            'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
+            'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
+            'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
+            'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
+            'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
+        )]
+        [Alias('Rights')]
+        [string[]]$Privilege
+    )
+#>
 
 ##*=============================================
 ##* VARIABLE DECLARATION
@@ -403,13 +404,52 @@ Function Get-UserRightsAssignment {
 ## Write verbose info
 Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName) -Verbose
 
-$Output = Get-UserRightsAssignment @PSBoundParameters
+## Assemble scriptblock
+[scriptblock]$GetUserRightsAssignments = {
+
+    ## Set privileges to check
+    $PrivilegesToCheck = [hashtable]@{
+        'BUILTIN\Administrators'       = 'SeInteractiveLogonRight', 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
+        'BUILTIN\Users'                = 'SeInteractiveLogonRight', 'SeShutdownPrivilege', 'SeUndockPrivilege'
+        'BUILTIN\Remote Desktop Users' = 'SeRemoteInteractiveLogonRight'
+        'BUILTIN\Guests'               = 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
+        'NT AUTHORITY\LOCAL SERVICE'   = 'SeAssignPrimaryTokenPrivilege'
+        'NT AUTHORITY\NETWORK SERVICE' = 'SeAssignPrimaryTokenPrivilege'
+        'NT SERVICE\WdiServiceHost'    = 'SeSystemProfilePrivilege'
+    }
+
+    ## Check each privilege for compliance
+    ForEach ($Privilege in $PrivilegesToCheck.GetEnumerator()) {
+        $UserRightsAssignment = (Get-UserRightsAssignment -Principal $Privilege.Name -ErrorAction 'SilentlyContinue')
+        $PrivilegesToEvaluate = [pscustomobject]@{ PrincipalName = $Privilege.Name; Privilege = $Privilege.Value }
+        #  Set NonCompliantPrivileges to the PrivilegesToCheck values if there are no User Rights Assignments for this specific principal. (Non-compliant for all privileges in the PrivilegesToCheck hashtable)
+        If (-not [string]::IsNullOrWhiteSpace($UserRightsAssignment.Privilege)) {
+            $EvaluateCompliance = $(Compare-Object -ReferenceObject $UserRightsAssignment.Privilege -DifferenceObject $PrivilegesToEvaluate.Privilege -PassThru).Where({ $PSItem.SideIndicator -eq '=>' })
+        }
+        #  If the SID was not resolved there was an error
+        ElseIf ([string]::IsNullOrWhiteSpace($UserRightsAssignment.PrincipalSID)) { $EvaluateCompliance = 'N/A' }
+        #  If the Get-UserAssignment returns no privileges, set all privileges as non-compliant
+        Else  { $EvaluateCompliance = $PrivilegesToEvaluate.Privilege }
+        [pscustomobject]@{
+            Principal              = $Privilege.Name
+            IsCompliant            = If ($EvaluateCompliance.Count -eq 0) { $true } ElseIf ($EvaluateCompliance -eq 'N/A') { 'Error' } Else { $false }
+            NonCompliantPrivileges = $EvaluateCompliance
+        }
+    }
+}
+
+## Execute scriptblock
+$Output = $GetUserRightsAssignments.Invoke()
 
 ## Write output
 Write-Output -InputObject $Output
 
 ## Write verbose info
 Write-Verbose -Message $("Script '{0}\{1}' completed." -f $ScriptPath, $ScriptName) -Verbose
+
+## Handle exit codes for proactive remediations
+If ($Output.IsCompliant -contains $false) { Exit 1 }
+Else { Exit 0 }
 
 #endregion
 ##*=============================================

@@ -1,5 +1,10 @@
 # Get-UserRightsAssignment release history
 
+## 1.1.3 - 2022-12-21
+
+* Added example file
+* Restored parameter section
+
 ## 1.1.2 - 2022-10-17
 
 * Changed output `PrincipalName` to `Principal`
