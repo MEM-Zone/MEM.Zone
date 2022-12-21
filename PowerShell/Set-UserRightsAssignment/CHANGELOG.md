@@ -1,5 +1,10 @@
 # Set-UserRightsAssignment release history
 
+## 2.2.2 - 2022-12-21
+
+* Added example file
+* Restored paramter section
+
 ## 2.2.1 - 2022-10-19
 
 * Added logging support
@@ -26,7 +31,6 @@
 * Replaced `Identity` with `Principal`
 * Fixed some variable declarations
 * Fixed `Replace` Support
-
 
 ## 1.0.1 - 2022-09-15
 

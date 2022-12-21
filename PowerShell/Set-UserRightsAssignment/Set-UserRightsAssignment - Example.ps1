@@ -83,7 +83,7 @@
 .FUNCTIONALITY
     Sets User Rights Assigment.
 #>
-
+<#
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory = $true, HelpMessage = 'Add/Remove user right.', Position = 0)]
@@ -139,6 +139,7 @@
             Write-Output -InputObject $ParamDictionary
         }
     }
+#>
 
 ##*=============================================
 ##* VARIABLE DECLARATION
@@ -535,7 +536,7 @@ Write-Verbose -Message $("Script '{0}\{1}' started." -f $ScriptPath, $ScriptName
 Start-Transcript -Path $LogFilePath -Append -Force
 
 ## Set the Privilege variable according to the action
-If ($PSBoundParameters['Action'] -eq 'RemoveAll') {
+If ($Action -eq 'RemoveAll') {
     $Privilege = $PrivilegeList
     $Action = 'Remove'
 }
@@ -544,8 +545,27 @@ Else {
     $Privilege = $PSBoundParameters['Privilege']
 }
 
+## Assemble scriptblock
+[scriptblock]$SetUserRightsAssignments = {
+    #  Set ErrorActionPreference to SilentlyContinue
+    $SavedErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    #  Set user rights
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Administrators'       -Privilege 'SeInteractiveLogonRight', 'SeRemoteInteractiveLogonRight', 'SeShutdownPrivilege', 'SeSystemProfilePrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'BUILTIN\Guests'               -Privilege 'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight'
+    Set-UserRightsAssignment -Action 'Replace' -Principal 'NT AUTHORITY\LOCAL SERVICE'   -Privilege 'SeAssignPrimaryTokenPrivilege'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'BUILTIN\Remote Desktop Users' -Privilege 'SeRemoteInteractiveLogonRight'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'BUILTIN\Users'                -Privilege 'SeInteractiveLogonRight', 'SeShutdownPrivilege', 'SeUndockPrivilege'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'NT AUTHORITY\NETWORK SERVICE' -Privilege 'SeAssignPrimaryTokenPrivilege'
+    Set-UserRightsAssignment -Action 'Add'     -Principal 'NT SERVICE\WdiServiceHost'    -Privilege 'SeSystemProfilePrivilege'
+    #  Restore ErrorActionPreference to original value
+    $ErrorActionPreference = $SavedErrorActionPreference
+    #  Update Group Policy to apply the changes
+    $null = gpupdate /force
+}
+
 ## Execute scriptblock
-$Output = Set-UserRightsAssignments -Principal $Principal -Privilege $Privilege -Action $Action
+$Output = $SetUserRightsAssignments.Invoke()
 
 ## Write output
 Write-Output -InputObject $Output
