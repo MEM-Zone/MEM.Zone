@@ -1,5 +1,9 @@
 # Set-UserRightsAssignment release history
 
+## 2.2.3 - 2022-12-21
+
+* Fixed incomplete error message
+
 ## 2.2.2 - 2022-12-21
 
 * Added example file

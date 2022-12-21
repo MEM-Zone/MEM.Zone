@@ -502,7 +502,7 @@ Function Set-UserRightsAssignment {
             $Output += [pscustomobject]$Result
 
             ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
-            $Message       = [string]"Error granting '{0}' to '{1}' on '{2}'!" -f $($Result.Privilege), $Principal, $env:COMPUTERNAME, $($PsItem.Exception.Message)
+            $Message       = [string]"Error granting '{0}' to '{1}' on '{2}'!`n{3}" -f $($Result.Privilege), $Principal, $env:COMPUTERNAME, $($PsItem.Exception.Message)
             $Exception     = [Exception]::new($Message)
             $ExceptionType = [Management.Automation.ErrorCategory]::OperationStopped
             $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PsItem.FullyQualifiedErrorId, $ExceptionType, $PrincipalItem)
