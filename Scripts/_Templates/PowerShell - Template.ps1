@@ -3,8 +3,8 @@
     ShortDescription.
 .DESCRIPTION
     LongDescription.
-.PARAMETER
-    ParameterName.
+.PARAMETER ParameterName
+    Specifies what is does.
 .EXAMPLE
     ApprovedVerb-WhatItDoes(Use Singular).ps1
 .INPUTS
@@ -14,7 +14,11 @@
 .NOTES
     Created by
 .LINK
-    https://
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/GIT
+.LINK
+    https://MEM.Zone/ISSUES
 .COMPONENT
     --
 .FUNCTIONALITY
@@ -31,16 +35,12 @@
 
 ## Get script parameters
 Param (
-    [Parameter(Mandatory=$false,HelpMessage="Valid options are: '--','--' and '--'",Position=0)]
+    [Parameter(Mandatory = $false, HelpMessage = "Valid options are: '--','--' and '--'", Position = 0)]
     [ValidateNotNullorEmpty()]
     [ValidateSet('--','--','--')]
     [Alias('--')]
     [string]$-- = '--'
 )
-
-## Get script path and name
-[string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
-[string]$ScriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Definition)
 
 #endregion
 ##*=============================================
@@ -59,7 +59,7 @@ Function Verb- {
     --.
 .DESCRIPTION
     --.
-.PARAMETER
+.PARAMETER --
     --.
 .EXAMPLE
     --
@@ -80,7 +80,7 @@ Function Verb- {
 #>
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true,Position=0)]
+        [Parameter(Mandatory = $true, Position = 0)]
         [ValidateNotNullorEmpty()]
         [ValidateSet('--','--','--')]
         [Alias('--')]

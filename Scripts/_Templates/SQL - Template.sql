@@ -9,6 +9,8 @@
 .LINK
     https://MEM.Zone
 .LINK
+    https://MEM.Zone/GIT
+.LINK
     https://MEM.Zone/ISSUES
 */
 

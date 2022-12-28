@@ -2,6 +2,7 @@ zTemp/
 .vscode/
 visma.config
 PowerShell/_Configurations/
+PowerShell/_3rdParty/
 PowerShell/_Random/
 SQL/_Configurations/
 SQL/_Random/
