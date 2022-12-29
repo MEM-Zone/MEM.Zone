@@ -13,3 +13,6 @@
 [submodule "Projects/SCCM-Zone.com"]
 	path = Projects/SCCM-Zone.com
 	url = https://Ioan-Popovici@github.com/MEM-Zone/sccm-zone.com
+[submodule "Projects/MEM.Zone-Blog"]
+	path = Projects/MEM.Zone-Blog
+	url = https://Ioan-Popovici@github.com/MEM-Zone/MEM.Zone-Blog
