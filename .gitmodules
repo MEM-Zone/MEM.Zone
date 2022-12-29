@@ -1,0 +1,15 @@
+[submodule "Projects/MEM.Zone-Dashboards"]
+	path = Projects/MEM.Zone-Dashboards
+	url = https://Ioan-Popovici@github.com/MEM-Zone/MEM.Zone-Dashboards
+[submodule "Projects/Install-SRSReport"]
+	path = Projects/Install-SRSReport
+	url = https://Ioan-Popovici@github.com/MEM-Zone/Install-SRSReport
+[submodule "Projects/PSWmiToolKit"]
+	path = Projects/PSWmiToolKit
+	url = https://Ioan-Popovici@github.com/Ioan-Popovici/PSWmiToolKit
+[submodule "Projects/SCCM-Zone"]
+	path = Projects/SCCM-Zone
+	url = https://Ioan-Popovici@github.com/Ioan-Popovici/SCCM-Zone
+[submodule "Projects/SCCM-Zone.com"]
+	path = Projects/SCCM-Zone.com
+	url = https://Ioan-Popovici@github.com/MEM-Zone/sccm-zone.com
