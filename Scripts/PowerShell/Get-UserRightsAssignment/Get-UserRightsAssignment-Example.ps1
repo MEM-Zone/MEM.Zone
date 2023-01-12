@@ -360,7 +360,7 @@ Function Get-UserRightsAssignment {
                         #  Stop on unresolved SID, account should exist
                         PrincipalSID  = Resolve-Principal -Principal $Principal -ErrorAction 'Stop'
                         PrincipalName = $Principal
-                        Privilege     = $FilterResult.Privilege
+                        Privilege     = @($FilterResult.Privilege)
                     }
                 }
                 Else {
@@ -371,7 +371,7 @@ Function Get-UserRightsAssignment {
                             #  Continue on unresolved SID, account might be deleted
                             PrincipalSID  = Resolve-Principal -Principal $UniquePrincipal -ErrorAction 'SilentlyContinue'
                             PrincipalName = $UniquePrincipal
-                            Privilege     = $FilterResult.Privilege
+                            Privilege     = @($FilterResult.Privilege)
                         }
                     }
                 }

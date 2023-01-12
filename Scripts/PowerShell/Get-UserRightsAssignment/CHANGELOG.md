@@ -1,5 +1,9 @@
 # Get-UserRightsAssignment release history
 
+## 1.1.4 - 2023-01-12
+
+* Changed privilege output to always be array, in order to be able to add the output to a string array wmi property.
+
 ## 1.1.3 - 2022-12-21
 
 * Added example file
