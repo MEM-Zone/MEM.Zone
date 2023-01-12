@@ -1,6 +1,6 @@
 #region  ConvertTo-HashtableFromPsCustomObject
 Function ConvertTo-HashtableFromPsCustomObject {
-<#
+    <#
 .SYNOPSIS
     Converts a custom object to a hashtable.
 .DESCRIPTION
@@ -28,14 +28,18 @@ Function ConvertTo-HashtableFromPsCustomObject {
 #>
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
-        [object]$Object
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true, Position = 0)]
+        [pscustomobject]$PsCustomObject
     )
     Begin {
-        [hashtable]$Output = [ordered]@{}
+
+        ## Preservers hashtable parameter order
+        [System.Collections.Specialized.OrderedDictionary]$Output = @{}
     }
     Process {
-        [object]$ObjectProperties = Get-Member -InputObject $Object -MemberType 'NoteProperty'
+
+        ## The '.PsObject.Members' method preservers the order of the members, Get-Member does not.
+        [object]$ObjectProperties = $PsCustomObject.PsObject.Members | Where-Object -Property 'MemberType' -EQ 'NoteProperty'
         ForEach ($Property in $ObjectProperties) { $Output.Add($Property.Name, $PsCustomObject.$($Property.Name)) }
         Write-Output -InputObject $Output
     }
