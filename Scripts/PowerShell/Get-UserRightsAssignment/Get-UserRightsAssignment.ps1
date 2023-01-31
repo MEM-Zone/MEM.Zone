@@ -13,6 +13,7 @@
         SeAssignPrimaryTokenPrivilege
         SeAuditPrivilege
         SeBackupPrivilege
+        SeBatchLogonRight
         SeChangeNotifyPrivilege
         SeCreateGlobalPrivilege
         SeCreatePagefilePrivilege
@@ -20,20 +21,30 @@
         SeCreateSymbolicLinkPrivilege
         SeCreateTokenPrivilege
         SeDebugPrivilege
+        SeDelegateSessionUserImpersonatePrivilege
+        SeDenyBatchLogonRight
+        SeDenyInteractiveLogonRight
+        SeDenyNetworkLogonRight
+        SeDenyRemoteInteractiveLogonRight
+        SeDenyServiceLogonRight
         SeEnableDelegationPrivilege
         SeImpersonatePrivilege
         SeIncreaseBasePriorityPrivilege
         SeIncreaseQuotaPrivilege
         SeIncreaseWorkingSetPrivilege
+        SeInteractiveLogonRight
         SeLoadDriverPrivilege
         SeLockMemoryPrivilege
         SeMachineAccountPrivilege
         SeManageVolumePrivilege
+        SeNetworkLogonRight
         SeProfileSingleProcessPrivilege
         SeRelabelPrivilege
+        SeRemoteInteractiveLogonRight
         SeRemoteShutdownPrivilege
         SeRestorePrivilege
         SeSecurityPrivilege
+        SeServiceLogonRight
         SeShutdownPrivilege
         SeSyncAgentPrivilege
         SeSystemEnvironmentPrivilege
@@ -44,7 +55,6 @@
         SeTimeZonePrivilege
         SeTrustedCredManAccessPrivilege
         SeUndockPrivilege
-        SeUnsolicitedInputPrivilege
 .EXAMPLE
     Get-UserRightsAssignment.ps1
 .EXAMPLE
@@ -82,16 +92,14 @@ Param (
     [Alias('PrincipalName')]
     [string]$Principal = '*',
     [Parameter(Mandatory = $true, ParameterSetName = 'Privileges', Position = 1)]
-    [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
-        'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
-        'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
-        'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
-        'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
-        'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
-        'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
-        'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
-        'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
-        'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
+    [ValidateSet('SeAssignPrimaryTokenPrivilege', 'SeAuditPrivilege', 'SeBackupPrivilege', 'SeBatchLogonRight', 'SeChangeNotifyPrivilege',
+        'SeCreateGlobalPrivilege', 'SeCreatePagefilePrivilege', 'SeCreatePermanentPrivilege', 'SeCreateSymbolicLinkPrivilege', 'SeCreateTokenPrivilege',
+        'SeDebugPrivilege', 'SeDelegateSessionUserImpersonatePrivilege', 'SeDenyBatchLogonRight', 'SeDenyInteractiveLogonRight', 'SeDenyNetworkLogonRight',
+        'SeDenyRemoteInteractiveLogonRight', 'SeDenyServiceLogonRight', 'SeEnableDelegationPrivilege', 'SeImpersonatePrivilege', 'SeIncreaseBasePriorityPrivilege',
+        'SeIncreaseQuotaPrivilege', 'SeIncreaseWorkingSetPrivilege', 'SeInteractiveLogonRight', 'SeLoadDriverPrivilege', 'SeLockMemoryPrivilege', 'SeMachineAccountPrivilege',
+        'SeManageVolumePrivilege', 'SeNetworkLogonRight', 'SeProfileSingleProcessPrivilege', 'SeRelabelPrivilege', 'SeRemoteInteractiveLogonRight', 'SeRemoteShutdownPrivilege',
+        'SeRestorePrivilege', 'SeSecurityPrivilege', 'SeServiceLogonRight', 'SeShutdownPrivilege', 'SeSyncAgentPrivilege', 'SeSystemEnvironmentPrivilege', 'SeSystemProfilePrivilege',
+        'SeSystemtimePrivilege', 'SeTakeOwnershipPrivilege', 'SeTcbPrivilege', 'SeTimeZonePrivilege', 'SeTrustedCredManAccessPrivilege', 'SeUndockPrivilege', IgnoreCase = $true
     )]
     [Alias('Rights')]
     [string[]]$Privilege
@@ -225,6 +233,7 @@ Function Get-UserRightsAssignment {
         SeAssignPrimaryTokenPrivilege
         SeAuditPrivilege
         SeBackupPrivilege
+        SeBatchLogonRight
         SeChangeNotifyPrivilege
         SeCreateGlobalPrivilege
         SeCreatePagefilePrivilege
@@ -232,20 +241,30 @@ Function Get-UserRightsAssignment {
         SeCreateSymbolicLinkPrivilege
         SeCreateTokenPrivilege
         SeDebugPrivilege
+        SeDelegateSessionUserImpersonatePrivilege
+        SeDenyBatchLogonRight
+        SeDenyInteractiveLogonRight
+        SeDenyNetworkLogonRight
+        SeDenyRemoteInteractiveLogonRight
+        SeDenyServiceLogonRight
         SeEnableDelegationPrivilege
         SeImpersonatePrivilege
         SeIncreaseBasePriorityPrivilege
         SeIncreaseQuotaPrivilege
         SeIncreaseWorkingSetPrivilege
+        SeInteractiveLogonRight
         SeLoadDriverPrivilege
         SeLockMemoryPrivilege
         SeMachineAccountPrivilege
         SeManageVolumePrivilege
+        SeNetworkLogonRight
         SeProfileSingleProcessPrivilege
         SeRelabelPrivilege
+        SeRemoteInteractiveLogonRight
         SeRemoteShutdownPrivilege
         SeRestorePrivilege
         SeSecurityPrivilege
+        SeServiceLogonRight
         SeShutdownPrivilege
         SeSyncAgentPrivilege
         SeSystemEnvironmentPrivilege
@@ -256,7 +275,6 @@ Function Get-UserRightsAssignment {
         SeTimeZonePrivilege
         SeTrustedCredManAccessPrivilege
         SeUndockPrivilege
-        SeUnsolicitedInputPrivilege
 .EXAMPLE
     Get-UserRightsAssignment
 .EXAMPLE
@@ -291,16 +309,14 @@ Function Get-UserRightsAssignment {
         [Alias('PrincipalName')]
         [string]$Principal = '*',
         [Parameter(Mandatory = $true, ParameterSetName = 'Privileges', Position = 1)]
-        [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
-            'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
-            'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
-            'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
-            'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
-            'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
-            'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
-            'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
-            'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
-            'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
+        [ValidateSet('SeAssignPrimaryTokenPrivilege', 'SeAuditPrivilege', 'SeBackupPrivilege', 'SeBatchLogonRight', 'SeChangeNotifyPrivilege',
+            'SeCreateGlobalPrivilege', 'SeCreatePagefilePrivilege', 'SeCreatePermanentPrivilege', 'SeCreateSymbolicLinkPrivilege', 'SeCreateTokenPrivilege',
+            'SeDebugPrivilege', 'SeDelegateSessionUserImpersonatePrivilege', 'SeDenyBatchLogonRight', 'SeDenyInteractiveLogonRight', 'SeDenyNetworkLogonRight',
+            'SeDenyRemoteInteractiveLogonRight', 'SeDenyServiceLogonRight', 'SeEnableDelegationPrivilege', 'SeImpersonatePrivilege', 'SeIncreaseBasePriorityPrivilege',
+            'SeIncreaseQuotaPrivilege', 'SeIncreaseWorkingSetPrivilege', 'SeInteractiveLogonRight', 'SeLoadDriverPrivilege', 'SeLockMemoryPrivilege', 'SeMachineAccountPrivilege',
+            'SeManageVolumePrivilege', 'SeNetworkLogonRight', 'SeProfileSingleProcessPrivilege', 'SeRelabelPrivilege', 'SeRemoteInteractiveLogonRight', 'SeRemoteShutdownPrivilege',
+            'SeRestorePrivilege', 'SeSecurityPrivilege', 'SeServiceLogonRight', 'SeShutdownPrivilege', 'SeSyncAgentPrivilege', 'SeSystemEnvironmentPrivilege', 'SeSystemProfilePrivilege',
+            'SeSystemtimePrivilege', 'SeTakeOwnershipPrivilege', 'SeTcbPrivilege', 'SeTimeZonePrivilege', 'SeTrustedCredManAccessPrivilege', 'SeUndockPrivilege', IgnoreCase = $true
         )]
         [Alias('Rights')]
         [string[]]$Privilege

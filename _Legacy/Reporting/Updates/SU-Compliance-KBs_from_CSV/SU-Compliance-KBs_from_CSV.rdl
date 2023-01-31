@@ -1,0 +1,2201 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
+  <Description>Software Updates - Compliance - KBs from CSV List</Description>
+  <AutoRefresh>0</AutoRefresh>
+  <DataSources>
+    <DataSource Name="AutoGen__5C6358F2_4BB6_4a1b_A16E_8D96795D8602_">
+      <DataSourceReference>/ConfigMgr_A01/{5C6358F2-4BB6-4a1b-A16E-8D96795D8602}</DataSourceReference>
+      <rd:SecurityType>None</rd:SecurityType>
+      <rd:DataSourceID>11111111-1111-1111-1111-111111111111</rd:DataSourceID>
+    </DataSource>
+  </DataSources>
+  <DataSets>
+    <DataSet Name="ReportData">
+      <Query>
+        <DataSourceName>AutoGen__5C6358F2_4BB6_4a1b_A16E_8D96795D8602_</DataSourceName>
+        <QueryParameters>
+          <QueryParameter Name="@UpdateList">
+            <Value>=Parameters!UpdateList.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@UserSIDs">
+            <Value>=Parameters!UserSIDs.Value</Value>
+          </QueryParameter>
+          <QueryParameter Name="@CollID">
+            <Value>=Parameters!CollID.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+        <CommandText>--DECLARE @UserSIDs VARCHAR(16);
+--SELECT @UserSIDs = 'disabled';
+--DECLARE @CollID VARCHAR(8);
+--SET @CollID = 'SMS00001';
+--DECLARE @UpdateList Varchar(MAX);
+--SET @UpdateList = 'KB4015553,KB4019215,KB4015549,KB4015552,KB4012598,KB4019264,KB4012215,KB4012213,KB4012212,KB4012217,KB4015551,KB4019216,KB4012216,KB4015550,KB4013429,KB4019472,KB4015217,KB4015438,KB4016635,KB4019473,KB4015219,KB4013198,KB4012606,KB4015221,KB4019474,KB4012214,KB4019265,KB4019263,KB4015546,KB4022727,KB4022714,KB4022715,KB4022168,KB4022719,KB4022720,KB4022726,KB4025335,KB4025336,KB4025341,KB4034664,KB4034681,KB4022727,KB4022714,KB4022715,KB4022725,KB4025338,KB4025344,KB4025339,KB4025342,KB4032188,KB4034668,KB4034660,KB4034658,KB4034674'
+--=Join(Parameters!UpdateList.Value,",")
+
+SELECT *
+INTO [#TMP_KB]
+    FROM [CM_Tools].[dbo].[ufn_csv_String_Parser](@UpdateList, ',');
+
+SELECT [SYS].[Name0],
+    CASE
+        WHEN [HE].[HotfixID0] IN ( SELECT * FROM [#TMP_KB] ) THEN 'TRUE'
+        ELSE 'FALSE'
+    END AS 'Installed',
+    [HE].[HotfixID0],
+    [HE].[ResourceID]
+INTO [#TMP_RawCompliance]
+FROM [fn_rbac_GS_SYSTEM](@UserSIDs) [SYS]
+    JOIN [dbo].[v_GS_QUICK_FIX_ENGINEERING] AS [HE] ON [HE].[ResourceID] = [SYS].[ResourceID]
+    JOIN [dbo].[v_FullCollectionMembership] AS [fcm] ON [sys].[ResourceID] = [fcm].[ResourceID]
+WHERE [fcm].[CollectionID] = @CollID
+    AND [HE].[HotFixID0] IN ( SELECT * FROM [#TMP_KB] )
+ORDER BY [sys].[Name0];
+
+SELECT DISTINCT
+    [s].[ResourceID] AS [MachineID],
+    ( SELECT [CM_Tools].[dbo].[ufn_GetCompany_by_ResourceID]([s].[ResourceID]) ) AS [Company],
+    [r].[Resource_Names0] AS [Machine],
+    CASE
+        WHEN [cm].[HotFixID0] IS NOT NULL THEN [cm].[HotFixID0]
+        WHEN ([s].[Client0] = 0) OR ([s].[Client0] IS NULL) THEN 'Unknown'
+        ELSE 'None'
+    END AS KB,
+    CASE
+        WHEN ([s].[Client0] = 1) THEN 'Yes'
+        ELSE 'No'
+    END AS [Client],
+    CASE
+        WHEN ([s].[Active0] = 1) THEN 'Active'
+        WHEN ([s].[Active0] = 0) THEN 'Inactive'
+        ELSE 'Unknown'
+    END AS [Active],
+    CASE
+        WHEN ([chcs].[LastEvaluationHealthy] = 1) THEN 'Pass'
+        WHEN ([chcs].[LastEvaluationHealthy] = 2) THEN 'Fail'
+        ELSE 'Unknown'
+    END AS 'Last Evaluation Healthy',
+    [chcs].[LastDDR],
+    CASE
+        WHEN (DATEDIFF(day, [chcs].[LastDDR], GETDATE()) &lt;= 14) THEN 'Yes'
+        WHEN (DATEDIFF(day, [chcs].[LastDDR], GETDATE()) &gt;= 14) THEN 'No'
+        ELSE 'Unknown'
+    END AS 'DDR in the last 14 Days',
+    CASE
+        WHEN (DATEDIFF(day, [os].[LastBootUpTime0], GETDATE()) &lt;= 14) THEN 'Yes'
+        WHEN (DATEDIFF(day, [os].[LastBootUpTime0], GETDATE()) &gt;= 14) THEN 'No'
+        ELSE 'Unknown'
+    END AS 'Rebooted in the last 14 Days',
+    CASE
+        WHEN ([s].[Client_Version0] IS NULL) THEN 'Unknown'
+        ELSE [s].[Client_Version0]
+    END AS 'Client Version',
+    CASE
+        WHEN (MAX([ou].[System_OU_Name0]) IS NULL) THEN 'Unknown'
+        ELSE MAX([ou].[System_OU_Name0])
+    END AS [OUName],
+    CASE
+        WHEN ([os].[Caption0]  IS NULL) THEN 'Unknown'
+        ELSE [os].[Caption0]
+    END AS 'OS'
+    FROM [dbo].[fn_rbac_R_System](@UserSIDs) [s]
+        LEFT JOIN [#TMP_RawCompliance] AS [CM] ON [CM].[ResourceID] = [s].[ResourceID]
+        LEFT JOIN [v_RA_System_SystemOUName] AS [ou] ON [s].[ResourceID] = [ou].[ResourceID]
+        LEFT JOIN [fn_rbac_GS_SYSTEM](@UserSIDs) AS [SYS] ON [s].[ResourceID] = [SYS].[ResourceID]
+        LEFT JOIN [v_RA_System_ResourceNames] [r] ON [s].[ResourceID] = [r].[ResourceID]
+        LEFT OUTER JOIN [dbo].[v_GS_OPERATING_SYSTEM] AS [os] ON [os].[ResourceID] = [s].[ResourceID]
+        LEFT OUTER JOIN [dbo].[v_CH_ClientSummary] AS [chcs] ON [chcs].[ResourceID] = [s].[ResourceID]
+        JOIN [dbo].[v_FullCollectionMembership] AS [fcm] ON [s].[ResourceID] = [fcm].[ResourceID]
+    WHERE [fcm].[CollectionID] = @CollID
+    GROUP BY [CM].[Installed],
+        [cm].[HotFixID0],
+        [r].[Resource_Names0],
+        [SYS].[SystemRole0],
+        [s].[Client0],
+        [s].[Active0],
+        [s].[Client_Version0],
+        [s].[Netbios_Name0],
+        [s].[Full_Domain_Name0],
+        [s].[ResourceID],
+        [chcs].[LastEvaluationHealthy],
+        [chcs].[LastDDR],
+        [os].[LastBootUpTime0],
+        [os].[Caption0] ORDER BY [r].[Resource_Names0];
+
+    DROP TABLE [#TMP_RawCompliance];
+    DROP TABLE [#TMP_KB];</CommandText>
+        <Timeout>60</Timeout>
+        <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
+      </Query>
+      <Fields>
+        <Field Name="MachineID">
+          <DataField>MachineID</DataField>
+          <rd:TypeName>System.Int32</rd:TypeName>
+        </Field>
+        <Field Name="Company">
+          <DataField>Company</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Machine">
+          <DataField>Machine</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="KB">
+          <DataField>KB</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Client">
+          <DataField>Client</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Active">
+          <DataField>Active</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Last_Evaluation_Healthy">
+          <DataField>Last Evaluation Healthy</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="LastDDR">
+          <DataField>LastDDR</DataField>
+          <rd:TypeName>System.DateTime</rd:TypeName>
+        </Field>
+        <Field Name="DDR_in_the_last_14_Days">
+          <DataField>DDR in the last 14 Days</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Rebooted_in_the_last_14_Days">
+          <DataField>Rebooted in the last 14 Days</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Client_Version">
+          <DataField>Client Version</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="OUName">
+          <DataField>OUName</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="OS">
+          <DataField>OS</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="AdminID">
+      <Query>
+        <DataSourceName>AutoGen__5C6358F2_4BB6_4a1b_A16E_8D96795D8602_</DataSourceName>
+        <QueryParameters>
+          <QueryParameter Name="@UserTokenSIDs">
+            <Value>=Parameters!UserTokenSIDs.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+        <CommandText>select dbo.fn_rbac_GetAdminIDsfromUserSIDs (@UserTokenSIDs) as UserSIDs</CommandText>
+      </Query>
+      <Fields>
+        <Field Name="UserSIDs">
+          <DataField>UserSIDs</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+    <DataSet Name="CollectionInfo">
+      <Query>
+        <DataSourceName>AutoGen__5C6358F2_4BB6_4a1b_A16E_8D96795D8602_</DataSourceName>
+        <QueryParameters>
+          <QueryParameter Name="@UserSIDs">
+            <Value>=Parameters!UserSIDs.Value</Value>
+          </QueryParameter>
+        </QueryParameters>
+        <CommandText> SELECT DISTINCT CollectionID,
+                               Name
+FROM dbo.fn_rbac_collection(@UserSIDs)
+ORDER BY Name
+                </CommandText>
+      </Query>
+      <Fields>
+        <Field Name="CollectionID">
+          <DataField>CollectionID</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+        <Field Name="Name">
+          <DataField>Name</DataField>
+          <rd:TypeName>System.String</rd:TypeName>
+        </Field>
+      </Fields>
+    </DataSet>
+  </DataSets>
+  <ReportSections>
+    <ReportSection>
+      <Body>
+        <ReportItems>
+          <Rectangle Name="RE_ReportBackground">
+            <ReportItems>
+              <Textbox Name="TB_Tittle_KBsCompliance">
+                <CanGrow>true</CanGrow>
+                <KeepTogether>true</KeepTogether>
+                <Paragraphs>
+                  <Paragraph>
+                    <TextRuns>
+                      <TextRun>
+                        <Value>KBs Compliance</Value>
+                        <Style>
+                          <FontFamily>Verdana</FontFamily>
+                          <FontWeight>Bold</FontWeight>
+                        </Style>
+                      </TextRun>
+                    </TextRuns>
+                    <Style>
+                      <TextAlign>Center</TextAlign>
+                    </Style>
+                  </Paragraph>
+                </Paragraphs>
+                <Top>0.01042in</Top>
+                <Left>1.13916in</Left>
+                <Height>0.39792in</Height>
+                <Width>2.48958in</Width>
+                <Style>
+                  <Border>
+                    <Style>None</Style>
+                  </Border>
+                  <TopBorder>
+                    <Color>#fdfdfb</Color>
+                    <Style>Solid</Style>
+                  </TopBorder>
+                  <LeftBorder>
+                    <Color>#fdfdfb</Color>
+                    <Style>Solid</Style>
+                  </LeftBorder>
+                  <RightBorder>
+                    <Color>#fdfdfb</Color>
+                    <Style>Solid</Style>
+                  </RightBorder>
+                  <BackgroundColor>#e1e1e1</BackgroundColor>
+                  <VerticalAlign>Middle</VerticalAlign>
+                  <PaddingLeft>2pt</PaddingLeft>
+                  <PaddingRight>2pt</PaddingRight>
+                  <PaddingTop>2pt</PaddingTop>
+                  <PaddingBottom>2pt</PaddingBottom>
+                </Style>
+              </Textbox>
+              <Tablix Name="TBX_ReportTablix">
+                <TablixBody>
+                  <TablixColumns>
+                    <TablixColumn>
+                      <Width>1.30717in</Width>
+                    </TablixColumn>
+                    <TablixColumn>
+                      <Width>1.38009in</Width>
+                    </TablixColumn>
+                    <TablixColumn>
+                      <Width>1.228in</Width>
+                    </TablixColumn>
+                    <TablixColumn>
+                      <Width>2.02592in</Width>
+                    </TablixColumn>
+                    <TablixColumn>
+                      <Width>1.58842in</Width>
+                    </TablixColumn>
+                    <TablixColumn>
+                      <Width>1.88424in</Width>
+                    </TablixColumn>
+                    <TablixColumn>
+                      <Width>8.94259in</Width>
+                    </TablixColumn>
+                    <TablixColumn>
+                      <Width>2.5155in</Width>
+                    </TablixColumn>
+                  </TablixColumns>
+                  <TablixRows>
+                    <TablixRow>
+                      <Height>0.25in</Height>
+                      <TablixCells>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C4R1_Header_ClientInstalled">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>Client Installed</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C5R1_Header_ClientVersion">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>Client Version</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C6R1_Header_ClientStatus">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>Client Status</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C7R1_Header_LastHealthEvaluation">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>Last Health Evaluation</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C8R1_Header_DDRLast14Days">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>DDR Last 14 Days</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C9R1_Header_RebootedLast14Days">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>Rebooted Last 14 Days</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C10R1_Header_OrganisationalUnit">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>Organisational Unit</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C11R1_Header_OperatingSystem">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>Operating System</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontSize>11pt</FontSize>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#7292cc</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#2b627f</BackgroundColor>
+                                <BackgroundImage>
+                                  <Source>External</Source>
+                                  <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                </BackgroundImage>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                      </TablixCells>
+                    </TablixRow>
+                    <TablixRow>
+                      <Height>0.25in</Height>
+                      <TablixCells>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C4R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C5R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C6R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C7R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C8R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C9R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C10R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C11R2_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>#465678</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#c6daf8</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#9eb6e4</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                      </TablixCells>
+                    </TablixRow>
+                    <TablixRow>
+                      <Height>0.25in</Height>
+                      <TablixCells>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C4R3_Client">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!Client.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <VerticalAlign>Middle</VerticalAlign>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C5R3_Client_Version">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!Client_Version.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <VerticalAlign>Middle</VerticalAlign>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C6R3_Active">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!Active.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <VerticalAlign>Middle</VerticalAlign>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C7R3_Last_Evaluation_Healthy">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!Last_Evaluation_Healthy.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <VerticalAlign>Middle</VerticalAlign>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C8R3_DDR_in_the_last_14_Days">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!DDR_in_the_last_14_Days.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <VerticalAlign>Middle</VerticalAlign>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C9R3_Rebooted_in_the_last_14_Days">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!Rebooted_in_the_last_14_Days.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Center</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <VerticalAlign>Middle</VerticalAlign>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C10R3_OUName">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!OUName.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C11R3_OS">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value>=Fields!OS.Value</Value>
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <Color>#4d4d4d</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style />
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#e5e5e5</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#e1e1e1</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                      </TablixCells>
+                    </TablixRow>
+                    <TablixRow>
+                      <Height>0.25in</Height>
+                      <TablixCells>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C4R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C5R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C6R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C7R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C8R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C9R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C10R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                        <TablixCell>
+                          <CellContents>
+                            <Textbox Name="TAB_C11R4_NULL">
+                              <CanGrow>true</CanGrow>
+                              <KeepTogether>true</KeepTogether>
+                              <Paragraphs>
+                                <Paragraph>
+                                  <TextRuns>
+                                    <TextRun>
+                                      <Value />
+                                      <Style>
+                                        <FontFamily>Tahoma</FontFamily>
+                                        <FontWeight>Bold</FontWeight>
+                                        <Color>White</Color>
+                                      </Style>
+                                    </TextRun>
+                                  </TextRuns>
+                                  <Style>
+                                    <TextAlign>Left</TextAlign>
+                                  </Style>
+                                </Paragraph>
+                              </Paragraphs>
+                              <Style>
+                                <Border>
+                                  <Color>#9eb6e4</Color>
+                                  <Style>Solid</Style>
+                                </Border>
+                                <BackgroundColor>#7292cc</BackgroundColor>
+                                <PaddingLeft>2pt</PaddingLeft>
+                                <PaddingRight>2pt</PaddingRight>
+                                <PaddingTop>2pt</PaddingTop>
+                                <PaddingBottom>2pt</PaddingBottom>
+                              </Style>
+                            </Textbox>
+                          </CellContents>
+                        </TablixCell>
+                      </TablixCells>
+                    </TablixRow>
+                  </TablixRows>
+                </TablixBody>
+                <TablixColumnHierarchy>
+                  <TablixMembers>
+                    <TablixMember />
+                    <TablixMember />
+                    <TablixMember />
+                    <TablixMember />
+                    <TablixMember />
+                    <TablixMember />
+                    <TablixMember />
+                    <TablixMember />
+                  </TablixMembers>
+                </TablixColumnHierarchy>
+                <TablixRowHierarchy>
+                  <TablixMembers>
+                    <TablixMember>
+                      <TablixHeader>
+                        <Size>3.42709in</Size>
+                        <CellContents>
+                          <Textbox Name="TAB_C1R1_Header_Company">
+                            <CanGrow>true</CanGrow>
+                            <KeepTogether>true</KeepTogether>
+                            <Paragraphs>
+                              <Paragraph>
+                                <TextRuns>
+                                  <TextRun>
+                                    <Value>Company</Value>
+                                    <Style>
+                                      <FontFamily>Tahoma</FontFamily>
+                                      <FontSize>11pt</FontSize>
+                                      <FontWeight>Bold</FontWeight>
+                                      <Color>White</Color>
+                                    </Style>
+                                  </TextRun>
+                                </TextRuns>
+                                <Style>
+                                  <TextAlign>Center</TextAlign>
+                                </Style>
+                              </Paragraph>
+                            </Paragraphs>
+                            <Style>
+                              <Border>
+                                <Color>#7292cc</Color>
+                                <Style>Solid</Style>
+                              </Border>
+                              <BackgroundColor>#2b627f</BackgroundColor>
+                              <BackgroundImage>
+                                <Source>External</Source>
+                                <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                              </BackgroundImage>
+                              <PaddingLeft>2pt</PaddingLeft>
+                              <PaddingRight>2pt</PaddingRight>
+                              <PaddingTop>2pt</PaddingTop>
+                              <PaddingBottom>2pt</PaddingBottom>
+                            </Style>
+                          </Textbox>
+                        </CellContents>
+                      </TablixHeader>
+                      <TablixMembers>
+                        <TablixMember>
+                          <TablixHeader>
+                            <Size>2.69259in</Size>
+                            <CellContents>
+                              <Textbox Name="TAB_C2R1_Header_Name">
+                                <CanGrow>true</CanGrow>
+                                <KeepTogether>true</KeepTogether>
+                                <Paragraphs>
+                                  <Paragraph>
+                                    <TextRuns>
+                                      <TextRun>
+                                        <Value>Name</Value>
+                                        <Style>
+                                          <FontFamily>Tahoma</FontFamily>
+                                          <FontSize>11pt</FontSize>
+                                          <FontWeight>Bold</FontWeight>
+                                          <Color>White</Color>
+                                        </Style>
+                                      </TextRun>
+                                    </TextRuns>
+                                    <Style>
+                                      <TextAlign>Center</TextAlign>
+                                    </Style>
+                                  </Paragraph>
+                                </Paragraphs>
+                                <Style>
+                                  <Border>
+                                    <Color>#7292cc</Color>
+                                    <Style>Solid</Style>
+                                  </Border>
+                                  <BackgroundColor>#2b627f</BackgroundColor>
+                                  <BackgroundImage>
+                                    <Source>External</Source>
+                                    <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                  </BackgroundImage>
+                                  <PaddingLeft>2pt</PaddingLeft>
+                                  <PaddingRight>2pt</PaddingRight>
+                                  <PaddingTop>2pt</PaddingTop>
+                                  <PaddingBottom>2pt</PaddingBottom>
+                                </Style>
+                              </Textbox>
+                            </CellContents>
+                          </TablixHeader>
+                          <TablixMembers>
+                            <TablixMember>
+                              <TablixHeader>
+                                <Size>1.16134in</Size>
+                                <CellContents>
+                                  <Textbox Name="TAB_C3R1_Header_KBInstalled">
+                                    <CanGrow>true</CanGrow>
+                                    <KeepTogether>true</KeepTogether>
+                                    <Paragraphs>
+                                      <Paragraph>
+                                        <TextRuns>
+                                          <TextRun>
+                                            <Value>KB Installed</Value>
+                                            <Style>
+                                              <FontFamily>Tahoma</FontFamily>
+                                              <FontSize>11pt</FontSize>
+                                              <FontWeight>Bold</FontWeight>
+                                              <Color>White</Color>
+                                            </Style>
+                                          </TextRun>
+                                        </TextRuns>
+                                        <Style>
+                                          <TextAlign>Center</TextAlign>
+                                        </Style>
+                                      </Paragraph>
+                                    </Paragraphs>
+                                    <Style>
+                                      <Border>
+                                        <Color>#7292cc</Color>
+                                        <Style>Solid</Style>
+                                      </Border>
+                                      <BackgroundColor>#2b627f</BackgroundColor>
+                                      <BackgroundImage>
+                                        <Source>External</Source>
+                                        <Value>/ConfigMgr_VSM/Visma Custom Reports/visma_menu.png</Value>
+                                      </BackgroundImage>
+                                      <PaddingLeft>2pt</PaddingLeft>
+                                      <PaddingRight>2pt</PaddingRight>
+                                      <PaddingTop>2pt</PaddingTop>
+                                      <PaddingBottom>2pt</PaddingBottom>
+                                    </Style>
+                                  </Textbox>
+                                </CellContents>
+                              </TablixHeader>
+                              <TablixMembers>
+                                <TablixMember />
+                              </TablixMembers>
+                            </TablixMember>
+                          </TablixMembers>
+                        </TablixMember>
+                      </TablixMembers>
+                      <KeepWithGroup>After</KeepWithGroup>
+                    </TablixMember>
+                    <TablixMember>
+                      <Group Name="RG_Company">
+                        <GroupExpressions>
+                          <GroupExpression>=Fields!Company.Value</GroupExpression>
+                        </GroupExpressions>
+                      </Group>
+                      <SortExpressions>
+                        <SortExpression>
+                          <Value>=Fields!Company.Value</Value>
+                          <Direction>Descending</Direction>
+                        </SortExpression>
+                      </SortExpressions>
+                      <TablixHeader>
+                        <Size>3.42709in</Size>
+                        <CellContents>
+                          <Textbox Name="TAB_C1R2_Company">
+                            <CanGrow>true</CanGrow>
+                            <KeepTogether>true</KeepTogether>
+                            <Paragraphs>
+                              <Paragraph>
+                                <TextRuns>
+                                  <TextRun>
+                                    <Value>=Fields!Company.Value</Value>
+                                    <Style>
+                                      <FontFamily>Tahoma</FontFamily>
+                                      <FontWeight>Bold</FontWeight>
+                                      <Color>#465678</Color>
+                                    </Style>
+                                  </TextRun>
+                                </TextRuns>
+                                <Style />
+                              </Paragraph>
+                            </Paragraphs>
+                            <Style>
+                              <Border>
+                                <Color>#c6daf8</Color>
+                                <Style>Solid</Style>
+                              </Border>
+                              <BackgroundColor>#9eb6e4</BackgroundColor>
+                              <PaddingLeft>2pt</PaddingLeft>
+                              <PaddingRight>2pt</PaddingRight>
+                              <PaddingTop>2pt</PaddingTop>
+                              <PaddingBottom>2pt</PaddingBottom>
+                            </Style>
+                          </Textbox>
+                        </CellContents>
+                      </TablixHeader>
+                      <TablixMembers>
+                        <TablixMember>
+                          <TablixHeader>
+                            <Size>2.69259in</Size>
+                            <CellContents>
+                              <Textbox Name="TAB_C2R2_CountMachine1">
+                                <CanGrow>true</CanGrow>
+                                <KeepTogether>true</KeepTogether>
+                                <Paragraphs>
+                                  <Paragraph>
+                                    <TextRuns>
+                                      <TextRun>
+                                        <Value>=CountDistinct(Fields!Machine.Value)</Value>
+                                        <Style>
+                                          <FontFamily>Tahoma</FontFamily>
+                                          <FontWeight>Bold</FontWeight>
+                                          <Color>#465678</Color>
+                                        </Style>
+                                      </TextRun>
+                                    </TextRuns>
+                                    <Style />
+                                  </Paragraph>
+                                </Paragraphs>
+                                <Style>
+                                  <Border>
+                                    <Color>#c6daf8</Color>
+                                    <Style>Solid</Style>
+                                  </Border>
+                                  <BackgroundColor>#9eb6e4</BackgroundColor>
+                                  <PaddingLeft>2pt</PaddingLeft>
+                                  <PaddingRight>2pt</PaddingRight>
+                                  <PaddingTop>2pt</PaddingTop>
+                                  <PaddingBottom>2pt</PaddingBottom>
+                                </Style>
+                              </Textbox>
+                            </CellContents>
+                          </TablixHeader>
+                          <TablixMembers>
+                            <TablixMember>
+                              <TablixHeader>
+                                <Size>1.16134in</Size>
+                                <CellContents>
+                                  <Textbox Name="TAB_C3R2_NULL">
+                                    <CanGrow>true</CanGrow>
+                                    <KeepTogether>true</KeepTogether>
+                                    <Paragraphs>
+                                      <Paragraph>
+                                        <TextRuns>
+                                          <TextRun>
+                                            <Value />
+                                            <Style>
+                                              <FontFamily>Tahoma</FontFamily>
+                                              <FontWeight>Bold</FontWeight>
+                                              <Color>#465678</Color>
+                                            </Style>
+                                          </TextRun>
+                                        </TextRuns>
+                                        <Style />
+                                      </Paragraph>
+                                    </Paragraphs>
+                                    <Style>
+                                      <Border>
+                                        <Color>#c6daf8</Color>
+                                        <Style>Solid</Style>
+                                      </Border>
+                                      <BackgroundColor>#9eb6e4</BackgroundColor>
+                                      <PaddingLeft>2pt</PaddingLeft>
+                                      <PaddingRight>2pt</PaddingRight>
+                                      <PaddingTop>2pt</PaddingTop>
+                                      <PaddingBottom>2pt</PaddingBottom>
+                                    </Style>
+                                  </Textbox>
+                                </CellContents>
+                              </TablixHeader>
+                              <TablixMembers>
+                                <TablixMember />
+                              </TablixMembers>
+                            </TablixMember>
+                          </TablixMembers>
+                        </TablixMember>
+                        <TablixMember>
+                          <Group Name="RG_Machine">
+                            <GroupExpressions>
+                              <GroupExpression>=Fields!Machine.Value</GroupExpression>
+                            </GroupExpressions>
+                          </Group>
+                          <SortExpressions>
+                            <SortExpression>
+                              <Value>=Fields!KB.Value</Value>
+                              <Direction>Descending</Direction>
+                            </SortExpression>
+                          </SortExpressions>
+                          <TablixHeader>
+                            <Size>2.69259in</Size>
+                            <CellContents>
+                              <Textbox Name="TAB_C2R3_MachineName">
+                                <CanGrow>true</CanGrow>
+                                <KeepTogether>true</KeepTogether>
+                                <Paragraphs>
+                                  <Paragraph>
+                                    <TextRuns>
+                                      <TextRun>
+                                        <Value>=Fields!Machine.Value</Value>
+                                        <Style>
+                                          <FontFamily>Tahoma</FontFamily>
+                                          <FontWeight>Bold</FontWeight>
+                                          <Color>#465678</Color>
+                                        </Style>
+                                      </TextRun>
+                                    </TextRuns>
+                                    <Style />
+                                  </Paragraph>
+                                </Paragraphs>
+                                <Style>
+                                  <Border>
+                                    <Color>#c6daf8</Color>
+                                    <Style>Solid</Style>
+                                  </Border>
+                                  <BackgroundColor>#9eb6e4</BackgroundColor>
+                                  <PaddingLeft>2pt</PaddingLeft>
+                                  <PaddingRight>2pt</PaddingRight>
+                                  <PaddingTop>2pt</PaddingTop>
+                                  <PaddingBottom>2pt</PaddingBottom>
+                                </Style>
+                              </Textbox>
+                            </CellContents>
+                          </TablixHeader>
+                          <TablixMembers>
+                            <TablixMember>
+                              <Group Name="RG_KB">
+                                <GroupExpressions>
+                                  <GroupExpression>=Fields!KB.Value</GroupExpression>
+                                </GroupExpressions>
+                              </Group>
+                              <SortExpressions>
+                                <SortExpression>
+                                  <Value>=Fields!KB.Value</Value>
+                                </SortExpression>
+                              </SortExpressions>
+                              <TablixHeader>
+                                <Size>1.16134in</Size>
+                                <CellContents>
+                                  <Textbox Name="TAB_C3R3_KB">
+                                    <CanGrow>true</CanGrow>
+                                    <KeepTogether>true</KeepTogether>
+                                    <Paragraphs>
+                                      <Paragraph>
+                                        <TextRuns>
+                                          <TextRun>
+                                            <Value>=Fields!KB.Value</Value>
+                                            <Style>
+                                              <FontFamily>Tahoma</FontFamily>
+                                              <FontWeight>Bold</FontWeight>
+                                              <Color>#465678</Color>
+                                            </Style>
+                                          </TextRun>
+                                        </TextRuns>
+                                        <Style>
+                                          <TextAlign>Center</TextAlign>
+                                        </Style>
+                                      </Paragraph>
+                                    </Paragraphs>
+                                    <Style>
+                                      <Border>
+                                        <Color>#c6daf8</Color>
+                                        <Style>Solid</Style>
+                                      </Border>
+                                      <BackgroundColor>#9eb6e4</BackgroundColor>
+                                      <PaddingLeft>2pt</PaddingLeft>
+                                      <PaddingRight>2pt</PaddingRight>
+                                      <PaddingTop>2pt</PaddingTop>
+                                      <PaddingBottom>2pt</PaddingBottom>
+                                    </Style>
+                                  </Textbox>
+                                </CellContents>
+                              </TablixHeader>
+                              <TablixMembers>
+                                <TablixMember />
+                              </TablixMembers>
+                            </TablixMember>
+                          </TablixMembers>
+                          <Visibility>
+                            <Hidden>true</Hidden>
+                            <ToggleItem>TAB_C1R2_Company</ToggleItem>
+                          </Visibility>
+                        </TablixMember>
+                      </TablixMembers>
+                    </TablixMember>
+                    <TablixMember>
+                      <TablixHeader>
+                        <Size>3.42709in</Size>
+                        <CellContents>
+                          <Textbox Name="TAB_C1R3_Total">
+                            <CanGrow>true</CanGrow>
+                            <KeepTogether>true</KeepTogether>
+                            <Paragraphs>
+                              <Paragraph>
+                                <TextRuns>
+                                  <TextRun>
+                                    <Value>Total</Value>
+                                    <Style>
+                                      <FontFamily>Tahoma</FontFamily>
+                                      <FontWeight>Bold</FontWeight>
+                                      <Color>White</Color>
+                                    </Style>
+                                  </TextRun>
+                                </TextRuns>
+                                <Style />
+                              </Paragraph>
+                            </Paragraphs>
+                            <Style>
+                              <Border>
+                                <Color>#9eb6e4</Color>
+                                <Style>Solid</Style>
+                              </Border>
+                              <BackgroundColor>#7292cc</BackgroundColor>
+                              <PaddingLeft>2pt</PaddingLeft>
+                              <PaddingRight>2pt</PaddingRight>
+                              <PaddingTop>2pt</PaddingTop>
+                              <PaddingBottom>2pt</PaddingBottom>
+                            </Style>
+                          </Textbox>
+                        </CellContents>
+                      </TablixHeader>
+                      <TablixMembers>
+                        <TablixMember>
+                          <TablixHeader>
+                            <Size>2.69259in</Size>
+                            <CellContents>
+                              <Textbox Name="TAB_C2R4_CountMachine2">
+                                <CanGrow>true</CanGrow>
+                                <KeepTogether>true</KeepTogether>
+                                <Paragraphs>
+                                  <Paragraph>
+                                    <TextRuns>
+                                      <TextRun>
+                                        <Value>=CountDistinct(Fields!Machine.Value)</Value>
+                                        <Style>
+                                          <FontFamily>Tahoma</FontFamily>
+                                          <FontWeight>Bold</FontWeight>
+                                          <Color>#465678</Color>
+                                        </Style>
+                                      </TextRun>
+                                    </TextRuns>
+                                    <Style />
+                                  </Paragraph>
+                                </Paragraphs>
+                                <Style>
+                                  <Border>
+                                    <Color>#9eb6e4</Color>
+                                    <Style>Solid</Style>
+                                  </Border>
+                                  <BackgroundColor>#7292cc</BackgroundColor>
+                                  <PaddingLeft>2pt</PaddingLeft>
+                                  <PaddingRight>2pt</PaddingRight>
+                                  <PaddingTop>2pt</PaddingTop>
+                                  <PaddingBottom>2pt</PaddingBottom>
+                                </Style>
+                              </Textbox>
+                            </CellContents>
+                          </TablixHeader>
+                          <TablixMembers>
+                            <TablixMember>
+                              <TablixHeader>
+                                <Size>1.16134in</Size>
+                                <CellContents>
+                                  <Textbox Name="TAB_C3R4_NULL">
+                                    <CanGrow>true</CanGrow>
+                                    <KeepTogether>true</KeepTogether>
+                                    <Paragraphs>
+                                      <Paragraph>
+                                        <TextRuns>
+                                          <TextRun>
+                                            <Value />
+                                            <Style>
+                                              <FontFamily>Tahoma</FontFamily>
+                                              <FontWeight>Bold</FontWeight>
+                                              <Color>#465678</Color>
+                                            </Style>
+                                          </TextRun>
+                                        </TextRuns>
+                                        <Style />
+                                      </Paragraph>
+                                    </Paragraphs>
+                                    <Style>
+                                      <Border>
+                                        <Color>#9eb6e4</Color>
+                                        <Style>Solid</Style>
+                                      </Border>
+                                      <BackgroundColor>#7292cc</BackgroundColor>
+                                      <PaddingLeft>2pt</PaddingLeft>
+                                      <PaddingRight>2pt</PaddingRight>
+                                      <PaddingTop>2pt</PaddingTop>
+                                      <PaddingBottom>2pt</PaddingBottom>
+                                    </Style>
+                                  </Textbox>
+                                </CellContents>
+                              </TablixHeader>
+                              <TablixMembers>
+                                <TablixMember />
+                              </TablixMembers>
+                            </TablixMember>
+                          </TablixMembers>
+                        </TablixMember>
+                      </TablixMembers>
+                      <KeepWithGroup>Before</KeepWithGroup>
+                    </TablixMember>
+                  </TablixMembers>
+                </TablixRowHierarchy>
+                <DataSetName>ReportData</DataSetName>
+                <Top>0.54847in</Top>
+                <Height>1in</Height>
+                <Width>28.15295in</Width>
+                <ZIndex>1</ZIndex>
+                <Style>
+                  <Border>
+                    <Style>None</Style>
+                  </Border>
+                </Style>
+              </Tablix>
+            </ReportItems>
+            <KeepTogether>true</KeepTogether>
+            <Height>1.54847in</Height>
+            <Width>28.15295in</Width>
+            <Style>
+              <Border>
+                <Style>None</Style>
+              </Border>
+              <BackgroundColor>#2b627f</BackgroundColor>
+            </Style>
+            <cl:ComponentMetadata>
+              <cl:ComponentId>b0ead978-166b-4c08-a249-2ca686afa7d8</cl:ComponentId>
+              <cl:SourcePath>/Report Parts/Header</cl:SourcePath>
+              <cl:SyncDate>2015-04-15T16:34:21.0270000+02:00</cl:SyncDate>
+            </cl:ComponentMetadata>
+          </Rectangle>
+        </ReportItems>
+        <Height>4.22012cm</Height>
+        <Style>
+          <Border>
+            <Style>None</Style>
+          </Border>
+          <BackgroundColor>#616161</BackgroundColor>
+        </Style>
+      </Body>
+      <Width>71.50849cm</Width>
+      <Page>
+        <PageFooter>
+          <Height>0.61648cm</Height>
+          <PrintOnLastPage>true</PrintOnLastPage>
+          <ReportItems>
+            <Textbox Name="TB_Copyright">
+              <CanGrow>true</CanGrow>
+              <KeepTogether>true</KeepTogether>
+              <Paragraphs>
+                <Paragraph>
+                  <TextRuns>
+                    <TextRun>
+                      <Value>Copyright © SCCM-Zone.com</Value>
+                      <Style>
+                        <FontFamily>Verdana</FontFamily>
+                        <FontSize>9pt</FontSize>
+                        <FontWeight>Normal</FontWeight>
+                        <Color>White</Color>
+                      </Style>
+                    </TextRun>
+                  </TextRuns>
+                  <Style>
+                    <TextAlign>Center</TextAlign>
+                  </Style>
+                </Paragraph>
+              </Paragraphs>
+              <Height>0.24271in</Height>
+              <Width>28.15295in</Width>
+              <Style>
+                <Border>
+                  <Style>None</Style>
+                </Border>
+                <PaddingLeft>2pt</PaddingLeft>
+                <PaddingRight>2pt</PaddingRight>
+                <PaddingTop>2pt</PaddingTop>
+                <PaddingBottom>2pt</PaddingBottom>
+              </Style>
+            </Textbox>
+          </ReportItems>
+          <Style>
+            <Border>
+              <Style>None</Style>
+            </Border>
+            <BackgroundColor>#616161</BackgroundColor>
+            <BackgroundImage>
+              <Source>External</Source>
+              <Value>/ConfigMgr_VSM/Visma Custom Reports/bg_pattern.png</Value>
+            </BackgroundImage>
+          </Style>
+        </PageFooter>
+        <PageHeight>21cm</PageHeight>
+        <PageWidth>29.7cm</PageWidth>
+        <LeftMargin>2cm</LeftMargin>
+        <RightMargin>2cm</RightMargin>
+        <TopMargin>2cm</TopMargin>
+        <BottomMargin>2cm</BottomMargin>
+        <ColumnSpacing>1.27cm</ColumnSpacing>
+        <Style />
+      </Page>
+    </ReportSection>
+  </ReportSections>
+  <ReportParameters>
+    <ReportParameter Name="UserTokenSIDs">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <Values>
+          <Value>=SrsResources.UserIdentity.GetUserSIDs(User!UserID)</Value>
+        </Values>
+      </DefaultValue>
+      <Prompt>UserTokenSIDs</Prompt>
+      <Hidden>true</Hidden>
+      <cl:ComponentMetadata>
+        <cl:ComponentId>7b5f538e-1262-4705-a7df-7d4d398a195e</cl:ComponentId>
+        <cl:SourcePath>/Report Parts/UserTokenSIDs</cl:SourcePath>
+        <cl:SyncDate>2015-02-25T10:56:20.9330000+01:00</cl:SyncDate>
+      </cl:ComponentMetadata>
+    </ReportParameter>
+    <ReportParameter Name="UserSIDs">
+      <DataType>String</DataType>
+      <DefaultValue>
+        <DataSetReference>
+          <DataSetName>AdminID</DataSetName>
+          <ValueField>UserSIDs</ValueField>
+        </DataSetReference>
+      </DefaultValue>
+      <Hidden>true</Hidden>
+      <cl:ComponentMetadata>
+        <cl:ComponentId>2c7b7dc1-c255-43f4-b6eb-9836f5be644e</cl:ComponentId>
+        <cl:SourcePath>/Report Parts/UserSIDs</cl:SourcePath>
+        <cl:SyncDate>2015-02-25T10:56:21.3870000+01:00</cl:SyncDate>
+      </cl:ComponentMetadata>
+    </ReportParameter>
+    <ReportParameter Name="CollID">
+      <DataType>String</DataType>
+      <Prompt>Collection</Prompt>
+      <ValidValues>
+        <DataSetReference>
+          <DataSetName>CollectionInfo</DataSetName>
+          <ValueField>CollectionID</ValueField>
+          <LabelField>Name</LabelField>
+        </DataSetReference>
+      </ValidValues>
+    </ReportParameter>
+    <ReportParameter Name="UpdateList">
+      <DataType>String</DataType>
+      <Prompt>KB List (KB4015553,KB4019215,...)</Prompt>
+      <MultiValue>true</MultiValue>
+    </ReportParameter>
+  </ReportParameters>
+  <EmbeddedImages>
+    <EmbeddedImage Name="Logo">
+      <MIMEType>image/png</MIMEType>
+      <ImageData>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</ImageData>
+    </EmbeddedImage>
+    <EmbeddedImage Name="Logo1">
+      <MIMEType>image/png</MIMEType>
+      <ImageData>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</ImageData>
+    </EmbeddedImage>
+  </EmbeddedImages>
+  <CodeModules>
+    <CodeModule>SrsResources, culture=neutral</CodeModule>
+  </CodeModules>
+  <rd:ReportUnitType>Cm</rd:ReportUnitType>
+  <rd:ReportServerUrl>http://resscmp02/ReportServer</rd:ReportServerUrl>
+  <rd:ReportID>6fbd236a-d836-4950-8788-14b828deb616</rd:ReportID>
+</Report>

@@ -1,0 +1,35 @@
+//——————————————— // BitLocker Status Definitions //———————————————
+
+//-- Set default Namespace and delete the Win32_EncryptableVolume_Ext if it already exists. Use only inside of Configuration.mof
+//#PRAGMA Namespace     ("\\\\.\\Root\\CIMv2\\SMS")
+//#PRAGMA DeleteClass   ("Win32_EncryptableVolume_Ext", NOFAIL)
+
+//-- Create custom class
+//-  Class Qualifiers
+[
+    Description     ("The Win32_EncryptableVolume_Ext class contains information about the BitLocker status. You can use this information for BitLocker reporting."): ToInstance,
+    SMS_Report      (TRUE),
+    SMS_Group_Name  ("BitLocker"),
+    SMS_Class_ID    ("CUSTOM|ENCRYPTABLE_VOLUME_EXT|1.0"),
+    Namespace       ("\\\\.\\Root\\CIMV2")
+]
+//-  Class properties
+Class Win32_EncryptableVolume_Ext
+{
+    [ SMS_Report (TRUE), KEY ]
+    String              DeviceID;
+    [ SMS_Report (TRUE) ]
+    String              PersistentVolumeID;
+    [ SMS_Report (TRUE) ]
+    String              DriveLetter;
+    [ SMS_Report (TRUE) ]
+    Uint32              ProtectionStatus;
+    [ SMS_Report (TRUE) ]
+    Uint32              ConversionStatus;
+    [ SMS_Report (TRUE) ]
+    Uint32              EncryptionMethod;
+    [ SMS_Report (TRUE) ]
+    Uint32              VolumeType;
+    [ SMS_Report (TRUE) ]
+    Boolean             IsVolumeInitializedForProtection;
+};

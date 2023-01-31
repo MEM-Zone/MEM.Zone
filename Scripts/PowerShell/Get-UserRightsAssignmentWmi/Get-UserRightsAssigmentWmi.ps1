@@ -13,6 +13,7 @@
         SeAssignPrimaryTokenPrivilege
         SeAuditPrivilege
         SeBackupPrivilege
+        SeBatchLogonRight
         SeChangeNotifyPrivilege
         SeCreateGlobalPrivilege
         SeCreatePagefilePrivilege
@@ -20,20 +21,30 @@
         SeCreateSymbolicLinkPrivilege
         SeCreateTokenPrivilege
         SeDebugPrivilege
+        SeDelegateSessionUserImpersonatePrivilege
+        SeDenyBatchLogonRight
+        SeDenyInteractiveLogonRight
+        SeDenyNetworkLogonRight
+        SeDenyRemoteInteractiveLogonRight
+        SeDenyServiceLogonRight
         SeEnableDelegationPrivilege
         SeImpersonatePrivilege
         SeIncreaseBasePriorityPrivilege
         SeIncreaseQuotaPrivilege
         SeIncreaseWorkingSetPrivilege
+        SeInteractiveLogonRight
         SeLoadDriverPrivilege
         SeLockMemoryPrivilege
         SeMachineAccountPrivilege
         SeManageVolumePrivilege
+        SeNetworkLogonRight
         SeProfileSingleProcessPrivilege
         SeRelabelPrivilege
+        SeRemoteInteractiveLogonRight
         SeRemoteShutdownPrivilege
         SeRestorePrivilege
         SeSecurityPrivilege
+        SeServiceLogonRight
         SeShutdownPrivilege
         SeSyncAgentPrivilege
         SeSystemEnvironmentPrivilege
@@ -44,7 +55,6 @@
         SeTimeZonePrivilege
         SeTrustedCredManAccessPrivilege
         SeUndockPrivilege
-        SeUnsolicitedInputPrivilege
 .EXAMPLE
     Get-UserRightsAssignment.ps1
 .EXAMPLE
@@ -83,16 +93,14 @@ Param (
     [Alias('PrincipalName')]
     [string]$Principal = '*',
     [Parameter(Mandatory = $true, ParameterSetName = 'Privileges', Position = 1)]
-    [ValidateSet('SeNetworkLogonRight','SeBackupPrivilege','SeChangeNotifyPrivilege','SeSystemtimePrivilege','SeCreatePagefilePrivilege',
-        'SeDebugPrivilege','SeRemoteShutdownPrivilege','SeAuditPrivilege','SeIncreaseQuotaPrivilege','SeIncreaseBasePriorityPrivilege',
-        'SeLoadDriverPrivilege','SeBatchLogonRight','SeServiceLogonRight','SeInteractiveLogonRight','SeSecurityPrivilege',
-        'SeSystemEnvironmentPrivilege','SeProfileSingleProcessPrivilege','SeSystemProfilePrivilege','SeAssignPrimaryTokenPrivilege',
-        'SeRestorePrivilege','SeShutdownPrivilege','SeTakeOwnershipPrivilege','SeDenyNetworkLogonRight','SeDenyInteractiveLogonRight',
-        'SeUndockPrivilege','SeManageVolumePrivilege','SeRemoteInteractiveLogonRight','SeImpersonatePrivilege','SeCreateGlobalPrivilege',
-        'SeIncreaseWorkingSetPrivilege','SeTimeZonePrivilege','SeCreateSymbolicLinkPrivilege','SeDelegateSessionUserImpersonatePrivilege',
-        'SeMachineAccountPrivilege','SeTrustedCredManAccessPrivilege','SeTcbPrivilege','SeCreateTokenPrivilege','SeCreatePermanentPrivilege',
-        'SeDenyBatchLogonRight','SeDenyServiceLogonRight','SeDenyRemoteInteractiveLogonRight','SeEnableDelegationPrivilege',
-        'SeLockMemoryPrivilege','SeRelabelPrivilege','SeSyncAgentPrivilege', IgnoreCase = $true
+    [ValidateSet('SeAssignPrimaryTokenPrivilege', 'SeAuditPrivilege', 'SeBackupPrivilege', 'SeBatchLogonRight', 'SeChangeNotifyPrivilege',
+        'SeCreateGlobalPrivilege', 'SeCreatePagefilePrivilege', 'SeCreatePermanentPrivilege', 'SeCreateSymbolicLinkPrivilege', 'SeCreateTokenPrivilege',
+        'SeDebugPrivilege', 'SeDelegateSessionUserImpersonatePrivilege', 'SeDenyBatchLogonRight', 'SeDenyInteractiveLogonRight', 'SeDenyNetworkLogonRight',
+        'SeDenyRemoteInteractiveLogonRight', 'SeDenyServiceLogonRight', 'SeEnableDelegationPrivilege', 'SeImpersonatePrivilege', 'SeIncreaseBasePriorityPrivilege',
+        'SeIncreaseQuotaPrivilege', 'SeIncreaseWorkingSetPrivilege', 'SeInteractiveLogonRight', 'SeLoadDriverPrivilege', 'SeLockMemoryPrivilege', 'SeMachineAccountPrivilege',
+        'SeManageVolumePrivilege', 'SeNetworkLogonRight', 'SeProfileSingleProcessPrivilege', 'SeRelabelPrivilege', 'SeRemoteInteractiveLogonRight', 'SeRemoteShutdownPrivilege',
+        'SeRestorePrivilege', 'SeSecurityPrivilege', 'SeServiceLogonRight', 'SeShutdownPrivilege', 'SeSyncAgentPrivilege', 'SeSystemEnvironmentPrivilege', 'SeSystemProfilePrivilege',
+        'SeSystemtimePrivilege', 'SeTakeOwnershipPrivilege', 'SeTcbPrivilege', 'SeTimeZonePrivilege', 'SeTrustedCredManAccessPrivilege', 'SeUndockPrivilege', IgnoreCase = $true
     )]
     [Alias('Rights')]
     [string[]]$Privilege
@@ -103,6 +111,61 @@ Param (
 ##* VARIABLE DECLARATION
 ##*=============================================
 #region VariableDeclaration
+
+## Add the UserRightsFlags enum type .NET definition to the current PowerShell session
+Add-Type @'
+using System;
+
+[Flags]
+public enum UserRightsFlags : ulong  {
+    None                                      = 0,
+    SeAssignPrimaryTokenPrivilege             = 1L << 0,
+    SeAuditPrivilege                          = 1L << 1,
+    SeBackupPrivilege                         = 1L << 2,
+    SeBatchLogonRight                         = 1L << 3,
+    SeChangeNotifyPrivilege                   = 1L << 4,
+    SeCreateGlobalPrivilege                   = 1L << 5,
+    SeCreatePagefilePrivilege                 = 1L << 6,
+    SeCreatePermanentPrivilege                = 1L << 7,
+    SeCreateSymbolicLinkPrivilege             = 1L << 8,
+    SeCreateTokenPrivilege                    = 1L << 9,
+    SeDebugPrivilege                          = 1L << 10,
+    SeDelegateSessionUserImpersonatePrivilege = 1L << 11,
+    SeDenyBatchLogonRight                     = 1L << 12,
+    SeDenyInteractiveLogonRight               = 1L << 13,
+    SeDenyNetworkLogonRight                   = 1L << 14,
+    SeDenyRemoteInteractiveLogonRight         = 1L << 15,
+    SeDenyServiceLogonRight                   = 1L << 16,
+    SeEnableDelegationPrivilege               = 1L << 17,
+    SeImpersonatePrivilege                    = 1L << 18,
+    SeIncreaseBasePriorityPrivilege           = 1L << 19,
+    SeIncreaseQuotaPrivilege                  = 1L << 20,
+    SeIncreaseWorkingSetPrivilege             = 1L << 21,
+    SeInteractiveLogonRight                   = 1L << 22,
+    SeLoadDriverPrivilege                     = 1L << 23,
+    SeLockMemoryPrivilege                     = 1L << 24,
+    SeMachineAccountPrivilege                 = 1L << 25,
+    SeManageVolumePrivilege                   = 1L << 26,
+    SeNetworkLogonRight                       = 1L << 27,
+    SeProfileSingleProcessPrivilege           = 1L << 28,
+    SeRelabelPrivilege                        = 1L << 29,
+    SeRemoteInteractiveLogonRight             = 1L << 30,
+    SeRemoteShutdownPrivilege                 = 1L << 31,
+    SeRestorePrivilege                        = 1L << 32,
+    SeSecurityPrivilege                       = 1L << 33,
+    SeServiceLogonRight                       = 1L << 34,
+    SeShutdownPrivilege                       = 1L << 35,
+    SeSyncAgentPrivilege                      = 1L << 36,
+    SeSystemEnvironmentPrivilege              = 1L << 37,
+    SeSystemProfilePrivilege                  = 1L << 38,
+    SeSystemtimePrivilege                     = 1L << 39,
+    SeTakeOwnershipPrivilege                  = 1L << 40,
+    SeTcbPrivilege                            = 1L << 41,
+    SeTimeZonePrivilege                       = 1L << 42,
+    SeTrustedCredManAccessPrivilege           = 1L << 43,
+    SeUndockPrivilege                         = 1L << 44
+}
+'@
 
 #endregion
 ##*=============================================
@@ -223,6 +286,7 @@ Function Get-UserRightsAssignment {
         SeAssignPrimaryTokenPrivilege
         SeAuditPrivilege
         SeBackupPrivilege
+        SeBatchLogonRight
         SeChangeNotifyPrivilege
         SeCreateGlobalPrivilege
         SeCreatePagefilePrivilege
@@ -230,20 +294,30 @@ Function Get-UserRightsAssignment {
         SeCreateSymbolicLinkPrivilege
         SeCreateTokenPrivilege
         SeDebugPrivilege
+        SeDelegateSessionUserImpersonatePrivilege
+        SeDenyBatchLogonRight
+        SeDenyInteractiveLogonRight
+        SeDenyNetworkLogonRight
+        SeDenyRemoteInteractiveLogonRight
+        SeDenyServiceLogonRight
         SeEnableDelegationPrivilege
         SeImpersonatePrivilege
         SeIncreaseBasePriorityPrivilege
         SeIncreaseQuotaPrivilege
         SeIncreaseWorkingSetPrivilege
+        SeInteractiveLogonRight
         SeLoadDriverPrivilege
         SeLockMemoryPrivilege
         SeMachineAccountPrivilege
         SeManageVolumePrivilege
+        SeNetworkLogonRight
         SeProfileSingleProcessPrivilege
         SeRelabelPrivilege
+        SeRemoteInteractiveLogonRight
         SeRemoteShutdownPrivilege
         SeRestorePrivilege
         SeSecurityPrivilege
+        SeServiceLogonRight
         SeShutdownPrivilege
         SeSyncAgentPrivilege
         SeSystemEnvironmentPrivilege
@@ -254,7 +328,6 @@ Function Get-UserRightsAssignment {
         SeTimeZonePrivilege
         SeTrustedCredManAccessPrivilege
         SeUndockPrivilege
-        SeUnsolicitedInputPrivilege
 .EXAMPLE
     Get-UserRightsAssignment
 .EXAMPLE
@@ -289,16 +362,14 @@ Function Get-UserRightsAssignment {
         [Alias('PrincipalName')]
         [string]$Principal = '*',
         [Parameter(Mandatory = $true, ParameterSetName = 'Privileges', Position = 1)]
-        [ValidateSet('SeNetworkLogonRight', 'SeBackupPrivilege', 'SeChangeNotifyPrivilege', 'SeSystemtimePrivilege', 'SeCreatePagefilePrivilege',
-            'SeDebugPrivilege', 'SeRemoteShutdownPrivilege', 'SeAuditPrivilege', 'SeIncreaseQuotaPrivilege', 'SeIncreaseBasePriorityPrivilege',
-            'SeLoadDriverPrivilege', 'SeBatchLogonRight', 'SeServiceLogonRight', 'SeInteractiveLogonRight', 'SeSecurityPrivilege',
-            'SeSystemEnvironmentPrivilege', 'SeProfileSingleProcessPrivilege', 'SeSystemProfilePrivilege', 'SeAssignPrimaryTokenPrivilege',
-            'SeRestorePrivilege', 'SeShutdownPrivilege', 'SeTakeOwnershipPrivilege', 'SeDenyNetworkLogonRight', 'SeDenyInteractiveLogonRight',
-            'SeUndockPrivilege', 'SeManageVolumePrivilege', 'SeRemoteInteractiveLogonRight', 'SeImpersonatePrivilege', 'SeCreateGlobalPrivilege',
-            'SeIncreaseWorkingSetPrivilege', 'SeTimeZonePrivilege', 'SeCreateSymbolicLinkPrivilege', 'SeDelegateSessionUserImpersonatePrivilege',
-            'SeMachineAccountPrivilege', 'SeTrustedCredManAccessPrivilege', 'SeTcbPrivilege', 'SeCreateTokenPrivilege', 'SeCreatePermanentPrivilege',
-            'SeDenyBatchLogonRight', 'SeDenyServiceLogonRight', 'SeDenyRemoteInteractiveLogonRight', 'SeEnableDelegationPrivilege',
-            'SeLockMemoryPrivilege', 'SeRelabelPrivilege', 'SeSyncAgentPrivilege', IgnoreCase = $true
+        [ValidateSet('SeAssignPrimaryTokenPrivilege', 'SeAuditPrivilege', 'SeBackupPrivilege', 'SeBatchLogonRight', 'SeChangeNotifyPrivilege',
+            'SeCreateGlobalPrivilege', 'SeCreatePagefilePrivilege', 'SeCreatePermanentPrivilege', 'SeCreateSymbolicLinkPrivilege', 'SeCreateTokenPrivilege',
+            'SeDebugPrivilege', 'SeDelegateSessionUserImpersonatePrivilege', 'SeDenyBatchLogonRight', 'SeDenyInteractiveLogonRight', 'SeDenyNetworkLogonRight',
+            'SeDenyRemoteInteractiveLogonRight', 'SeDenyServiceLogonRight', 'SeEnableDelegationPrivilege', 'SeImpersonatePrivilege', 'SeIncreaseBasePriorityPrivilege',
+            'SeIncreaseQuotaPrivilege', 'SeIncreaseWorkingSetPrivilege', 'SeInteractiveLogonRight', 'SeLoadDriverPrivilege', 'SeLockMemoryPrivilege', 'SeMachineAccountPrivilege',
+            'SeManageVolumePrivilege', 'SeNetworkLogonRight', 'SeProfileSingleProcessPrivilege', 'SeRelabelPrivilege', 'SeRemoteInteractiveLogonRight', 'SeRemoteShutdownPrivilege',
+            'SeRestorePrivilege', 'SeSecurityPrivilege', 'SeServiceLogonRight', 'SeShutdownPrivilege', 'SeSyncAgentPrivilege', 'SeSystemEnvironmentPrivilege', 'SeSystemProfilePrivilege',
+            'SeSystemtimePrivilege', 'SeTakeOwnershipPrivilege', 'SeTcbPrivilege', 'SeTimeZonePrivilege', 'SeTrustedCredManAccessPrivilege', 'SeUndockPrivilege', IgnoreCase = $true
         )]
         [Alias('Rights')]
         [string[]]$Privilege
@@ -443,7 +514,7 @@ Function ConvertTo-HashtableFromPsCustomObject {
 
 #region Function Resolve-Error
 Function Resolve-Error {
-    <#
+<#
 .SYNOPSIS
     Enumerate error record details.
 .DESCRIPTION
@@ -622,7 +693,7 @@ Function Resolve-Error {
 
 #region Function Write-FunctionHeaderOrFooter
 Function Write-FunctionHeaderOrFooter {
-    <#
+<#
 .SYNOPSIS
     Write the function header or footer to the log upon first entering or exiting a function.
 .DESCRIPTION
@@ -679,7 +750,7 @@ Function Write-FunctionHeaderOrFooter {
 
 #region Function Write-Log
 Function Write-Log {
-    <#
+<#
 .SYNOPSIS
     Write messages to a log file in CMTrace.exe compatible format or Legacy text file format.
 .DESCRIPTION
@@ -945,7 +1016,7 @@ Function Write-Log {
 
 #region Function Get-WmiClass
 Function Get-WmiClass {
-    <#
+<#
 .SYNOPSIS
     This function is used to get WMI class details.
 .DESCRIPTION
@@ -1062,7 +1133,7 @@ Function Get-WmiClass {
 
 #region Function Get-WmiProperty
 Function Get-WmiProperty {
-    <#
+<#
 .SYNOPSIS
     This function is used to get the properties of a WMI class.
 .DESCRIPTION
@@ -1194,7 +1265,7 @@ Function Get-WmiProperty {
 
 #region Function Get-WmiNamespace
 Function Get-WmiNamespace {
-    <#
+<#
 .SYNOPSIS
     This function is used to get WMI namespace information.
 .DESCRIPTION
@@ -1337,7 +1408,7 @@ Function Get-WmiNamespace {
 
 #region Function Get-WmiNamespaceRecursive
 Function Get-WmiNamespaceRecursive {
-    <#
+<#
 .SYNOPSIS
     This function is used to get wmi namespaces recursively.
 .DESCRIPTION
@@ -1416,7 +1487,7 @@ Function Get-WmiNamespaceRecursive {
 
 #region Function New-WmiClass
 Function New-WmiClass {
-    <#
+<#
 .SYNOPSIS
     This function is used to create a WMI class.
 .DESCRIPTION
@@ -1556,7 +1627,7 @@ Function New-WmiClass {
 
 #region Function New-WmiInstance
 Function New-WmiInstance {
-    <#
+<#
 .SYNOPSIS
     This function is used to create a WMI Instance.
 .DESCRIPTION
@@ -1650,7 +1721,7 @@ Function New-WmiInstance {
 
 #region Function New-WmiNamespace
 Function New-WmiNamespace {
-    <#
+<#
 .SYNOPSIS
     This function is used to create a new WMI namespace.
 .DESCRIPTION
@@ -1792,7 +1863,7 @@ Function New-WmiNamespace {
 
 #region Function New-WmiProperty
 Function New-WmiProperty {
-    <#
+<#
 .SYNOPSIS
     This function is used to add properties to a WMI class.
 .DESCRIPTION
@@ -1929,7 +2000,7 @@ Function New-WmiProperty {
 
 #region Function Remove-WmiClass
 Function Remove-WmiClass {
-    <#
+<#
 .SYNOPSIS
     This function is used to remove a WMI class.
 .DESCRIPTION
@@ -2024,7 +2095,7 @@ Function Remove-WmiClass {
 
 #region Function Set-WmiClassQualifier
 Function Set-WmiClassQualifier {
-    <#
+<#
 .SYNOPSIS
     This function is used to set qualifiers to a WMI class.
 .DESCRIPTION
@@ -2131,7 +2202,7 @@ Function Set-WmiClassQualifier {
 
 #region Function Set-WmiPropertyQualifier
 Function Set-WmiPropertyQualifier {
-    <#
+<#
 .SYNOPSIS
     This function is used to set WMI property qualifier value.
 .DESCRIPTION
@@ -2264,7 +2335,7 @@ Function Set-WmiPropertyQualifier {
 #region ScriptBody
 
 ## Get User Rights Assignment
-$UserRightsAssignments = Get-UserRightsAssignment
+$UserRightsAssignments  = Get-UserRightsAssignment
 
 ## Remove existing class
 Remove-WmiClass -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -ErrorAction 'SilentlyContinue'
@@ -2277,14 +2348,25 @@ Remove-WmiClass -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' 
 New-WmiClass -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -Qualifiers $Qualifiers
 
 ## Add class properties
-New-WmiProperty -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -PropertyName 'PrincipalSID'  -PropertyType 'String' -Qualifiers @{Key = $true }
-New-WmiProperty -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -PropertyName 'PrincipalName' -PropertyType 'String'
-New-WmiProperty -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -PropertyName 'Privilege'     -PropertyType 'StringArray'
+New-WmiProperty -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -PropertyName 'PrincipalSID'     -PropertyType 'String' -Qualifiers @{ Key = $true }
+New-WmiProperty -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -PropertyName 'PrincipalName'    -PropertyType 'String'
+New-WmiProperty -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -PropertyName 'Privilege'        -PropertyType 'StringArray'
+New-WmiProperty -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -PropertyName 'PrivilegeBitMask' -PropertyType 'UInt64' -Qualifiers @{ Key = $true }
 
 ## Add class instances
 ForEach ($UserRightsAssignment in $UserRightsAssignments) {
-
+    #  Initialize loop variables
+    [uint64]$Bitmask = 0
+    [string[]]$Privileges = $UserRightsAssignment.Privilege
+    ForEach ($Privilege in $Privileges) {
+        #  Create bitmask
+        [UInt64]$Bitmask += [UInt64][UserRightsFlags]::$Privilege
+    }
+    #  Convert PSCustomObject to Hashtable
     [hashtable]$Property = $UserRightsAssignment | ConvertTo-HashtableFromPsCustomObject
+    #  Add bitmask to hashtable
+    $Property.Add('PrivilegeBitMask',  [UInt64]$Bitmask)
+    #  Write class instance
     New-WmiInstance -Namespace 'ROOT\CIMV2' -ClassName 'Win32_UserRightsAssignment' -Property $Property
 }
 

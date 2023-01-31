@@ -1,0 +1,7 @@
+CollectionName,Year,Month,OffsetWeeks,OffsetDays,StartTime,StopTime,SetForWholeYear,RemoveExisting,ApplyTo,
+MW - SUR - Workstations - Wave 0,2019,10,0,0,00:00,00:00,Yes,Yes,SoftwareUpdates,
+MW - SUR - Workstations - Wave 1,2019,10,1,3,00:00,00:00,Yes,Yes,SoftwareUpdates,
+MW - SUR - Workstations - Wave 2,2019,10,2,3,00:00,00:00,Yes,Yes,SoftwareUpdates,
+MW - SUR - Servers - Wave 0,2019,10,0,3,00:00,06:00,Yes,Yes,SoftwareUpdates,
+MW - SUR - Servers - Wave 1,2019,10,1,3,00:00,06:00,Yes,Yes,SoftwareUpdates,
+MW - SUR - Servers - Wave 2,2019,10,2,3,00:00,06:00,Yes,Yes,SoftwareUpdates,

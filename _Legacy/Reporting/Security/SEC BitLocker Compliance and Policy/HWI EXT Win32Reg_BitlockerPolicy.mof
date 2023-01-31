@@ -1,0 +1,345 @@
+//——————————————— // BitLocker Policy //———————————————
+
+//-- Set default Namespace and delete the Win32Reg_BitLockerPolicy if it already exists
+#PRAGMA Namespace   ("\\\\.\\Root\\CIMv2")
+#PRAGMA DeleteClass ("Win32Reg_BitLockerPolicy", NOFAIL)
+
+//-- Create custom class
+//-  Class properties
+[DYNPROPS]
+Class Win32Reg_BitLockerPolicy
+{
+    [KEY]
+    String    KeyName;
+
+//-  BitLocker General properties
+    Uint32    ActiveDirectoryBackup;
+    Uint32    ActiveDirectoryInfoToStore;
+    String    CertificateOID;
+    String    DefaultRecoveryFolderPath;
+    Uint32    DisableExternalDMAUnderLock;
+    Uint32    DisallowStandardUserPINReset;
+    Uint32    EnableBDEWithNoTPM;
+    Uint32    EnableNonTPM;
+    Uint32    EncryptionMethod;
+    Uint32    EncryptionMethodNoDiffuser;
+    Uint32    EncryptionMethodWithXtsFdv;
+    Uint32    EncryptionMethodWithXtsOs;
+    Uint32    EncryptionMethodWithXtsRdv;
+    Uint32    IdentificationField;
+    String    IdentificationFieldString;
+    Uint32    MinimumPIN;
+    Uint32    MorBehavior;
+    String    RecoveryKeyMessage;
+    Uint32    RecoveryKeyMessageSource;
+    String    RecoveryKeyUrl;
+    Uint32    RequireActiveDirectoryBackup;
+    String    SecondaryIdentificationField;
+    Uint32    TPMAutoReseal;
+    Uint32    UseAdvancedStartup;
+    Uint32    UseEnhancedPin;
+    Uint32    UsePartialEncryptionKey;
+    Uint32    UsePIN;
+    Uint32    UseRecoveryDrive;
+    Uint32    UseRecoveryPassword;
+    Uint32    UseTPM;
+    Uint32    UseTPMKey;
+    Uint32    UseTPMKeyPIN;
+    Uint32    UseTPMPIN;
+
+//-  BitLocker OS Drives properties
+    Uint32    OSActiveDirectoryBackup;
+    Uint32    OSActiveDirectoryInfoToStore;
+    String    OSAllowedHardwareEncryptionAlgorithms;
+    Uint32    OSAllowSecureBootForIntegrity;
+    Uint32    OSAllowSoftwareEncryptionFailover;
+    String    OSBcdAdditionalExcludedSettings;
+    String    OSBcdAdditionalSecurityCriticalSettings;
+    Uint32    OSEnablePrebootInputProtectorsOnSlates;
+    Uint32    OSEnablePreBootPinExceptionOnDECapableDevice;
+    Uint32    OSEncryptionType;
+    Uint32    OSHardwareEncryption;
+    Uint32    OSHideRecoveryPage;
+    Uint32    OSManageDRA;
+    Uint32    OSManageNKP;
+    Uint32    OSPassphrase;
+    Uint32    OSPassphraseASCIIOnly;
+    Uint32    OSPassphraseComplexity;
+    Uint32    OSPassphraseLength;
+    Uint32    OSRecovery;
+    Uint32    OSRecoveryKey;
+    Uint32    OSRecoveryPassword;
+    Uint32    OSRequireActiveDirectoryBackup;
+    Uint32    OSRestrictHardwareEncryptionAlgorithms;
+    Uint32    OSUseEnhancedBcdProfile;
+
+//-  BitLocker Fixed Data Drives properties
+    Uint32   FDVActiveDirectoryBackup;
+    Uint32   FDVActiveDirectoryInfoToStore;
+    String   FDVAllowedHardwareEncryptionAlgorithms;
+    Uint32   FDVAllowSoftwareEncryptionFailover;
+    Uint32   FDVAllowUserCert;
+    String   FDVDiscoveryVolumeType;
+    Uint32   FDVEncryptionType;
+    Uint32   FDVEnforcePassphrase;
+    Uint32   FDVEnforceUserCert;
+    Uint32   FDVHardwareEncryption;
+    Uint32   FDVHideRecoveryPage;
+    Uint32   FDVManageDRA;
+    Uint32   FDVNoBitLockerToGoReader;
+    Uint32   FDVPassphrase;
+    Uint32   FDVPassphraseComplexity;
+    Uint32   FDVPassphraseLength;
+    Uint32   FDVRecovery;
+    Uint32   FDVRecoveryKey;
+    Uint32   FDVRecoveryPassword;
+    Uint32   FDVRequireActiveDirectoryBackup;
+    Uint32   FDVRestrictHardwareEncryptionAlgorithms;
+
+//-  BitLocker Removable Data Drives properties
+    Uint32   RDVActiveDirectoryBackup;
+    Uint32   RDVActiveDirectoryInfoToStore;
+    Uint32   RDVAllowBDE;
+    String   RDVAllowedHardwareEncryptionAlgorithms;
+    Uint32   RDVAllowSoftwareEncryptionFailover;
+    Uint32   RDVAllowUserCert;
+    Uint32   RDVConfigureBDE;
+    Uint32   RDVDenyCrossOrg;
+    Uint32   RDVDisableBDE;
+    String   RDVDiscoveryVolumeType;
+    Uint32   RDVEncryptionType;
+    Uint32   RDVEnforcePassphrase;
+    Uint32   RDVEnforceUserCert;
+    Uint32   RDVHardwareEncryption;
+    Uint32   RDVHideRecoveryPage;
+    Uint32   RDVManageDRA;
+    Uint32   RDVNoBitLockerToGoReader;
+    Uint32   RDVPassphrase;
+    Uint32   RDVPassphraseComplexity;
+    Uint32   RDVPassphraseLength;
+    Uint32   RDVRecovery;
+    Uint32   RDVRecoveryKey;
+    Uint32   RDVRecoveryPassword;
+    Uint32   RDVRequireActiveDirectoryBackup;
+    Uint32   RDVRestrictHardwareEncryptionAlgorithms;
+};
+
+[DYNPROPS]
+Instance of Win32Reg_BitLockerPolicy
+{
+    KeyName = "Win32Reg_BitLockerPolicy";
+
+//-  BitLocker General settings
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|ActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        ActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|ActiveDirectoryInfoToStore"), Dynamic, Provider ("RegPropProv") ]
+        ActiveDirectoryInfoToStore;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|CertificateOID"), Dynamic, Provider ("RegPropProv") ]
+        CertificateOID;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|DefaultRecoveryFolderPath"), Dynamic, Provider ("RegPropProv") ]
+        DefaultRecoveryFolderPath;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|DisableExternalDMAUnderLock"), Dynamic, Provider ("RegPropProv") ]
+        DisableExternalDMAUnderLock;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|DisallowStandardUserPINReset"), Dynamic, Provider ("RegPropProv") ]
+        DisallowStandardUserPINReset;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|EnableBDEWithNoTPM"), Dynamic, Provider ("RegPropProv") ]
+        EnableBDEWithNoTPM;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|EnableNonTPM"), Dynamic, Provider ("RegPropProv") ]
+        EnableNonTPM;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|EncryptionMethod"), Dynamic, Provider ("RegPropProv") ]
+        EncryptionMethod;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|EncryptionMethodNoDiffuser"), Dynamic, Provider ("RegPropProv") ]
+        EncryptionMethodNoDiffuser;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|EncryptionMethodWithXtsFdv"), Dynamic, Provider ("RegPropProv") ]
+        EncryptionMethodWithXtsFdv;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|EncryptionMethodWithXtsOs"), Dynamic, Provider ("RegPropProv") ]
+        EncryptionMethodWithXtsOs;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|EncryptionMethodWithXtsRdv"), Dynamic, Provider ("RegPropProv") ]
+        EncryptionMethodWithXtsRdv;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|IdentificationField"), Dynamic, Provider ("RegPropProv") ]
+        IdentificationField;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|IdentificationFieldString"), Dynamic, Provider ("RegPropProv") ]
+        IdentificationFieldString;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|MinimumPIN"), Dynamic, Provider ("RegPropProv") ]
+        MinimumPIN;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|MorBehavior"), Dynamic, Provider ("RegPropProv") ]
+        MorBehavior;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RecoveryKeyMessage"), Dynamic, Provider ("RegPropProv") ]
+        RecoveryKeyMessage;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RecoveryKeyMessageSource"), Dynamic, Provider ("RegPropProv") ]
+        RecoveryKeyMessageSource;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RecoveryKeyUrl"), Dynamic, Provider ("RegPropProv") ]
+        RecoveryKeyUrl;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RequireActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        RequireActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|SecondaryIdentificationField"), Dynamic, Provider ("RegPropProv") ]
+        SecondaryIdentificationField;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|TPMAutoReseal"), Dynamic, Provider ("RegPropProv") ]
+        TPMAutoReseal;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseAdvancedStartup"), Dynamic, Provider ("RegPropProv") ]
+        UseAdvancedStartup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseEnhancedPin"), Dynamic, Provider ("RegPropProv") ]
+        UseEnhancedPin;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UsePartialEncryptionKey"), Dynamic, Provider ("RegPropProv") ]
+        UsePartialEncryptionKey;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UsePIN"), Dynamic, Provider ("RegPropProv") ]
+        UsePIN;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseRecoveryDrive"), Dynamic, Provider ("RegPropProv") ]
+        UseRecoveryDrive;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseRecoveryPassword"), Dynamic, Provider ("RegPropProv") ]
+        UseRecoveryPassword;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseTPM"), Dynamic, Provider ("RegPropProv") ]
+        UseTPM;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseTPMKey"), Dynamic, Provider ("RegPropProv") ]
+        UseTPMKey;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseTPMKeyPIN"), Dynamic, Provider ("RegPropProv") ]
+        UseTPMKeyPIN;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|UseTPMPIN"), Dynamic, Provider ("RegPropProv") ]
+        UseTPMPIN;
+
+//-  BitLocker OS Drives settings
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        OSActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSActiveDirectoryInfoToStore"), Dynamic, Provider ("RegPropProv") ]
+        OSActiveDirectoryInfoToStore;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSAllowedHardwareEncryptionAlgorithms"), Dynamic, Provider ("RegPropProv") ]
+        OSAllowedHardwareEncryptionAlgorithms;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSAllowSecureBootForIntegrity"), Dynamic, Provider ("RegPropProv") ]
+        OSAllowSecureBootForIntegrity;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSAllowSoftwareEncryptionFailover"), Dynamic, Provider ("RegPropProv") ]
+        OSAllowSoftwareEncryptionFailover;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSBcdAdditionalExcludedSettings"), Dynamic, Provider ("RegPropProv") ]
+        OSBcdAdditionalExcludedSettings;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSBcdAdditionalSecurityCriticalSettings"), Dynamic, Provider ("RegPropProv") ]
+        OSBcdAdditionalSecurityCriticalSettings;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSEnablePrebootInputProtectorsOnSlates"), Dynamic, Provider ("RegPropProv") ]
+        OSEnablePrebootInputProtectorsOnSlates;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSEnablePreBootPinExceptionOnDECapableDevice"), Dynamic, Provider ("RegPropProv") ]
+        OSEnablePreBootPinExceptionOnDECapableDevice;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSEncryptionType"), Dynamic, Provider ("RegPropProv") ]
+        OSEncryptionType;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSHardwareEncryption"), Dynamic, Provider ("RegPropProv") ]
+        OSHardwareEncryption;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSHideRecoveryPage"), Dynamic, Provider ("RegPropProv") ]
+        OSHideRecoveryPage;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSManageDRA"), Dynamic, Provider ("RegPropProv") ]
+        OSManageDRA;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSManageNKP"), Dynamic, Provider ("RegPropProv") ]
+        OSManageNKP;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSPassphrase"), Dynamic, Provider ("RegPropProv") ]
+        OSPassphrase;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSPassphraseASCIIOnly"), Dynamic, Provider ("RegPropProv") ]
+        OSPassphraseASCIIOnly;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSPassphraseComplexity"), Dynamic, Provider ("RegPropProv") ]
+        OSPassphraseComplexity;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSPassphraseLength"), Dynamic, Provider ("RegPropProv") ]
+        OSPassphraseLength;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSRecovery"), Dynamic, Provider ("RegPropProv") ]
+        OSRecovery;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSRecoveryKey"), Dynamic, Provider ("RegPropProv") ]
+        OSRecoveryKey;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSRecoveryPassword"), Dynamic, Provider ("RegPropProv") ]
+        OSRecoveryPassword;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSRequireActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        OSRequireActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSRestrictHardwareEncryptionAlgorithms"), Dynamic, Provider ("RegPropProv") ]
+        OSRestrictHardwareEncryptionAlgorithms;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|OSUseEnhancedBcdProfile"), Dynamic, Provider ("RegPropProv") ]
+        OSUseEnhancedBcdProfile;
+
+//-  BitLocker Fixed Data Drives settings
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        FDVActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVActiveDirectoryInfoToStore"), Dynamic, Provider ("RegPropProv") ]
+        FDVActiveDirectoryInfoToStore;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVAllowedHardwareEncryptionAlgorithms"), Dynamic, Provider ("RegPropProv") ]
+        FDVAllowedHardwareEncryptionAlgorithms;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVAllowSoftwareEncryptionFailover"), Dynamic, Provider ("RegPropProv") ]
+        FDVAllowSoftwareEncryptionFailover;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVAllowUserCert"), Dynamic, Provider ("RegPropProv") ]
+        FDVAllowUserCert;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVDiscoveryVolumeType"), Dynamic, Provider ("RegPropProv") ]
+        FDVDiscoveryVolumeType;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVEncryptionType"), Dynamic, Provider ("RegPropProv") ]
+        FDVEncryptionType;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVEnforcePassphrase"), Dynamic, Provider ("RegPropProv") ]
+        FDVEnforcePassphrase;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVEnforceUserCert"), Dynamic, Provider ("RegPropProv") ]
+        FDVEnforceUserCert;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVHardwareEncryption"), Dynamic, Provider ("RegPropProv") ]
+        FDVHardwareEncryption;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVHideRecoveryPage"), Dynamic, Provider ("RegPropProv") ]
+        FDVHideRecoveryPage;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVManageDRA"), Dynamic, Provider ("RegPropProv") ]
+        FDVManageDRA;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVNoBitLockerToGoReader"), Dynamic, Provider ("RegPropProv") ]
+        FDVNoBitLockerToGoReader;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVPassphrase"), Dynamic, Provider ("RegPropProv") ]
+        FDVPassphrase;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVPassphraseComplexity"), Dynamic, Provider ("RegPropProv") ]
+        FDVPassphraseComplexity;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVPassphraseLength"), Dynamic, Provider ("RegPropProv") ]
+        FDVPassphraseLength;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVRecovery"), Dynamic, Provider ("RegPropProv") ]
+        FDVRecovery;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVRecoveryKey"), Dynamic, Provider ("RegPropProv") ]
+        FDVRecoveryKey;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVRecoveryPassword"), Dynamic, Provider ("RegPropProv") ]
+        FDVRecoveryPassword;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVRequireActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        FDVRequireActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|FDVRestrictHardwareEncryptionAlgorithms"), Dynamic, Provider ("RegPropProv") ]
+        FDVRestrictHardwareEncryptionAlgorithms;
+
+//-  BitLocker Removable Data Drives settings
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        RDVActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVActiveDirectoryInfoToStore"), Dynamic, Provider ("RegPropProv") ]
+        RDVActiveDirectoryInfoToStore;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVAllowBDE"), Dynamic, Provider ("RegPropProv") ]
+        RDVAllowBDE;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVAllowedHardwareEncryptionAlgorithms"), Dynamic, Provider ("RegPropProv") ]
+        RDVAllowedHardwareEncryptionAlgorithms;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVAllowSoftwareEncryptionFailover"), Dynamic, Provider ("RegPropProv") ]
+        RDVAllowSoftwareEncryptionFailover;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVAllowUserCert"), Dynamic, Provider ("RegPropProv") ]
+        RDVAllowUserCert;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVConfigureBDE"), Dynamic, Provider ("RegPropProv") ]
+        RDVConfigureBDE;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVDenyCrossOrg"), Dynamic, Provider ("RegPropProv") ]
+        RDVDenyCrossOrg;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVDisableBDE"), Dynamic, Provider ("RegPropProv") ]
+        RDVDisableBDE;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVDiscoveryVolumeType"), Dynamic, Provider ("RegPropProv") ]
+        RDVDiscoveryVolumeType;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVEncryptionType"), Dynamic, Provider ("RegPropProv") ]
+        RDVEncryptionType;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVEnforcePassphrase"), Dynamic, Provider ("RegPropProv") ]
+        RDVEnforcePassphrase;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVEnforceUserCert"), Dynamic, Provider ("RegPropProv") ]
+        RDVEnforceUserCert;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVHardwareEncryption"), Dynamic, Provider ("RegPropProv") ]
+        RDVHardwareEncryption;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVHideRecoveryPage"), Dynamic, Provider ("RegPropProv") ]
+        RDVHideRecoveryPage;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVManageDRA"), Dynamic, Provider ("RegPropProv") ]
+        RDVManageDRA;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVNoBitLockerToGoReader"), Dynamic, Provider ("RegPropProv") ]
+        RDVNoBitLockerToGoReader;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVPassphrase"), Dynamic, Provider ("RegPropProv") ]
+        RDVPassphrase;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVPassphraseComplexity"), Dynamic, Provider ("RegPropProv") ]
+        RDVPassphraseComplexity;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVPassphraseLength"), Dynamic, Provider ("RegPropProv") ]
+        RDVPassphraseLength;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVRecovery"), Dynamic, Provider ("RegPropProv") ]
+        RDVRecovery;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVRecoveryKey"), Dynamic, Provider ("RegPropProv") ]
+        RDVRecoveryKey;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVRecoveryPassword"), Dynamic, Provider ("RegPropProv") ]
+        RDVRecoveryPassword;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVRequireActiveDirectoryBackup"), Dynamic, Provider ("RegPropProv") ]
+        RDVRequireActiveDirectoryBackup;
+    [ PropertyContext ("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Policies\\Microsoft\\FVE|RDVRestrictHardwareEncryptionAlgorithms"), Dynamic, Provider ("RegPropProv") ]
+        RDVRestrictHardwareEncryptionAlgorithms;
+};

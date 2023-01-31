@@ -1,0 +1,3 @@
+CollectionName,Date,StartTime,StopTime,RemoveExisting,ApplyTo,
+MWT.TST.Servers.Scripted.GroupA,2017-09-21,09:00,10:00,Yes,TaskSequences,
+MWT.TST.Servers.Scripted.GroupB,2017-09-21,00:30,04:30,Yes,TaskSequences,
