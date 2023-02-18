@@ -99,7 +99,7 @@ function runAsRoot() {
         exit
     fi
 }
-#endregions
+#endregion
 
 #region Function startLogging
 function startLogging() {
@@ -160,7 +160,7 @@ function displayNotification() {
 #.SYNOPSIS
 #    Displays a notification.
 #.DESCRIPTION
-#    Migrates the user password to the local account by removing the Kerberos and LocalCachedUser user values from the AuthenticationAuthority array.
+#    Displays a notification to the user.
 #.PARAMETER messageText
 #    Specifies the message of the notification.
 #.PARAMETER messageTitle
