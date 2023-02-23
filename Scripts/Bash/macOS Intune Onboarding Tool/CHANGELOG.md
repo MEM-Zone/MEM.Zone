@@ -1,5 +1,9 @@
 # macOS Intune Onboarding Tool release history
 
+## 2.1.0 - 2023-02-23
+
+* Added `suppressNotification` parameter to the `displayNotification` function. This breaks the previous version because the parameter positions have shifted.
+
 ## 2.0.0 - 2023-02-17
 
 * Re-wrote the whole script, it was not usable.

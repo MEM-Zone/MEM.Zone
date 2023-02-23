@@ -169,14 +169,18 @@ function displayNotification() {
 #    Specifies the subtitle of the notification. Defaults to $messageSubtitle.
 #.PARAMETER messageDuration
 #    Specifies the minimum duration of the notification in seconds. Defaults to 2.
+#.PARAMETER supressNotification
+#    Suppresses the notification. Defaults to false.
 #.PARAMETER supressTerminal
 #    Suppresses the notification in the terminal. Defaults to false.
 #.EXAMPLE
-#    displayNotification "message" "title" "subtitle" "duration"
+#    displayNotification 'message' 'title' 'subtitle' 'duration'
 #.EXAMPLE
-#    displayNotification "message" "title" "subtitle" '' 'true'
+#    displayNotification 'message' 'title' 'subtitle' '' '' 'suppressTerminal'
 #.EXAMPLE
-#    displayNotification "message"
+#    displayNotification 'message' 'title' 'subtitle' '' 'suppressNotification' ''
+#.EXAMPLE
+#    displayNotification 'message'
 #.INPUTS
 #    None.
 #.OUTPUTS
@@ -193,6 +197,8 @@ function displayNotification() {
     local messageTitle
     local messageSubtitle
     local messageDuration
+    local supressTerminal
+    local supressNotification
     #  Message
     messageText="${1}"
     #  Title
@@ -210,21 +216,29 @@ function displayNotification() {
         messageDuration=2
     else messageDuration="${4}"
     fi
-    #  Supress terminal
+    #  Supress notification
     if [[ -z "${5}" ]]; then
+        supressNotification='false'
+    else supressNotification="${5}"
+    fi
+    #  Supress terminal
+    if [[ -z "${6}" ]]; then
         supressTerminal='false'
-    else supressTerminal="${5}"
+    else supressTerminal="${6}"
     fi
 
+
     ## Debug variables
-    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration"
+    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
 
     ## Display notification
-    osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
-    sleep "$messageDuration"
+    if [[ "$supressNotification" == 'false' ]]; then
+        osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
+        sleep "$messageDuration"
+    fi
 
     ## Display notification in terminal
-    if [[ "$supressTerminal" == 'false' ]]; then echo "$messageText" ; fi
+    if [[ "$supressTerminal" == 'false' ]]; then echo "$(date) | $messageText" ; fi
 }
 #endregion
 
@@ -462,7 +476,7 @@ function startJamfOffboarding() {
     ## Check if JAMF binaries are present
     hasJamfBinaries=$(which jamf)
     if [[ -z "$hasJamfBinaries" ]]; then
-        displayNotification "JAMF binaries are not present on this Mac..."
+        displayNotification 'JAMF binaries are not present on this Mac...'
         return 1
     fi
 
@@ -520,7 +534,7 @@ runAsRoot "$FULL_SCRIPT_NAME"
 startLogging "$LOG_NAME" "$LOG_DIR" "$LOG_HEADER"
 
 ## Show script version and suppress terminal output
-displayNotification "Running $SCRIPT_NAME version $SCRIPT_VERSION" '' '' '' 'true'
+displayNotification "Running $SCRIPT_NAME version $SCRIPT_VERSION" '' '' '' '' 'suppressTerminal'
 
 ## If Company Portal is installed, continue, otherwise quit
 if open -Ra 'Company Portal'; then
