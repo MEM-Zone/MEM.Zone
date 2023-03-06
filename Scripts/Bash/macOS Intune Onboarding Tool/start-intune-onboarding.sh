@@ -164,9 +164,9 @@ function displayNotification() {
 #.PARAMETER messageText
 #    Specifies the message of the notification.
 #.PARAMETER messageTitle
-#    Specifies the title of the notification. Defaults to $messageTitle.
+#    Specifies the title of the notification. Defaults to $MESSAGE_TITLE.
 #.PARAMETER messageSubtitle
-#    Specifies the subtitle of the notification. Defaults to $messageSubtitle.
+#    Specifies the subtitle of the notification. Defaults to $$MESSAGE_SUBTITLE.
 #.PARAMETER messageDuration
 #    Specifies the minimum duration of the notification in seconds. Defaults to 2.
 #.PARAMETER supressNotification
@@ -227,7 +227,6 @@ function displayNotification() {
     else supressTerminal="${6}"
     fi
 
-
     ## Debug variables
     #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
 
@@ -239,6 +238,165 @@ function displayNotification() {
 
     ## Display notification in terminal
     if [[ "$supressTerminal" == 'false' ]]; then echo "$(date) | $messageText" ; fi
+}
+#endregion
+
+#region Function displayDialog
+function displayDialog() {
+#.SYNOPSIS
+#    Displays a dialog box.
+#.DESCRIPTION
+#    Displays a dialog box with customizable buttons and optional password prompt.
+#.PARAMETER messageText
+#    Specifies the message of the dialog.
+#.PARAMETER messageTitle
+#    Specifies the title of the dialog. Defaults to $MESSAGE_TITLE.
+#.PARAMETER messageSubtitle
+#    Specifies the subtitle of the notification. Defaults to $MESAGE_SUBTITLE.
+#.PARAMETER button1Name
+#    Specifies the name of the first button. Defaults to 'Cancel'.
+#.PARAMETER button2Name
+#    Specifies the name of the second button. Defaults to 'Ok'.
+#.PARAMETER defaultButton
+#    Specifies the default button. Defaults to '2'.
+#.PARAMETER cancelButton
+#    Specifies the button to exit on. Defaults to ''.
+#.PARAMETER messageIcon
+#    Specifies the message icon POSIX file path. Defaults '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/UserIcon.icns'.
+#.PARAMETER promptType
+#    Specifies the type of prompt.
+#    Avaliable options:
+#        'buttonPrompt'   - Button prompt.
+#        'textPrompt'     - Text prompt.
+#        'passwordPrompt' - Password prompt.
+#    Defaults to 'buttonPrompt'.
+#.EXAMPLE
+#    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Agree' '1' '' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'buttonPrompt'
+#.EXAMPLE
+#    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Stop' '1' 'Stop' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'textPrompt'
+#.EXAMPLE
+#    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Don't Continue' '1' 'Don't Continue' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
+#.INPUTS
+#    Text.
+#.OUTPUTS
+#    Text.
+#.NOTES
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/GIT
+
+    ## Set human readable parameters
+    local messageText
+    local messageTitle
+    local messageSubtitle
+    local button1Name
+    local button2Name
+    local defaultButton
+    local cancelButton
+    local messageIcon
+    local promptType
+    local commandOutput
+
+    #  Message
+    messageText="${1}"
+    #  Title
+    if [[ -z "${2}" ]]; then
+        messageTitle="${MESSAGE_TITLE}"
+    else messageTitle="${2}"
+    fi
+    #  Subtitle
+    if [[ -z "${3}" ]]; then
+        messageSubtitle="${MESSAGE_SUBTITLE}"
+    else messageSubtitle="${3}"
+    fi
+    #  Button 1 name
+    if [[ -z "${4}" ]]; then
+        button1Name='Cancel'
+    else button1Name="${4}"
+    fi
+    #  Button 2 name
+    if [[ -z "${5}" ]]; then
+        button2Name='Ok'
+    else button2Name="${5}"
+    fi
+    #  Default button
+    if [[ -z "${6}" ]]; then
+        defaultButton=2
+    else defaultButton="${6}"
+    fi
+    #  Cancel button
+    if [[ -z "${7}" ]]; then
+        cancelButton=''
+    else cancelButton="cancel button \"${7}\""
+    fi
+    #  Icon
+    if [[ -z "${8}" ]]; then
+        messageIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/UserIcon.icns'
+    else messageIcon="${8}"
+    fi
+    #  Prompt type
+    case "${9}" in
+        'buttonPrompt')
+            promptType='buttonPrompt'
+        ;;
+        'textPrompt')
+            promptType='textPrompt'
+        ;;
+        'passwordPrompt')
+            promptType='passwordPrompt'
+        ;;
+        *)
+            promptType='buttonPrompt'
+        ;;
+    esac
+
+    ## Debug variables
+    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageIcon: $messageIcon; button1Name: $button1Name; button2Name: $button2Name; defaultButton: $defaultButton; cancelButton: $cancelButton; messageIcon: $messageIcon; promptType: $promptType"
+
+    ## Display dialog box
+    case "$promptType" in
+        'buttonPrompt')
+            #  Display dialog with no input. Returns button pressed.
+            commandOutput=$(osascript -e "
+                on run
+                    display dialog \"${messageSubtitle}\n${messageText}\" with title \"${messageTitle}\" buttons {\"${button1Name}\", \"${button2Name}\"} default button ${defaultButton} ${cancelButton} with icon POSIX file \"${messageIcon}\"
+                    set commandOutput to button returned of the result
+                    return commandOutput
+                end run
+            ")
+        ;;
+        'textPrompt')
+            #  Display dialog with text input. Returns text.
+            commandOutput=$(osascript -e "
+                on run
+                    display dialog \"${messageSubtitle}\n${messageText}\" default answer \"\" with title \"${messageTitle}\" with text and answer buttons {\"${button1Name}\", \"${button2Name}\"} default button ${defaultButton} ${cancelButton} with icon POSIX file \"${messageIcon}\"
+                    set commandOutput to text returned of the result
+                    return commandOutput
+                end run
+            ")
+        ;;
+        'passwordPrompt')
+            #  Display dialog with hidden password input. Returns text.
+            commandOutput=$(osascript -e "
+                on run
+                    display dialog \"${messageSubtitle}\n${messageText}\" default answer \"\" with title \"${messageTitle}\" with text and hidden answer buttons {\"${button1Name}\", \"${button2Name}\"} default button ${defaultButton} ${cancelButton} with icon POSIX file \"${messageIcon}\"
+                    set commandOutput to text returned of the result
+                    return commandOutput
+                end run
+            ")
+        ;;
+    esac
+
+    ## Exit on error
+    if [[ $commandOutput = *"Error"* ]] ; then
+        displayNotification "Error: $commandOutput" '' '' '' 'suppressNotification'
+        exit 1
+    fi
+
+    ## Return commandOutput. Remember to assign the result to a variable, if you print it to the terminal, it will be logged.
+    echo "$commandOutput"
 }
 #endregion
 
@@ -288,6 +446,95 @@ function unbindFromAD() {
     ## Change the /Search and /Search/Contacts path type from Custom to Automatic
     /usr/bin/dscl /Search -change . SearchPolicy dsAttrTypeStandard:CSPSearchPath dsAttrTypeStandard:NSPSearchPath
     /usr/bin/dscl /Search/Contacts -change . SearchPolicy dsAttrTypeStandard:CSPSearchPath dsAttrTypeStandard:NSPSearchPath
+}
+#endregion
+
+#region Function disableFileVault
+function disableFileVault() {
+#.SYNOPSIS
+#    Disables filevault.
+#.DESCRIPTION
+#    Disables filevault for the current user by prompting for the password, and populating answers for the fdesetup prompts.
+#.EXAMPLE
+#    disableFileVault
+#.INPUTS
+#    Text.
+#.OUTPUTS
+#    None.
+#.NOTES
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://github.com/jamf/FileVault2_Scripts/blob/master/reissueKey.sh (Original script and copyright notice)
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/GIT
+
+    ## Variable declaration
+    local fileVaultIcon
+    local userName
+    local userNameUUID
+    local isFileVaultUser
+    local isFileVaultOn
+    local loopCounter=1
+
+    ## Set filevault icon
+    fileVaultIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FileVaultIcon.icns'
+
+    ## Get the logged in user's name
+    userName=$(/usr/bin/stat -f%Su /dev/console)
+
+    ## Get the user's UUID
+    userNameUUID=$(dscl . -read /Users/"$userName"/ GeneratedUID | awk '{print $2}')
+
+    ## Check if user is an authorized FileVault user
+    isFileVaultUser=$(fdesetup list | awk -v usrN="$userNameUUID" -F, 'match($0, usrN) {print $1}')
+    if [ "${isFileVaultUser}" != "${userName}" ]; then
+        displayNotification "${userName} is not a FileVault authorized user. Exiting..."
+        exit 2
+    fi
+
+    ## Check to see if the encryption has finished
+    isFileVaultOn=$(fdesetup status | grep "FileVault is On.")
+    if [ -z "$isFileVaultOn" ]; then
+        displayNotification 'FileVault is not on. Exiting...'
+        exit 3
+    fi
+
+    ## Disable FileVault
+    while true; do
+
+        ## Get the logged in user's password via a prompt
+        userPassword=$(displayDialog "Enter $userName's password:" 'Turn off Filevault' 'Filevault needs to be disabled prior to onboarding!' 'Exit' 'Disable FileVault' '2' 'Exit' "$fileVaultIcon" 'passwordPrompt')
+
+        ## Automatically populate answers for the fdesetup prompts
+        output=$(
+            expect -c "
+            log_user 0
+            spawn fdesetup disable
+            expect \"Enter the user name:\"
+            send {${userName}}
+            send \r
+            expect \"Enter a password for '/', or the recovery key:\"
+            send {${userPassword}}
+            send \r
+            log_user 1
+            expect eof
+        ")
+        echo "$output"
+
+        if [[ $output = *'Error'* ]] || [[ $output = *'FileVault was not disabled'* ]] ; then
+            displayNotification "Error disabling FileVault. Attempt (${loopCounter}/3)."
+            if [ $loopCounter -ge 3 ] ; then
+                displayNotification 'A maximum of 3 retries has been reached.\nContinuing without disabling FileVault...'
+                exit 0
+            fi
+            ((loopCounter++))
+        else
+            displayNotification "Successfully disabled FileVault!"
+            exit 0
+        fi
+    done
 }
 #endregion
 
@@ -502,11 +749,11 @@ function startJamfOffboarding() {
 
     ## Remove MDM Profiles
     displayNotification 'Removing MDM Profiles...'
-    jamf removeMdmProfile
+    sudo jamf removeMdmProfile
 
     ## Remove JAMF Framework
     displayNotification 'Removing JAMF Framework...'
-    jamf removeFramework
+    sudo jamf removeFramework
 
     ## Remove Configuration Profiles
     displayNotification 'Removing Configuration Profiles...'
@@ -560,6 +807,10 @@ fi
 
 ## Offboard JAMF
 if [[ $OFFBOARD_JAMF = 'YES' ]] ; then startJamfOffboarding ; fi
+
+## Disable FileVault
+displayNotification 'Disabling FileVault...'
+disableFileVault
 
 ## Start Company Portal
 displayNotification 'Starting Company Portal...'
