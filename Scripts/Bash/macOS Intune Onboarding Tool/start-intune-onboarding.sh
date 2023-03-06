@@ -40,7 +40,7 @@ OFFBOARD_JAMF='YES'
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=2.0.2
+SCRIPT_VERSION=2.3.0
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
@@ -449,14 +449,20 @@ function unbindFromAD() {
 }
 #endregion
 
-#region Function disableFileVault
-function disableFileVault() {
+#region Function invokeFileVaultAction
+function invokeFileVaultAction() {
 #.SYNOPSIS
-#    Disables filevault.
+#    Invokes a FileVault action.
 #.DESCRIPTION
-#    Disables filevault for the current user by prompting for the password, and populating answers for the fdesetup prompts.
+#    Invokes a FileVault action for the current user by prompting for the password, and populating answers for the fdesetup prompts.
+#.PARAMETER action
+#    Specify the action to invoke. Valid values are 'enable', 'disable', and 'reissueKey'.
 #.EXAMPLE
-#    disableFileVault
+#    invokeFileVaultAction 'enable'
+#.EXAMPLE
+#    invokeFileVaultAction 'disable'
+#.EXAMPLE
+#    invokeFileVaultAction 'reissueKey'
 #.INPUTS
 #    Text.
 #.OUTPUTS
@@ -477,6 +483,42 @@ function disableFileVault() {
     local isFileVaultUser
     local isFileVaultOn
     local loopCounter=1
+    local action
+    local actionMessage
+    local actionTitle
+    local actionSubtitle
+    local actionButton
+    local checkFileVaultStatus
+
+    ## Set action
+    case "$1" in
+        'enable')
+            action="$1"
+            actionTitle='Enable FileVault'
+            actionSubtitle='FileVault needs to be enabled!'
+            actionButton='Enable FileVault'
+            checkFileVaultStatus='On'
+        ;;
+        'disable')
+            action="$1"
+            actionTitle='Disable FileVault'
+            actionSubtitle='FileVault needs to be disabled!'
+            actionButton='Disable FileVault'
+            checkFileVaultStatus='Off'
+
+        ;;
+        'reissueKey')
+            action='changerecovery -personal'
+            actionTitle='Reissue FileVault Key'
+            actionSubtitle='FileVault needs to reissue the key!'
+            actionButton='Reissue Key'
+            checkFileVaultStatus='NotNeeded'
+        ;;
+        *)
+            displayNotification 'Invalid action. Exiting...' '' '' '' 'suppressNotification'
+            exit 1
+        ;;
+    esac
 
     ## Set filevault icon
     fileVaultIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FileVaultIcon.icns'
@@ -496,22 +538,32 @@ function disableFileVault() {
 
     ## Check to see if the encryption has finished
     isFileVaultOn=$(fdesetup status | grep "FileVault is On.")
-    if [ -z "$isFileVaultOn" ]; then
-        displayNotification 'FileVault is not on. Exiting...'
-        exit 3
+
+    ## Check FileVault status
+    if [ "$checkFileVaultStatus" = 'On' ]; then
+        if [ -n "$isFileVaultOn" ]; then
+            displayNotification 'FileVault is already enabled. Exiting...'
+            exit 3
+        fi
+    else
+         if [ -z "$isFileVaultOn" ]; then
+            displayNotification 'FileVault is not enabled. Exiting...'
+            exit 3
+        fi
     fi
 
     ## Disable FileVault
     while true; do
 
         ## Get the logged in user's password via a prompt
-        userPassword=$(displayDialog "Enter $userName's password:" 'Turn off Filevault' 'Filevault needs to be disabled prior to onboarding!' 'Exit' 'Disable FileVault' '2' 'Exit' "$fileVaultIcon" 'passwordPrompt')
+        actionMessage="Enter $userName's password:"
+        userPassword=$(displayDialog "$actionMessage" "$actionTitle" "$actionSubtitle" 'Exit' "$actionButton" '2' 'Exit' "$fileVaultIcon" 'passwordPrompt')
 
         ## Automatically populate answers for the fdesetup prompts
         output=$(
             expect -c "
             log_user 0
-            spawn fdesetup disable
+            spawn fdesetup $action
             expect \"Enter the user name:\"
             send {${userName}}
             send \r
@@ -526,12 +578,12 @@ function disableFileVault() {
         if [[ $output = *'Error'* ]] || [[ $output = *'FileVault was not disabled'* ]] ; then
             displayNotification "Error disabling FileVault. Attempt (${loopCounter}/3)."
             if [ $loopCounter -ge 3 ] ; then
-                displayNotification 'A maximum of 3 retries has been reached.\nContinuing without disabling FileVault...'
+                displayNotification "A maximum of 3 retries has been reached.\nContinuing without performing FileVault action '$action'..."
                 exit 0
             fi
             ((loopCounter++))
         else
-            displayNotification "Successfully disabled FileVault!"
+            displayNotification "Sucessfully performed FileVault action '$actionTitle'!"
             exit 0
         fi
     done
@@ -810,7 +862,7 @@ if [[ $OFFBOARD_JAMF = 'YES' ]] ; then startJamfOffboarding ; fi
 
 ## Disable FileVault
 displayNotification 'Disabling FileVault...'
-disableFileVault
+invokeFileVaultAction 'disableFileVault'
 
 ## Start Company Portal
 displayNotification 'Starting Company Portal...'

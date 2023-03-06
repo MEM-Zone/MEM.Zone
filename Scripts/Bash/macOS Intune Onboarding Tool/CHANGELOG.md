@@ -1,8 +1,13 @@
 # macOS Intune Onboarding Tool release history
 
+## 2.3.0 - 2023-03-06
+
+* Added functionality to `enable` `reissue key` for FileVault
+* Renamed `disableFileVault` to `invokeFileVaultAction`
+
 ## 2.2.0 - 2023-03-06
 
-* Added disable FileVault step.
+* Added `disable` FileVault step.
 
 ## 2.1.0 - 2023-02-23
 
