@@ -40,7 +40,7 @@ OFFBOARD_JAMF='YES'
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=2.3.0
+SCRIPT_VERSION=2.3.1
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
