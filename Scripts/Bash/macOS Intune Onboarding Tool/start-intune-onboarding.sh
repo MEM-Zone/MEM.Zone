@@ -862,7 +862,7 @@ if [[ $OFFBOARD_JAMF = 'YES' ]] ; then startJamfOffboarding ; fi
 
 ## Disable FileVault
 displayNotification 'Disabling FileVault...'
-invokeFileVaultAction 'disableFileVault'
+invokeFileVaultAction 'disable'
 
 ## Start Company Portal
 displayNotification 'Starting Company Portal...'
