@@ -15,6 +15,19 @@
 #.NOTES
 #    Created by Ioan Popovici
 #    Company Portal needs to be installed as a pre-requisite.
+#    Return Codes:
+#    0   - Success
+#    10  - Company Portal application not installed
+#    120 - Failed to display notification
+#    130 - Failed to display dialog
+#    131 - User cancelled dialog
+#    150 - Invalid FileVault action
+#    151 - Unauthorized FileVault user
+#    152 - FileVault is already enabled
+#    153 - FileVault is not enabled
+#    155 - Failed to perform FileVault action
+#    154 - User canceled FileVault action
+#    170 - Failed to convert mobile account
 #.LINK
 #    https://MEM.Zone
 #.LINK
@@ -40,7 +53,7 @@ OFFBOARD_JAMF='YES'
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=2.3.1
+SCRIPT_VERSION=2.4.0
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
@@ -67,6 +80,7 @@ LOG_HEADER="Script Version: $SCRIPT_VERSION \n# Author: $AUTHOR \n# OS Version: 
 #region FunctionListings
 
 #region Function runAsRoot
+#Assigned Error Codes: 100 - 109
 function runAsRoot() {
 #.SYNOPSIS
 #    Checks for root privileges.
@@ -96,12 +110,13 @@ function runAsRoot() {
         else
             gksu "$scriptPath"
         fi
-        exit
+        exit 0
     fi
 }
 #endregion
 
 #region Function startLogging
+#Assigned Error Codes: 110 - 119
 function startLogging() {
 #.SYNOPSIS
 #    Starts logging.
@@ -156,6 +171,7 @@ function startLogging() {
 #endregion
 
 #region Function displayNotification
+#Assigned Error Codes: 120 - 129
 function displayNotification() {
 #.SYNOPSIS
 #    Displays a notification.
@@ -199,6 +215,7 @@ function displayNotification() {
     local messageDuration
     local supressTerminal
     local supressNotification
+    local executionStatus=0
     #  Message
     messageText="${1}"
     #  Title
@@ -233,15 +250,23 @@ function displayNotification() {
     ## Display notification
     if [[ "$supressNotification" == 'false' ]]; then
         osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
+        executionStatus=$?
         sleep "$messageDuration"
     fi
 
     ## Display notification in terminal
     if [[ "$supressTerminal" == 'false' ]]; then echo "$(date) | $messageText" ; fi
+
+    ## Return execution status
+    if [[ "$executionStatus" -ne 0 ]]; then
+        echo "$(date) | Failed to display notification. Error: $executionStatus"
+        return 120
+    fi
 }
 #endregion
 
 #region Function displayDialog
+#Assigned Error Codes: 130 - 139
 function displayDialog() {
 #.SYNOPSIS
 #    Displays a dialog box.
@@ -298,6 +323,7 @@ function displayDialog() {
     local messageIcon
     local promptType
     local commandOutput
+    local executionStatus=0
 
     #  Message
     messageText="${1}"
@@ -366,6 +392,7 @@ function displayDialog() {
                     return commandOutput
                 end run
             ")
+            executionStatus=$?
         ;;
         'textPrompt')
             #  Display dialog with text input. Returns text.
@@ -376,6 +403,7 @@ function displayDialog() {
                     return commandOutput
                 end run
             ")
+            executionStatus=$?
         ;;
         'passwordPrompt')
             #  Display dialog with hidden password input. Returns text.
@@ -386,13 +414,20 @@ function displayDialog() {
                     return commandOutput
                 end run
             ")
+            executionStatus=$?
         ;;
     esac
 
     ## Exit on error
     if [[ $commandOutput = *"Error"* ]] ; then
-        displayNotification "Error: $commandOutput" '' '' '' 'suppressNotification'
-        exit 1
+        displayNotification "Failed to display alert. Error: $commandOutput" '' '' '' 'suppressNotification'
+        return 130
+    fi
+
+    ## Return cancel if pressed
+    if [[ $executionStatus != 0 ]] ; then
+        displayNotification "User cancelled dialog." '' '' '' 'suppressNotification'
+        return 131
     fi
 
     ## Return commandOutput. Remember to assign the result to a variable, if you print it to the terminal, it will be logged.
@@ -401,6 +436,7 @@ function displayDialog() {
 #endregion
 
 #region Function unbindFromAD
+#Assigned Error Codes: 140 - 149
 function unbindFromAD() {
 #.SYNOPSIS
 #    Unbinds device from AD.
@@ -427,7 +463,8 @@ function unbindFromAD() {
     isAdJoined=$(/usr/bin/dscl localhost -list . | grep 'Active Directory')
     if [[ -z "$isAdJoined" ]]; then
         displayNotification 'Not bound to Active Directory...'
-        return 1
+        #  Return to the pipeline
+        return 0
     fi
 
     ## Display notification
@@ -450,6 +487,7 @@ function unbindFromAD() {
 #endregion
 
 #region Function invokeFileVaultAction
+#Assigned Error Codes: 150 - 159
 function invokeFileVaultAction() {
 #.SYNOPSIS
 #    Invokes a FileVault action.
@@ -515,8 +553,8 @@ function invokeFileVaultAction() {
             checkFileVaultStatus='NotNeeded'
         ;;
         *)
-            displayNotification 'Invalid action. Exiting...' '' '' '' 'suppressNotification'
-            exit 1
+            displayNotification "Invalid FileVault action '$1'. Skipping '$actionTitle'..." '' '' '' 'suppressNotification'
+            reuturn 150
         ;;
     esac
 
@@ -532,8 +570,8 @@ function invokeFileVaultAction() {
     ## Check if user is an authorized FileVault user
     isFileVaultUser=$(fdesetup list | awk -v usrN="$userNameUUID" -F, 'match($0, usrN) {print $1}')
     if [ "${isFileVaultUser}" != "${userName}" ]; then
-        displayNotification "${userName} is not a FileVault authorized user. Exiting..."
-        exit 2
+        displayNotification "${userName} is not a FileVault authorized user. Skipping '$actionTitle'..."
+        return 151
     fi
 
     ## Check to see if the encryption has finished
@@ -542,13 +580,13 @@ function invokeFileVaultAction() {
     ## Check FileVault status
     if [ "$checkFileVaultStatus" = 'On' ]; then
         if [ -n "$isFileVaultOn" ]; then
-            displayNotification 'FileVault is already enabled. Exiting...'
-            exit 3
+            displayNotification "FileVault is already enabled. Skipping '$actionTitle'..."
+            return 152
         fi
     else
          if [ -z "$isFileVaultOn" ]; then
-            displayNotification 'FileVault is not enabled. Exiting...'
-            exit 3
+            displayNotification "FileVault is not enabled. Skipping '$actionTitle'..."
+            return 153
         fi
     fi
 
@@ -558,6 +596,12 @@ function invokeFileVaultAction() {
         ## Get the logged in user's password via a prompt
         actionMessage="Enter $userName's password:"
         userPassword=$(displayDialog "$actionMessage" "$actionTitle" "$actionSubtitle" 'Exit' "$actionButton" '2' 'Exit' "$fileVaultIcon" 'passwordPrompt')
+
+        ## Check if the user cancelled the prompt (return code 131)
+        if [ $? = 131 ]; then
+            displayNotification "User cancelled '$actionTitle' action. Skipping..."
+            return 154
+        fi
 
         ## Automatically populate answers for the fdesetup prompts
         output=$(
@@ -579,18 +623,19 @@ function invokeFileVaultAction() {
             displayNotification "Error disabling FileVault. Attempt (${loopCounter}/3)."
             if [ $loopCounter -ge 3 ] ; then
                 displayNotification "A maximum of 3 retries has been reached.\nContinuing without performing FileVault action '$action'..."
-                exit 0
+                return 155
             fi
             ((loopCounter++))
         else
             displayNotification "Sucessfully performed FileVault action '$actionTitle'!"
-            exit 0
+            return 0
         fi
     done
 }
 #endregion
 
 #region Function migrateUserPassword
+#Assigned Error Codes: 160 - 169
 function migrateUserPassword() {
 #.SYNOPSIS
 #    Migrates the user password to the local account.
@@ -645,6 +690,7 @@ function migrateUserPassword() {
 #endregion
 
 #region Function convertMobileAccount
+#Assigned Error Codes: 170 - 179
 function convertMobileAccount() {
 #.SYNOPSIS
 #    Converts mobile account to local account.
@@ -728,8 +774,8 @@ function convertMobileAccount() {
     ## Check if account is a mobile account
     accountType=$(/usr/bin/dscl . -read /Users/"$userName" AuthenticationAuthority | head -2 | awk -F'/' '{print $2}' | tr -d '\n')
     if [[ "$accountType" = "Active Directory" ]]; then
-        displayNotification "Error converting the $userName account! Exiting..."
-        exit 1
+        displayNotification "Error converting the $userName account! Terminating execution..."
+        exit 170
     else
         displayNotification "$userName was successfully converted to a local account."
     fi
@@ -754,6 +800,7 @@ function convertMobileAccount() {
 #endregion
 
 #region Function startJamfOffboarding
+#Assigned Error Codes: 180 - 189
 function startJamfOffboarding() {
 #.SYNOPSIS
 #    Starts JAMF offboarding.
@@ -793,10 +840,10 @@ function startJamfOffboarding() {
     displayNotification 'Removing System Profiles...'
     for identifier in $(/usr/bin/profiles -L | awk '/attribute/' | awk '{print $4}'); do
         sudo -u "$currentUser" profiles -R -p "$identifier" >/dev/null 2>&1
-        echo "System profile [$identifier] removed!"
+        displayNotification "System profile [$identifier] removed!"  '' '' '' 'suppressNotification'
     done
     if [[ ! $identifier ]]; then
-        echo "Nothing to remove!"
+        displayNotification 'Nothing to remove!'
     fi
 
     ## Remove MDM Profiles
@@ -839,11 +886,10 @@ displayNotification "Running $SCRIPT_NAME version $SCRIPT_VERSION" '' '' '' '' '
 if open -Ra 'Company Portal'; then
     displayNotification 'Company Portal application is installed, continuing...'
 else
-    echo 'Company Portal is not installed, contact service desk!'
     displayNotification 'Company Portal application not installed, contact support!'
         osascript -e 'display alert "Error installing Company Portal app. \n \nIn order to continue, contact support!" buttons {"Contact Support"} as critical'
     open "$SUPPORT_LINK"
-    exit 1
+    exit 10
 fi
 
 ## Unbind from AD

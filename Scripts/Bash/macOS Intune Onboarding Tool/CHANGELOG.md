@@ -1,5 +1,12 @@
 # macOS Intune Onboarding Tool release history
 
+## 2.4.0 - 2023-03-09
+
+* Added better error handling
+* Added and documented error/return codes
+* Added minor code optimisations
+* Fixed `Cancel` button press doing nothing
+
 ## 2.3.1 - 2023-03-07
 
 * Fixed `disable` FileVault throwing `Invalid action`
