@@ -8,10 +8,6 @@
 #    and setting admin rights.
 #.EXAMPLE
 #    start-intune-onboarding.sh
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    Created by Ioan Popovici
 #    Company Portal needs to be installed as a pre-requisite.
@@ -33,7 +29,11 @@
 #.LINK
 #    https://MEM.Zone/macOS-Intune-Onboarding-Tool
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/macOS-Intune-Onboarding-Tool-CHANGELOG
+#.LINK
+#    https://MEM.Zone/macOS-Intune-Onboarding-Tool-GIT
+#.LINK
+#    https://MEM.Zone/ISSUES
 
 ##*=============================================
 ##* VARIABLE DECLARATION
@@ -88,16 +88,12 @@ function runAsRoot() {
 #    Checks for root privileges and asks for elevation.
 #.EXAMPLE
 #    runAsRoot
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Set human readable parameters
     local scriptPath="$1"
@@ -129,18 +125,13 @@ function startLogging() {
 #.PARAMETER logHeader
 #    Specifies additional header information to be added to the log file.
 #.EXAMPLE
-#    startLogging "logName" "logDir"
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    File.
-#    STDOUT.
+#    startLogging "logName" "logDir" "logHeader"
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Set human readable parameters
     local logName="$1"
@@ -197,16 +188,12 @@ function displayNotification() {
 #    displayNotification 'message' 'title' 'subtitle' '' 'suppressNotification' ''
 #.EXAMPLE
 #    displayNotification 'message'
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Set human readable parameters
     local messageText
@@ -301,16 +288,12 @@ function displayDialog() {
 #    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Stop' '1' 'Stop' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'textPrompt'
 #.EXAMPLE
 #    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Don't Continue' '1' 'Don't Continue' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
-#.INPUTS
-#    Text.
-#.OUTPUTS
-#    Text.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Set human readable parameters
     local messageText
@@ -444,16 +427,12 @@ function unbindFromAD() {
 #     Unbinds device from AD and removes search paths.
 #.EXAMPLE
 #    unbindFromAD
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Variable declaration
     local searchPath
@@ -501,10 +480,6 @@ function invokeFileVaultAction() {
 #    invokeFileVaultAction 'disable'
 #.EXAMPLE
 #    invokeFileVaultAction 'reissueKey'
-#.INPUTS
-#    Text.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
@@ -512,7 +487,7 @@ function invokeFileVaultAction() {
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Variable declaration
     local fileVaultIcon
@@ -645,16 +620,12 @@ function migrateUserPassword() {
 #    Specifies the name of the user.
 #.EXAMPLE
 #    migrateUserPassword "username"
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Set human readable variables
     local userName="${1}"
@@ -702,16 +673,12 @@ function convertMobileAccount() {
 #    Specifies whether the user should be made a local admin.
 #.EXAMPLE
 #    convertMobileAccount "username" "YES"
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Set human readable parameters
     local userName="${1}"
@@ -808,16 +775,12 @@ function startJamfOffboarding() {
 #    Starts JAMF offboarding, removing certificates, profiles and binaries.
 #.EXAMPLE
 #    startJamfOffboarding
-#.INPUTS
-#    None.
-#.OUTPUTS
-#    None.
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/ISSUES
 
     ## Check if JAMF binaries are present
     hasJamfBinaries=$(which jamf)
