@@ -58,7 +58,7 @@ JAMF_API_PASSWORD=''
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=3.0.0
+SCRIPT_VERSION=3.0.1
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
@@ -737,7 +737,7 @@ function convertMobileAccount() {
             displayNotification "Converting $userName to a local account..."
         fi
     else
-        displayNotification "The $userName is not a AD mobile account. Skipping conversion..."
+        displayNotification "The $userName is not a mobile account. Skipping conversion..."
         return
     fi
 
@@ -943,7 +943,7 @@ if [[ "$REMOVE_FROM_AD" = 'YES' ]] ; then unbindFromAD ; fi
 
 ## Convert mobile accounts to local accounts
 if [[ "$CONVERT_MOBILE_ACCOUNTS" = 'YES' ]] ; then
-    localUsers=$(/usr/bin/dscl . list /Users UniqueID | awk '$2 > 1000 {print $1}')
+    localUsers=$(/usr/bin/dscl . list /Users UniqueID | awk '$2 > 500 {print $1}')
     for localUser in $localUsers; do
         convertMobileAccount "$localUser" "$SET_ADMIN_RIGHTS"
     done

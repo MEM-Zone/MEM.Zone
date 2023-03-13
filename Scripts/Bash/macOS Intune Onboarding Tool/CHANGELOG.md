@@ -1,5 +1,9 @@
 # macOS Intune Onboarding Tool release history
 
+## 3.0.1 - 2023-03-13
+
+* Fixed local account with `UID` lower than `1000` detection.
+
 ## 3.0.0 - 2023-03-13
 
 * Added `JAMF API` management removal for cases where the profile is marked as non-removable. (!! NOT TESTED !!).
