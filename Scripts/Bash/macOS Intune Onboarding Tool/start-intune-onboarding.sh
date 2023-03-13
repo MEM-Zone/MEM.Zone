@@ -22,8 +22,9 @@
 #    152 - FileVault is already enabled
 #    153 - FileVault is not enabled
 #    155 - Failed to perform FileVault action
-#    154 - User canceled FileVault action
+#    154 - User cancelled FileVault action
 #    170 - Failed to convert mobile account
+#    180 - Failed to remove JAMF management profile
 #.LINK
 #    https://MEM.Zone
 #.LINK
@@ -49,11 +50,15 @@ COMPANY_PORTAL_PATH='/Applications/Company Portal.app/'
 CONVERT_MOBILE_ACCOUNTS='YES'
 REMOVE_FROM_AD='YES'
 SET_ADMIN_RIGHTS='YES'
-OFFBOARD_JAMF='YES'
+JAMF_OFFBOARD='YES'
+#  JAMF API MDM Removal. !! NOT TESTED YET !!
+JAMF_API_URL=''
+JAMF_API_USER=''
+JAMF_API_PASSWORD=''
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=2.4.0
+SCRIPT_VERSION=3.0.0
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
@@ -61,6 +66,10 @@ AUTHOR='Ioan Popovici'
 SCRIPT_NAME=$(/usr/bin/basename "$0")
 FULL_SCRIPT_NAME="$(realpath "$(dirname "${BASH_SOURCE[0]}")")/${SCRIPT_NAME}"
 SCRIPT_NAME_WITHOUT_EXTENSION=$(basename "$0" | sed 's/\(.*\)\..*/\1/')
+#  Set JAMF API ENABLED if we specified the required variables
+if [[ -n "$JAMF_API_USER" ]] && [[ -n "$JAMF_API_PASSWORD" ]] && [[ -n "$JAMF_API_URL" ]] ; then
+    JAMF_API_ENABLED='YES'
+fi
 #  Messages
 MESSAGE_TITLE=$COMPANY_NAME
 MESSAGE_SUBTITLE=$DISPLAY_NAME
@@ -235,18 +244,18 @@ function displayNotification() {
     #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
 
     ## Display notification
-    if [[ "$supressNotification" == 'false' ]]; then
+    if [[ "$supressNotification" = 'false' ]]; then
         osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
         executionStatus=$?
         sleep "$messageDuration"
     fi
 
     ## Display notification in terminal
-    if [[ "$supressTerminal" == 'false' ]]; then echo "$(date) | $messageText" ; fi
+    if [[ "$supressTerminal" = 'false' ]]; then echo "$(date) | $messageText" ; fi
 
     ## Return execution status
     if [[ "$executionStatus" -ne 0 ]]; then
-        echo "$(date) | Failed to display notification. Error: $executionStatus"
+        echo "$(date) | Failed to display notification. Error: '$executionStatus'"
         return 120
     fi
 }
@@ -403,7 +412,7 @@ function displayDialog() {
 
     ## Exit on error
     if [[ $commandOutput = *"Error"* ]] ; then
-        displayNotification "Failed to display alert. Error: $commandOutput" '' '' '' 'suppressNotification'
+        displayNotification "Failed to display alert. Error: '$commandOutput'" '' '' '' 'suppressNotification'
         return 130
     fi
 
@@ -437,11 +446,12 @@ function unbindFromAD() {
     ## Variable declaration
     local searchPath
     local isAdJoined
+    local executionStatus
 
     ## Check for AD binding and unbind if found.
     isAdJoined=$(/usr/bin/dscl localhost -list . | grep 'Active Directory')
     if [[ -z "$isAdJoined" ]]; then
-        displayNotification 'Not bound to Active Directory...'
+        displayNotification 'Not bound to Active Directory. Skipping unbind...'
         #  Return to the pipeline
         return 0
     fi
@@ -454,6 +464,7 @@ function unbindFromAD() {
 
     ## Force unbind from Active Directory
     /usr/sbin/dsconfigad -remove -force -u none -p none
+    executionStatus=$?
 
     ## Delete the Active Directory domain from the custom /Search and /Search/Contacts paths
     /usr/bin/dscl /Search/Contacts -delete . CSPSearchPath "$searchPath"
@@ -462,6 +473,12 @@ function unbindFromAD() {
     ## Change the /Search and /Search/Contacts path type from Custom to Automatic
     /usr/bin/dscl /Search -change . SearchPolicy dsAttrTypeStandard:CSPSearchPath dsAttrTypeStandard:NSPSearchPath
     /usr/bin/dscl /Search/Contacts -change . SearchPolicy dsAttrTypeStandard:CSPSearchPath dsAttrTypeStandard:NSPSearchPath
+
+    ## Return execution status
+    if [[ $executionStatus != 0 ]] ; then
+        displayNotification "Failed to unbind from Active Directory. Error: '$executionStatus'" '' '' '' 'suppressNotification'
+        return 140
+    fi
 }
 #endregion
 
@@ -559,7 +576,7 @@ function invokeFileVaultAction() {
             return 152
         fi
     else
-         if [ -z "$isFileVaultOn" ]; then
+        if [ -z "$isFileVaultOn" ]; then
             displayNotification "FileVault is not enabled. Skipping '$actionTitle'..."
             return 153
         fi
@@ -574,7 +591,7 @@ function invokeFileVaultAction() {
 
         ## Check if the user cancelled the prompt (return code 131)
         if [ $? = 131 ]; then
-            displayNotification "User cancelled '$actionTitle' action. Skipping..."
+            displayNotification "User cancelled '$actionTitle' action!"
             return 154
         fi
 
@@ -595,7 +612,7 @@ function invokeFileVaultAction() {
         echo "$output"
 
         if [[ $output = *'Error'* ]] || [[ $output = *'FileVault was not disabled'* ]] ; then
-            displayNotification "Error disabling FileVault. Attempt (${loopCounter}/3)."
+            displayNotification "Error performing FileVault action '$actionTitle'. Error: '$output'. Attempt (${loopCounter}/3)."
             if [ $loopCounter -ge 3 ] ; then
                 displayNotification "A maximum of 3 retries has been reached.\nContinuing without performing FileVault action '$action'..."
                 return 155
@@ -636,7 +653,7 @@ function migrateUserPassword() {
     local localCachedUser
 
     ## Display notification
-    displayNotification "Migrating $userName password..."
+    displayNotification "Migrating '$userName' password..."
 
     # macOS 10.14.4 will remove the the actual ShadowHashData key immediately if the AuthenticationAuthority array value which references the ShadowHash is removed from the AuthenticationAuthority array.
     # To address this, the existing AuthenticationAuthority array will be modified to remove the Kerberos and LocalCachedUser user values.
@@ -720,14 +737,14 @@ function convertMobileAccount() {
             displayNotification "Converting $userName to a local account..."
         fi
     else
-        /usr/bin/printf "The $userName account is not a AD mobile account\n"
+        displayNotification "The $userName is not a AD mobile account. Skipping conversion..."
         return
     fi
 
     ## Remove the account attributes that identify it as an Active Directory mobile account
     for attributeToRemove in "${attributesToRemove[@]}"; do
         if [[ ! $(/usr/bin/dscl . -delete /users/"$userName" "$attributeToRemove") ]]; then
-            displayNotification "Failed to remove account attribute ${attributeToRemove}"
+            displayNotification "Failed to remove account attribute '$attributeToRemove'!"
         fi
     done
 
@@ -741,7 +758,7 @@ function convertMobileAccount() {
     ## Check if account is a mobile account
     accountType=$(/usr/bin/dscl . -read /Users/"$userName" AuthenticationAuthority | head -2 | awk -F'/' '{print $2}' | tr -d '\n')
     if [[ "$accountType" = "Active Directory" ]]; then
-        displayNotification "Error converting the $userName account! Terminating execution..."
+        displayNotification "Error converting the $userName account! Terminating execution!"
         exit 170
     else
         displayNotification "$userName was successfully converted to a local account."
@@ -773,8 +790,16 @@ function startJamfOffboarding() {
 #    Starts JAMF offboarding.
 #.DESCRIPTION
 #    Starts JAMF offboarding, removing certificates, profiles and binaries.
+#.PARAMETER apiUser
+#    Specifies the JAMF API username.
+#.PARAMETER apiPassword
+#    Specifies the JAMF API password.
+#.PARAMETER apiUrl
+#    Specifies the JAMF API URL.
 #.EXAMPLE
 #    startJamfOffboarding
+#.EXAMPLE
+#    startJamfOffboarding "apiusername" "apipassword"
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
@@ -782,10 +807,36 @@ function startJamfOffboarding() {
 #.LINK
 #    https://MEM.Zone/ISSUES
 
-    ## Check if JAMF binaries are present
+    ## Variable declaration
+    local hasJamfBinaries
+    local isJamfManaged
+    local jamfApiUser
+    local jamfApiPassword
+    local jamfApiUrl
+    local isJamfManaged
+    local jamfApiEnabled='NO'
+    local loopCounter=0
+
+    ## Set variable values
+    if [[ -z "${1}" ]] || [[ -z "${2}" ]] ; then
+        if [[ $JAMF_API_ENABLED = 'YES' ]]; then
+            jamfApiUser="$JAMF_API_USER"
+            jamfApiPassword="$JAMF_API_PASSWORD"
+            jamfApiUrl="$JAMF_API_URL"
+            jamfApiEnabled='YES'
+        fi
+    else
+        jamfApiUser="${1}"
+        jamfApiPassword="${2}"
+        jamfApiUrl="${3}"
+        jamfApiEnabled='YES'
+    fi
+
+    ## Check if JAMF managed
+    isJamfManaged=$(/usr/bin/profiles -C | /usr/bin/grep '00000000-0000-0000-A000-4A414D460003')
     hasJamfBinaries=$(which jamf)
-    if [[ -z "$hasJamfBinaries" ]]; then
-        displayNotification 'JAMF binaries are not present on this Mac...'
+    if [[ -z "$isJamfManaged" ]] && [[ -z "$hasJamfBinaries" ]]; then
+        displayNotification 'Not JAMF managed. Skipping JAMF offboarding...'
         return 1
     fi
 
@@ -799,26 +850,58 @@ function startJamfOffboarding() {
     displayNotification 'Stopping self Service Process...'
     killall "Self Service"
 
+    ## Remove JAMF management
+    if [[ -n "$isJamfManaged" ]] ; then
+        if [[ "$jamfApiEnabled" = 'YES' ]]; then
+            displayNotification 'Removing JAMF management trough API...'
+            macSerialNumber=$(system_profiler SPHardwareDataType | grep Serial | awk '{print $NF}')
+            jamfDeviceID=$(/usr/bin/curl -s -u "${jamfApiUser}:${jamfApiPassword}" -H "Accept: text/xml" "${jamfApiUrl}/JSSResource/computers/serialnumber/${macSerialNumber}/subset/general" | /usr/bin/xpath "//computer/general/id/text()")
+            /usr/bin/curl -s -X POST -H "Content-Type: text/xml" -u "${jamfApiUser}:${jamfApiPassword}" "${jamfApiUrl}/JSSResource/computercommands/command/UnmanageDevice/id/${jamfDeviceID}"
+        else
+            displayNotification 'Removing JAMF management profile...'
+            sudo jamf removeMdmProfile
+        fi
+    else
+        displayNotification 'Not JAMF managed. Skipping JAMF management removal...'
+    fi
+
+    ## Check if management profile was removed
+    while [ -n "$isJamfManaged" ]; do
+        #  Wait 15 seconds
+        sleep 15
+        #  Check if management profile is still present
+        isJamfManaged=$(/usr/bin/profiles -C | /usr/bin/grep '00000000-0000-0000-A000-4A414D460003')
+        #  Try to remove profile without API
+        sudo jamf removeMdmProfile
+        #  Terminate execution after 3 retries
+        if [ $loopCounter -ge 4 ] ; then
+            displayNotification "JAMF management profile could not be removed. Terminating execution!"
+            exit 180
+        fi
+        #  Increment loop counter
+        ((loopCounter++))
+    done
+
+    ## Remove JAMF Framework
+    if [[ -n "$hasJamfBinaries" ]]; then
+        displayNotification 'Removing JAMF Framework...'
+        sudo jamf removeFramework
+    else
+        displayNotification 'JAMF Framework not installed. Skipping JAMF Framework removal...'
+    fi
+
     ## Remove all system profiles
     displayNotification 'Removing System Profiles...'
     for identifier in $(/usr/bin/profiles -L | awk '/attribute/' | awk '{print $4}'); do
+        displayNotification "Attempting to remove System Profile '$identifier'..."  '' '' '' 'suppressNotification'
         sudo -u "$currentUser" profiles -R -p "$identifier" >/dev/null 2>&1
-        displayNotification "System profile [$identifier] removed!"  '' '' '' 'suppressNotification'
     done
     if [[ ! $identifier ]]; then
-        displayNotification 'Nothing to remove!'
+        displayNotification 'No System Profiles to remove...'
     fi
 
-    ## Remove MDM Profiles
-    displayNotification 'Removing MDM Profiles...'
-    sudo jamf removeMdmProfile
-
-    ## Remove JAMF Framework
-    displayNotification 'Removing JAMF Framework...'
-    sudo jamf removeFramework
-
     ## Remove Configuration Profiles
-    displayNotification 'Removing Configuration Profiles...'
+    displayNotification 'Removing all Configuration Profiles...'
     sudo -u "$currentUser" profiles remove -forced -all -v
 
     ## Display notification
@@ -856,10 +939,10 @@ else
 fi
 
 ## Unbind from AD
-if [[ $REMOVE_FROM_AD = 'YES' ]] ; then unbindFromAD ; fi
+if [[ "$REMOVE_FROM_AD" = 'YES' ]] ; then unbindFromAD ; fi
 
 ## Convert mobile accounts to local accounts
-if [[ $CONVERT_MOBILE_ACCOUNTS = 'YES' ]] ; then
+if [[ "$CONVERT_MOBILE_ACCOUNTS" = 'YES' ]] ; then
     localUsers=$(/usr/bin/dscl . list /Users UniqueID | awk '$2 > 1000 {print $1}')
     for localUser in $localUsers; do
         convertMobileAccount "$localUser" "$SET_ADMIN_RIGHTS"
@@ -867,10 +950,9 @@ if [[ $CONVERT_MOBILE_ACCOUNTS = 'YES' ]] ; then
 fi
 
 ## Offboard JAMF
-if [[ $OFFBOARD_JAMF = 'YES' ]] ; then startJamfOffboarding ; fi
+if [[ "$JAMF_OFFBOARD" = 'YES' ]] ; then startJamfOffboarding "$JAMF_API_USER" "$JAMF_API_PASSWORD" "$JAMF_API_URL" ; fi
 
 ## Disable FileVault
-displayNotification 'Disabling FileVault...'
 invokeFileVaultAction 'disable'
 
 ## Start Company Portal
@@ -879,7 +961,7 @@ open -a "$COMPANY_PORTAL_PATH"
 
 ## Display documentation
 displayNotification 'Displaying documentation...'
-open -gj "${DOCUMENTATION_LINK}"
+open -gj "$DOCUMENTATION_LINK"
 
 #endregion
 ##*=============================================

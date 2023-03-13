@@ -1,20 +1,27 @@
 # macOS Intune Onboarding Tool release history
 
+## 3.0.0 - 2023-03-13
+
+* Added `JAMF API` management removal for cases where the profile is marked as non-removable. (!! NOT TESTED !!).
+* Added detection for `JAMF MDM Profile`.
+* Added terminating error if the `JAMF MDM Profile` can't be removed.
+* Added removal for `JAMF Binaries` only when present.
+
 ## 2.4.0 - 2023-03-09
 
-* Added better error handling
-* Added and documented error/return codes
-* Added minor code optimisations
-* Fixed `Cancel` button press doing nothing
+* Added better error handling.
+* Added and documented error/return codes.
+* Added minor code optimisations.
+* Fixed `Cancel` button press doing nothing.
 
 ## 2.3.1 - 2023-03-07
 
-* Fixed `disable` FileVault throwing `Invalid action`
+* Fixed `disable` FileVault throwing `Invalid action`.
 
 ## 2.3.0 - 2023-03-06
 
-* Added functionality to `enable` `reissue key` for FileVault
-* Renamed `disableFileVault` to `invokeFileVaultAction`
+* Added functionality to `enable` `reissue key` for FileVault.
+* Renamed `disableFileVault` to `invokeFileVaultAction`.
 
 ## 2.2.0 - 2023-03-06
 
