@@ -24,7 +24,12 @@
 #    155 - Failed to perform FileVault action
 #    154 - User cancelled FileVault action
 #    170 - Failed to convert mobile account
-#    180 - Failed to remove JAMF management profile
+#    180 - Failed to get JAMF API token
+#    181 - Failed to invalidate JAMF API token
+#    182 - Invalid JAMF API token action
+#    190 - Faile to perform JAMF send command action
+#    191 - Invalid JAMF device id
+#    200 - Failed to remove JAMF management profile
 #.LINK
 #    https://MEM.Zone
 #.LINK
@@ -58,7 +63,7 @@ JAMF_API_PASSWORD=''
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=3.0.1
+SCRIPT_VERSION=4.0.0
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
@@ -66,10 +71,12 @@ AUTHOR='Ioan Popovici'
 SCRIPT_NAME=$(/usr/bin/basename "$0")
 FULL_SCRIPT_NAME="$(realpath "$(dirname "${BASH_SOURCE[0]}")")/${SCRIPT_NAME}"
 SCRIPT_NAME_WITHOUT_EXTENSION=$(basename "$0" | sed 's/\(.*\)\..*/\1/')
-#  Set JAMF API ENABLED if we specified the required variables
+#  Set JAMF variables
 if [[ -n "$JAMF_API_USER" ]] && [[ -n "$JAMF_API_PASSWORD" ]] && [[ -n "$JAMF_API_URL" ]] ; then
     JAMF_API_ENABLED='YES'
 fi
+BEARER_TOKEN=''
+TOKEN_EXPIRATION_EPOCH=0
 #  Messages
 MESSAGE_TITLE=$COMPANY_NAME
 MESSAGE_SUBTITLE=$DISPLAY_NAME
@@ -783,23 +790,213 @@ function convertMobileAccount() {
 }
 #endregion
 
-#region Function startJamfOffboarding
+#region Function invokeJamfApiTokenAction
 #Assigned Error Codes: 180 - 189
+function invokeJamfApiTokenAction() {
+#.SYNOPSIS
+#    Performs a JAMF API token action.
+#.DESCRIPTION
+#    Performs a JAMF API token action, such as getting, checking validity or invalidating a token.
+#.PARAMETER apiUrl
+#    Specifies the JAMF API server url.
+#.PARAMETER apiUser
+#    Specifies the JAMF API username.
+#.PARAMETER apiPassword
+#    Specifies the JAMF API password.
+#.PARAMETER tokenAction
+#    Specifies the action to perform.
+#    Possible values: get, check, invalidate
+#.EXAMPLE
+#    invokeJamfApiTokenAction 'memzone@jamfcloud.com' 'jamf-api-user' 'strongpassword' 'get'
+#.NOTES
+#    Returns the token and the token expiration epoch in the global variables BEARER_TOKEN and TOKEN_EXPIRATION_EPOCH.
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/ISSUES
+#.LINK
+#    https://developer.jamf.com/reference/jamf-pro/
+
+    ## Variable declarations
+    local apiUrl
+    local apiUser
+    local apiPassword
+    local tokenAction
+    local response
+    local responseCode
+    local nowEpochUTC
+
+    ## Set variable values
+    if [[ -z "${1}" ]] || [[ -z "${2}" ]] || [[ -z "${3}" ]] ; then
+        apiUrl="$JAMF_API_URL"
+        apiUser="$JAMF_API_USER"
+        apiPassword="$JAMF_API_PASSWORD"
+    else
+        apiUrl="${1}"
+        apiUser="${2}"
+        apiPassword="${3}"
+    fi
+    tokenAction="${4}"
+
+    #region Inline Functions
+    getBearerToken() {
+        response=$(curl -s -u "$apiUser":"$apiPassword" "$apiUrl"/api/v1/auth/token -X POST)
+        BEARER_TOKEN=$(echo "$response" | plutil -extract token raw -)
+        tokenExpiration=$(echo "$response" | plutil -extract expires raw - | awk -F . '{print $1}')
+        TOKEN_EXPIRATION_EPOCH=$(date -j -f "%Y-%m-%dT%T" "$tokenExpiration" +"%s")
+        if [[ -z "$BEARER_TOKEN" ]] ; then
+            displayNotification "Failed to get a valid API token!" '' '' '' 'suppressNotification'
+            return 180
+        else
+            displayNotification "API token successfully retrieved!" '' '' '' 'suppressNotification'
+        fi
+    }
+
+    checkTokenExpiration() {
+        nowEpochUTC=$(date -j -f "%Y-%m-%dT%T" "$(date -u +"%Y-%m-%dT%T")" +"%s")
+        if [[ TOKEN_EXPIRATION_EPOCH -gt nowEpochUTC ]] ; then
+            displayNotification "API token valid until the following epoch time: $TOKEN_EXPIRATION_EPOCH" '' '' '' 'suppressNotification'
+        else
+            displayNotification "No valid API token available..." '' '' '' 'suppressNotification'
+            getBearerToken
+        fi
+    }
+
+    invalidateToken() {
+        responseCode=$(curl -w "%{http_code}" -H "Authorization: Bearer ${BEARER_TOKEN}" "$apiUrl"/api/v1/auth/invalidate-token -X POST -s -o /dev/null)
+        if [[ ${responseCode} == 204 ]] ; then
+            displayNotification "Token successfully invalidated!" '' '' '' 'suppressNotification'
+            BEARER_TOKEN=''
+            TOKEN_EXPIRATION_EPOCH=0
+        elif [[ ${responseCode} == 401 ]] ; then
+            displayNotification "Token already invalid!" '' '' '' 'suppressNotification'
+        else
+            displayNotification "An unknown error occurred invalidating the token!" '' '' '' 'suppressNotification'
+            return 181
+        fi
+    }
+    #endregion
+
+    ## Perform token action
+    case "$tokenAction" in
+        get)
+            displayNotification "Getting new token..." '' '' '' 'suppressNotification'
+            getBearerToken
+            ;;
+        check)
+            displayNotification "Checking token validity..." '' '' '' 'suppressNotification'
+            checkTokenExpiration
+            ;;
+        invalidate)
+            displayNotification "Invalidating token..." '' '' '' 'suppressNotification'
+            invalidateToken
+            ;;
+        *)
+            displayNotification "Invalid token action '$tokenAction' specified!"
+            exit 182
+            ;;
+    esac
+}
+#endregion
+
+#region Function invokeSendJamfCommand
+#Assigned Error Codes: 190 - 199
+function invokeSendJamfCommand() {
+#.SYNOPSIS
+#    Performs a JAMF API send command.
+#.DESCRIPTION
+#    Performs a JAMF API send command, with the specified command and device serial number.
+#.PARAMETER apiUrl
+#    Specifies the JAMF API server url.
+#.PARAMETER apiUser
+#    Specifies the JAMF API username.
+#.PARAMETER apiPassword
+#    Specifies the JAMF API password.
+#.PARAMETER serialNumber
+#    Specifies the device serial number.
+#.PARAMETER command
+#    Specifies the command to perform, keep in mind that you need to specify the command and the parameters in one string.
+#.EXAMPLE
+#    invokeSendJamfCommand 'memzone@jamfcloud.com' 'jamf-api-user' 'strongpassword' 'FVFHX12QQ6LY' 'UnmanageDevice'
+#.EXAMPLE
+#    invokeSendJamfCommand 'memzone@jamfcloud.com' 'jamf-api-user' 'strongpassword' 'FVFHX12QQ6LY' 'EraseDevice/passcode/123456'
+#.NOTES
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/ISSUES
+#.LINK
+#    https://developer.jamf.com/reference/jamf-pro/
+
+    ## Variable declarations
+    local apiUrl
+    local apiUser
+    local apiPassword
+    local command
+    local serialNumber
+    local deviceId
+    local result
+
+    ## Set variable values
+    if [[ -z "${1}" ]] || [[ -z "${2}" ]] || [[ -z "${3}" ]] ; then
+        apiUrl="$JAMF_API_URL"
+        apiUser="$JAMF_API_USER"
+        apiPassword="$JAMF_API_PASSWORD"
+    else
+        apiUrl="${1}"
+        apiUser="${2}"
+        apiPassword="${3}"
+    fi
+    serialNumber="${4}"
+    command="${5}"
+
+    ## Get API token
+    invokeJamfApiTokenAction "$apiUrl" "$apiUser" "$apiPassword" 'get'
+
+    ## Get JAMF device ID
+    deviceId=$(curl --request GET \
+        --url "${apiUrl}"/JSSResource/computers/serialnumber/"${serialNumber}"/subset/general \
+        --header 'Accept: application/xml' \
+        --header "Authorization: Bearer ${BEARER_TOKEN}" \
+        --silent --show-error --fail | xmllint --xpath '//computer/general/id/text()' -
+    )
+
+    ## Perform action
+    if [[ $deviceId -gt 0 ]]; then
+       result=$(curl -s -o /dev/null -I -w "%{http_code}" \
+            --request POST \
+            --url "${apiUrl}"/JSSResource/computercommands/command/"${command}"/id/"${deviceId}" \
+            --header 'Content-Type: application/xml' \
+            --header "Authorization: Bearer ${BEARER_TOKEN}" \
+        )
+        ## Check result (201 = Created/Success)
+        if [[ $result -eq 201 ]]; then
+            displayNotification "Successfully performed command '${command}' on device '${serialNumber} [${deviceId}]'!" '' '' '' 'suppressNotification'
+            return 0
+        else
+            displayNotification "Failed to perform command '${command}' on device '${serialNumber} [${deviceId}]'!" '' '' '' 'suppressNotification'
+            return 190
+        fi
+    else
+        displayNotification "Invalid device id '${deviceId} [${serialNumber}]'. Skipping '${command}'..." '' '' '' 'suppressNotification'
+        return 191
+    fi
+}
+#endregion
+
+#region Function startJamfOffboarding
+#Assigned Error Codes: 200 - 209
 function startJamfOffboarding() {
 #.SYNOPSIS
 #    Starts JAMF offboarding.
 #.DESCRIPTION
 #    Starts JAMF offboarding, removing certificates, profiles and binaries.
-#.PARAMETER apiUser
-#    Specifies the JAMF API username.
-#.PARAMETER apiPassword
-#    Specifies the JAMF API password.
-#.PARAMETER apiUrl
-#    Specifies the JAMF API URL.
 #.EXAMPLE
 #    startJamfOffboarding
 #.EXAMPLE
-#    startJamfOffboarding "apiusername" "apipassword"
+#    startJamfOffboarding
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
@@ -810,27 +1007,9 @@ function startJamfOffboarding() {
     ## Variable declaration
     local hasJamfBinaries
     local isJamfManaged
-    local jamfApiUser
-    local jamfApiPassword
-    local jamfApiUrl
-    local isJamfManaged
-    local jamfApiEnabled='NO'
+    local currentUser
+    local serialNumber
     local loopCounter=0
-
-    ## Set variable values
-    if [[ -z "${1}" ]] || [[ -z "${2}" ]] ; then
-        if [[ $JAMF_API_ENABLED = 'YES' ]]; then
-            jamfApiUser="$JAMF_API_USER"
-            jamfApiPassword="$JAMF_API_PASSWORD"
-            jamfApiUrl="$JAMF_API_URL"
-            jamfApiEnabled='YES'
-        fi
-    else
-        jamfApiUser="${1}"
-        jamfApiPassword="${2}"
-        jamfApiUrl="${3}"
-        jamfApiEnabled='YES'
-    fi
 
     ## Check if JAMF managed
     isJamfManaged=$(/usr/bin/profiles -C | /usr/bin/grep '00000000-0000-0000-A000-4A414D460003')
@@ -852,15 +1031,19 @@ function startJamfOffboarding() {
 
     ## Remove JAMF management
     if [[ -n "$isJamfManaged" ]] ; then
-        if [[ "$jamfApiEnabled" = 'YES' ]]; then
+        if [[ "$JAMF_API_ENABLED" = 'YES' ]]; then
             displayNotification 'Removing JAMF management trough API...'
-            macSerialNumber=$(system_profiler SPHardwareDataType | grep Serial | awk '{print $NF}')
-            jamfDeviceID=$(/usr/bin/curl -s -u "${jamfApiUser}:${jamfApiPassword}" -H "Accept: text/xml" "${jamfApiUrl}/JSSResource/computers/serialnumber/${macSerialNumber}/subset/general" | /usr/bin/xpath "//computer/general/id/text()")
-            /usr/bin/curl -s -X POST -H "Content-Type: text/xml" -u "${jamfApiUser}:${jamfApiPassword}" "${jamfApiUrl}/JSSResource/computercommands/command/UnmanageDevice/id/${jamfDeviceID}"
+            #  Get serial number
+            serialNumber=$(system_profiler SPHardwareDataType | grep Serial | awk '{print $NF}')
+            #  Remove JAMF management
+            invokeSendJamfCommand '' '' '' "$serialNumber" 'UnmanageDevice'
         else
+            #  Remove JAMF management without API
             displayNotification 'Removing JAMF management profile...'
             sudo jamf removeMdmProfile
         fi
+        #  Check if management profile was removed
+        isJamfManaged=$(/usr/bin/profiles -C | /usr/bin/grep '00000000-0000-0000-A000-4A414D460003')
     else
         displayNotification 'Not JAMF managed. Skipping JAMF management removal...'
     fi
@@ -876,7 +1059,7 @@ function startJamfOffboarding() {
         #  Terminate execution after 3 retries
         if [ $loopCounter -ge 4 ] ; then
             displayNotification "JAMF management profile could not be removed. Terminating execution!"
-            exit 180
+            exit 200
         fi
         #  Increment loop counter
         ((loopCounter++))
@@ -950,7 +1133,9 @@ if [[ "$CONVERT_MOBILE_ACCOUNTS" = 'YES' ]] ; then
 fi
 
 ## Offboard JAMF
-if [[ "$JAMF_OFFBOARD" = 'YES' ]] ; then startJamfOffboarding "$JAMF_API_USER" "$JAMF_API_PASSWORD" "$JAMF_API_URL" ; fi
+if [[ "$JAMF_OFFBOARD" = 'YES' ]] ; then
+    startJamfOffboarding
+fi
 
 ## Disable FileVault
 invokeFileVaultAction 'disable'
