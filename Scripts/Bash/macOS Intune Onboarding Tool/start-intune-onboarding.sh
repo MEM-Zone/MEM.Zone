@@ -66,7 +66,7 @@ JAMF_API_PASSWORD=''
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=4.0.0
+SCRIPT_VERSION=4.1.0
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
