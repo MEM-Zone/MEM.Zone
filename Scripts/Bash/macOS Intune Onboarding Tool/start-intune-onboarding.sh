@@ -13,7 +13,8 @@
 #    Company Portal needs to be installed as a pre-requisite.
 #    Return Codes:
 #    0   - Success
-#    10  - Company Portal application not installed
+#    10  - OS version not supported
+#    11  - Company Portal application not installed
 #    120 - Failed to display notification
 #    130 - Failed to display dialog
 #    131 - User cancelled dialog
@@ -56,6 +57,8 @@ CONVERT_MOBILE_ACCOUNTS='YES'
 REMOVE_FROM_AD='YES'
 SET_ADMIN_RIGHTS='YES'
 JAMF_OFFBOARD='YES'
+#  Specify only major version number
+LAST_SUPPORTED_OS_VERSION=13
 #  JAMF API MDM Removal. !! NOT TESTED YET !!
 JAMF_API_URL=''
 JAMF_API_USER=''
@@ -1111,14 +1114,26 @@ startLogging "$LOG_NAME" "$LOG_DIR" "$LOG_HEADER"
 ## Show script version and suppress terminal output
 displayNotification "Running $SCRIPT_NAME version $SCRIPT_VERSION" '' '' '' '' 'suppressTerminal'
 
+## Check if OS version is supported
+majorOSVersion=$(sw_vers -productVersion | cut -d'.' -f1)
+
+if [[ "$majorOSVersion" -lt "$LAST_SUPPORTED_OS_VERSION" ]] ; then
+    displayNotification "Unsupported OS version '$majorOSVersion', please upgrade. Terminating execution!"
+    osascript -e 'display alert "OS needs to be at least Monterey (12.0.1). \n \nPlease upgrade and try again!" buttons {"Upgrade macOS"} as critical'
+    sudo softwareupdate -i -a
+    exit 10
+else
+    displayNotification "Supported OS version '$(sw_vers -productVersion)', continuing..."
+fi
+
 ## If Company Portal is installed, continue, otherwise quit
 if open -Ra 'Company Portal'; then
     displayNotification 'Company Portal application is installed, continuing...'
 else
     displayNotification 'Company Portal application not installed, contact support!'
-        osascript -e 'display alert "Error installing Company Portal app. \n \nIn order to continue, contact support!" buttons {"Contact Support"} as critical'
+    osascript -e 'display alert "Company Portal app is not installed. \n \nIn order to continue, contact support!" buttons {"Contact Support"} as critical'
     open "$SUPPORT_LINK"
-    exit 10
+    exit 11
 fi
 
 ## Unbind from AD

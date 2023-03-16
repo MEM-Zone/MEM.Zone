@@ -1,5 +1,9 @@
 # macOS Intune Onboarding Tool release history
 
+## 4.1.0 - 2023-03-16
+
+* Added `macOS` version check with forced update prompt.
+
 ## 4.0.0 - 2023-03-15
 
 * Added proper `JAMF API` support.
