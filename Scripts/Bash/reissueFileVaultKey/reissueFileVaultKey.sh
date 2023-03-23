@@ -168,8 +168,8 @@ function displayNotification() {
 #    Specifies the title of the notification. Defaults to $MESSAGE_TITLE.
 #.PARAMETER messageSubtitle
 #    Specifies the subtitle of the notification. Defaults to $$MESSAGE_SUBTITLE.
-#.PARAMETER messageDuration
-#    Specifies the minimum duration of the notification in seconds. Defaults to 2.
+#.PARAMETER notificationDelay
+#    Specifies the minimum delay between the notifications in seconds. Defaults to 2.
 #.PARAMETER supressNotification
 #    Suppresses the notification. Defaults to false.
 #.PARAMETER supressTerminal
@@ -193,7 +193,7 @@ function displayNotification() {
     local messageText
     local messageTitle
     local messageSubtitle
-    local messageDuration
+    local notificationDelay
     local supressTerminal
     local supressNotification
     local executionStatus=0
@@ -211,8 +211,8 @@ function displayNotification() {
     fi
     #  Duration
     if [[ -z "${4}" ]]; then
-        messageDuration=2
-    else messageDuration="${4}"
+        notificationDelay=2
+    else notificationDelay="${4}"
     fi
     #  Supress notification
     if [[ -z "${5}" ]]; then
@@ -226,13 +226,13 @@ function displayNotification() {
     fi
 
     ## Debug variables
-    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
+    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; notificationDelay: $notificationDelay ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
 
     ## Display notification
     if [[ "$supressNotification" = 'false' ]]; then
         osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
         executionStatus=$?
-        sleep "$messageDuration"
+        sleep "$notificationDelay"
     fi
 
     ## Display notification in terminal
@@ -253,10 +253,10 @@ function displayDialog() {
 #    Displays a dialog box.
 #.DESCRIPTION
 #    Displays a dialog box with customizable buttons and optional password prompt.
-#.PARAMETER messageText
-#    Specifies the message of the dialog.
 #.PARAMETER messageTitle
 #    Specifies the title of the dialog. Defaults to $MESSAGE_TITLE.
+#.PARAMETER messageText
+#    Specifies the message of the dialog.
 #.PARAMETER messageSubtitle
 #    Specifies the subtitle of the notification. Defaults to $MESAGE_SUBTITLE.
 #.PARAMETER buttonNames
@@ -266,7 +266,12 @@ function displayDialog() {
 #.PARAMETER cancelButton
 #    Specifies the button to exit on. Defaults to ''.
 #.PARAMETER messageIcon
-#    Specifies the message icon POSIX file path. Defaults to ''.
+#    Specifies the dialog icon as:
+#       * 'stop', 'note', 'caution'
+#       * the name of one of the system icons
+#       * the resource name or ID of the icon
+#       * the icon POSIX file path
+#   Defaults to ''.
 #.PARAMETER promptType
 #    Specifies the type of prompt.
 #    Avaliable options:
@@ -275,11 +280,11 @@ function displayDialog() {
 #        'passwordPrompt' - Password prompt.
 #    Defaults to 'buttonPrompt'.
 #.EXAMPLE
-#    displayDialog 'message' 'title' 'subtitle' '{"Ok", "Agree"}' '1' '' '' 'buttonPrompt' 'critical'
+#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' '{"Ok", "Agree"}' '1' '' '' 'buttonPrompt' 'stop'
 #.EXAMPLE
-#    displayDialog 'message' 'title' 'subtitle' '{"Ok", "Stop"}' '1' 'Stop' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'textPrompt'
+#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' '{"Ok", "Stop"}' '1' 'Stop' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'textPrompt'
 #.EXAMPLE
-#    displayDialog 'message' 'title' 'subtitle' '{"Ok", "Don't Continue"}' '1' 'Don't Continue' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
+#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' '{"Ok", "Don't Continue"}' '1' 'Don't Continue' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
@@ -288,9 +293,9 @@ function displayDialog() {
 #    https://MEM.Zone/ISSUES
 
     ## Set human readable parameters
-    local messageText
     local messageTitle
     local messageSubtitle
+    local messageText
     local buttonNames
     local defaultButton
     local cancelButton
@@ -299,18 +304,19 @@ function displayDialog() {
     local commandOutput
     local executionStatus=0
 
-    #  Message
-    messageText="${1}"
+    ## Set parameter values
     #  Title
-    if [[ -z "${2}" ]] ; then
+    if [[ -z "${1}" ]] ; then
         messageTitle="${MESSAGE_TITLE}"
-    else messageTitle="${2}"
+    else messageTitle="${1}"
     fi
     #  Subtitle
-    if [[ -z "${3}" ]] ; then
+    if [[ -z "${2}" ]] ; then
         messageSubtitle="${MESSAGE_SUBTITLE}"
-    else messageSubtitle="${3}"
+    else messageSubtitle="${2}"
     fi
+    #  Message
+    messageText="${3}"
     #  Button names
     if [[ -z "${4}" ]] ; then
         buttonNames='{"Cancel", "Ok"}'
@@ -329,7 +335,9 @@ function displayDialog() {
     #  Icon
     if [[ -z "${7}" ]] ; then
         messageIcon=''
-    else messageIcon="with icon POSIX file \"${7}\""
+    elif [[ "${7}" = *'/'* ]] ; then
+        messageIcon="with icon POSIX file \"${7}\""
+    else messageIcon="with icon ${7}"
     fi
     #  Prompt type
     case "${8}" in
@@ -348,7 +356,7 @@ function displayDialog() {
     esac
 
     ## Debug variables
-    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageIcon: $messageIcon; buttonNames: $buttonNames; defaultButton: $defaultButton; cancelButton: $cancelButton; messageIcon: $messageIcon; promptType: $promptType"
+    #echo "messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageText: $messageText; buttonNames: $buttonNames; defaultButton: $defaultButton; cancelButton: $cancelButton; messageIcon: $messageIcon; promptType: $promptType"
 
     ## Display dialog box
     case "$promptType" in
@@ -625,13 +633,15 @@ function invokeFileVaultAction() {
 
         ## Get the logged in user's password via a prompt
         actionMessage="Enter $userName's password:"
-        userPassword=$(displayDialog "$actionMessage" "$actionTitle" "$actionSubtitle" "$actionButtons" '2' 'Cancel' "$fileVaultIcon" 'passwordPrompt')
+        userPassword=$(displayDialog "$actionTitle" "$actionSubtitle" "$actionMessage" "$actionButtons" '2' 'Cancel' "$fileVaultIcon" 'passwordPrompt')
 
         ## Check if the user cancelled the prompt (return code 131)
         if [ $? = 131 ]; then
             displayNotification "User cancelled '$actionTitle' action!"
             exit 154
         fi
+
+        displayNotification "Attempting FileVault action '$actionTitle'..." '' '' '1'
 
         ## Automatically populate answers for the fdesetup prompts
         output=$(
@@ -673,6 +683,10 @@ function invokeFileVaultAction() {
 ##*=============================================
 #region ScriptBody
 
+## Set script variables
+alertNoteIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/AlertNoteIcon.icns'
+toolbarCustomizeIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/ToolbarCustomizeIcon.icns'
+
 ## Check if script is running as root
 runAsRoot "$FULL_SCRIPT_NAME"
 
@@ -706,13 +720,10 @@ else
     displayNotification "Supported OS version '$(sw_vers -productVersion)', continuing..."
 fi
 
-## Disable FileVault
+## Reissue FileVault Key
+displayDialog '' 'Intune is unable to manage FileVault.' 'Please follow this process to remediate the issue.\n\nIf you have any questions or concerns, contact our Endpoint Management Team.' '{"Continue"}' '' '' "${toolbarCustomizeIcon}"
 invokeFileVaultAction 'reissueKey'
-
-## Display dialog
-#  Set filevault icon
-fileVaultIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FileVaultIcon.icns'
-displayDialog '' 'Succesfully Reissued FileVault Key!' 'Intune is now able to manage FileVault. \n\nFor any questions please contact the Endpoint Management Team.' '{"Done"}' '' '' "${fileVaultIcon}"
+displayDialog '' 'Intune is now able to manage FileVault.' '\nIf you have any questions or concerns, contact our Endpoint Management Team.' '{"Done"}' '' '' "${alertNoteIcon}"
 
 #endregion
 ##*=============================================
