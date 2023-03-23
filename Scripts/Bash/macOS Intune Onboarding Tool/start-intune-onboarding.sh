@@ -57,16 +57,16 @@ CONVERT_MOBILE_ACCOUNTS='YES'
 REMOVE_FROM_AD='YES'
 SET_ADMIN_RIGHTS='YES'
 JAMF_OFFBOARD='YES'
-#  Specify only major version number
-LAST_SUPPORTED_OS_VERSION=13
-#  JAMF API MDM Removal. !! NOT TESTED YET !!
+#  Specify last supported OS major version
+SUPPORTED_OS_MAJOR_VERSION=12
+#  JAMF API MDM Removal
 JAMF_API_URL=''
 JAMF_API_USER=''
 JAMF_API_PASSWORD=''
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=4.1.0
+SCRIPT_VERSION=5.0.0
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
@@ -162,7 +162,7 @@ function startLogging() {
 
     ## Creating log directory
     if [[ ! -d "$logDir" ]]; then
-        echo "$(date) | Creating [$logDir] to store logs"
+        echo "$(date) | Creating '$logDir' to store logs"
         sudo mkdir -p "$logDir"
     fi
 
@@ -172,8 +172,8 @@ function startLogging() {
     ## Write log header
     echo   ""
     echo   "##*====================================================================================="
-    echo   "# $(date) | Logging run of [$logName] to log file"
-    echo   "# Log Path: [$logFullName]"
+    echo   "# $(date) | Logging run of '$logName' to log file"
+    echo   "# Log Path: '$logFullName'"
     printf "# ${logHeader}"
     echo   "##*====================================================================================="
     echo   ""
@@ -193,8 +193,8 @@ function displayNotification() {
 #    Specifies the title of the notification. Defaults to $MESSAGE_TITLE.
 #.PARAMETER messageSubtitle
 #    Specifies the subtitle of the notification. Defaults to $$MESSAGE_SUBTITLE.
-#.PARAMETER messageDuration
-#    Specifies the minimum duration of the notification in seconds. Defaults to 2.
+#.PARAMETER notificationDelay
+#    Specifies the minimum delay between the notifications in seconds. Defaults to 2.
 #.PARAMETER supressNotification
 #    Suppresses the notification. Defaults to false.
 #.PARAMETER supressTerminal
@@ -218,7 +218,7 @@ function displayNotification() {
     local messageText
     local messageTitle
     local messageSubtitle
-    local messageDuration
+    local notificationDelay
     local supressTerminal
     local supressNotification
     local executionStatus=0
@@ -236,8 +236,8 @@ function displayNotification() {
     fi
     #  Duration
     if [[ -z "${4}" ]]; then
-        messageDuration=2
-    else messageDuration="${4}"
+        notificationDelay=2
+    else notificationDelay="${4}"
     fi
     #  Supress notification
     if [[ -z "${5}" ]]; then
@@ -251,13 +251,13 @@ function displayNotification() {
     fi
 
     ## Debug variables
-    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
+    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; notificationDelay: $notificationDelay ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
 
     ## Display notification
     if [[ "$supressNotification" = 'false' ]]; then
         osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
         executionStatus=$?
-        sleep "$messageDuration"
+        sleep "$notificationDelay"
     fi
 
     ## Display notification in terminal
@@ -278,22 +278,25 @@ function displayDialog() {
 #    Displays a dialog box.
 #.DESCRIPTION
 #    Displays a dialog box with customizable buttons and optional password prompt.
-#.PARAMETER messageText
-#    Specifies the message of the dialog.
 #.PARAMETER messageTitle
 #    Specifies the title of the dialog. Defaults to $MESSAGE_TITLE.
+#.PARAMETER messageText
+#    Specifies the message of the dialog.
 #.PARAMETER messageSubtitle
 #    Specifies the subtitle of the notification. Defaults to $MESAGE_SUBTITLE.
-#.PARAMETER button1Name
-#    Specifies the name of the first button. Defaults to 'Cancel'.
-#.PARAMETER button2Name
-#    Specifies the name of the second button. Defaults to 'Ok'.
+#.PARAMETER buttonNames
+#    Specifies the names of the buttons. Defaults to '{Cancel, Ok}'.
 #.PARAMETER defaultButton
-#    Specifies the default button. Defaults to '2'.
+#    Specifies the default button. Defaults to '1'.
 #.PARAMETER cancelButton
 #    Specifies the button to exit on. Defaults to ''.
 #.PARAMETER messageIcon
-#    Specifies the message icon POSIX file path. Defaults '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/UserIcon.icns'.
+#    Specifies the dialog icon as:
+#       * 'stop', 'note', 'caution'
+#       * the name of one of the system icons
+#       * the resource name or ID of the icon
+#       * the icon POSIX file path
+#   Defaults to ''.
 #.PARAMETER promptType
 #    Specifies the type of prompt.
 #    Avaliable options:
@@ -302,11 +305,11 @@ function displayDialog() {
 #        'passwordPrompt' - Password prompt.
 #    Defaults to 'buttonPrompt'.
 #.EXAMPLE
-#    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Agree' '1' '' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'buttonPrompt'
+#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' '{"Ok", "Agree"}' '1' '' '' 'buttonPrompt' 'stop'
 #.EXAMPLE
-#    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Stop' '1' 'Stop' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'textPrompt'
+#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' '{"Ok", "Stop"}' '1' 'Stop' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'textPrompt'
 #.EXAMPLE
-#    displayDialog 'message' 'title' 'subtitle' 'Ok' 'Don't Continue' '1' 'Don't Continue' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
+#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' "{\"Ok\", \"Don't Continue\"}" '1' "Don't Continue" '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
@@ -315,11 +318,10 @@ function displayDialog() {
 #    https://MEM.Zone/ISSUES
 
     ## Set human readable parameters
-    local messageText
     local messageTitle
     local messageSubtitle
-    local button1Name
-    local button2Name
+    local messageText
+    local buttonNames
     local defaultButton
     local cancelButton
     local messageIcon
@@ -327,45 +329,43 @@ function displayDialog() {
     local commandOutput
     local executionStatus=0
 
-    #  Message
-    messageText="${1}"
+    ## Set parameter values
     #  Title
-    if [[ -z "${2}" ]]; then
+    if [[ -z "${1}" ]] ; then
         messageTitle="${MESSAGE_TITLE}"
-    else messageTitle="${2}"
+    else messageTitle="${1}"
     fi
     #  Subtitle
-    if [[ -z "${3}" ]]; then
+    if [[ -z "${2}" ]] ; then
         messageSubtitle="${MESSAGE_SUBTITLE}"
-    else messageSubtitle="${3}"
+    else messageSubtitle="${2}"
     fi
-    #  Button 1 name
-    if [[ -z "${4}" ]]; then
-        button1Name='Cancel'
-    else button1Name="${4}"
-    fi
-    #  Button 2 name
-    if [[ -z "${5}" ]]; then
-        button2Name='Ok'
-    else button2Name="${5}"
+    #  Message
+    messageText="${3}"
+    #  Button names
+    if [[ -z "${4}" ]] ; then
+        buttonNames='{"Cancel", "Ok"}'
+    else buttonNames="${4}"
     fi
     #  Default button
-    if [[ -z "${6}" ]]; then
-        defaultButton=2
-    else defaultButton="${6}"
+    if [[ -z "${5}" ]] ; then
+        defaultButton='1'
+    else defaultButton="${5}"
     fi
     #  Cancel button
-    if [[ -z "${7}" ]]; then
+    if [[ -z "${6}" ]] ; then
         cancelButton=''
-    else cancelButton="cancel button \"${7}\""
+    else cancelButton="cancel button \"${6}\""
     fi
     #  Icon
-    if [[ -z "${8}" ]]; then
-        messageIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/UserIcon.icns'
-    else messageIcon="${8}"
+    if [[ -z "${7}" ]] ; then
+        messageIcon=''
+    elif [[ "${7}" = *'/'* ]] ; then
+        messageIcon="with icon POSIX file \"${7}\""
+    else messageIcon="with icon ${7}"
     fi
     #  Prompt type
-    case "${9}" in
+    case "${8}" in
         'buttonPrompt')
             promptType='buttonPrompt'
         ;;
@@ -381,7 +381,7 @@ function displayDialog() {
     esac
 
     ## Debug variables
-    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageIcon: $messageIcon; button1Name: $button1Name; button2Name: $button2Name; defaultButton: $defaultButton; cancelButton: $cancelButton; messageIcon: $messageIcon; promptType: $promptType"
+    #echo "messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageText: $messageText; buttonNames: $buttonNames; defaultButton: $defaultButton; cancelButton: $cancelButton; messageIcon: $messageIcon; promptType: $promptType"
 
     ## Display dialog box
     case "$promptType" in
@@ -389,7 +389,7 @@ function displayDialog() {
             #  Display dialog with no input. Returns button pressed.
             commandOutput=$(osascript -e "
                 on run
-                    display dialog \"${messageSubtitle}\n${messageText}\" with title \"${messageTitle}\" buttons {\"${button1Name}\", \"${button2Name}\"} default button ${defaultButton} ${cancelButton} with icon POSIX file \"${messageIcon}\"
+                    display dialog \"${messageSubtitle}\n${messageText}\" with title \"${messageTitle}\" buttons ${buttonNames} default button ${defaultButton} ${cancelButton} ${messageIcon}
                     set commandOutput to button returned of the result
                     return commandOutput
                 end run
@@ -400,7 +400,7 @@ function displayDialog() {
             #  Display dialog with text input. Returns text.
             commandOutput=$(osascript -e "
                 on run
-                    display dialog \"${messageSubtitle}\n${messageText}\" default answer \"\" with title \"${messageTitle}\" with text and answer buttons {\"${button1Name}\", \"${button2Name}\"} default button ${defaultButton} ${cancelButton} with icon POSIX file \"${messageIcon}\"
+                    display dialog \"${messageSubtitle}\n${messageText}\" default answer \"\" with title \"${messageTitle}\" with text and answer buttons ${buttonNames} default button ${defaultButton} ${cancelButton} ${messageIcon}
                     set commandOutput to text returned of the result
                     return commandOutput
                 end run
@@ -411,7 +411,7 @@ function displayDialog() {
             #  Display dialog with hidden password input. Returns text.
             commandOutput=$(osascript -e "
                 on run
-                    display dialog \"${messageSubtitle}\n${messageText}\" default answer \"\" with title \"${messageTitle}\" with text and hidden answer buttons {\"${button1Name}\", \"${button2Name}\"} default button ${defaultButton} ${cancelButton} with icon POSIX file \"${messageIcon}\"
+                    display dialog \"${messageSubtitle}\n${messageText}\" default answer \"\" with title \"${messageTitle}\" with text and hidden answer buttons ${buttonNames} default button ${defaultButton} ${cancelButton} ${messageIcon}
                     set commandOutput to text returned of the result
                     return commandOutput
                 end run
@@ -437,8 +437,330 @@ function displayDialog() {
 }
 #endregion
 
-#region Function unbindFromAD
+#region Function displayAlert
 #Assigned Error Codes: 140 - 149
+function displayAlert() {
+#.SYNOPSIS
+#    Displays a alert box.
+#.DESCRIPTION
+#    Displays a alert box with customizable buttons and icon.
+#.PARAMETER alertText
+#    Specifies the alert text.
+#.PARAMETER messageText
+#    Specifies the message text.
+#.PARAMETER alertCriticality
+#    Specifies the alert criticality.
+#    Avaliable options:
+#        'informational' - Informational alert.
+#        'critical'      - Critical alert.
+#        'warning'       - Warning alert.
+#    Defaults to 'informational'.
+#.PARAMETER buttonNames
+#    Specifies the names of the buttons. Defaults to '{Cancel, Ok}'.
+#.PARAMETER defaultButton
+#    Specifies the default button. Defaults to '1'.
+#.PARAMETER cancelButton
+#    Specifies the button to exit on. Defaults to ''.
+#.PARAMETER givingUpAfter
+#    Specifies the number of seconds to wait before dismissing the alert. Defaults to ''.
+#.EXAMPLE
+#   displayAlert 'alertText' 'messageText' 'critical' "{\"Don't Continue\", \"Dismiss Alert\"}" '1' "Don't Continue" '5'
+#.NOTES
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/ISSUES
+
+    ## Set human readable parameters
+    local alertText
+    local messageText
+    local alertCriticality
+    local buttonNames
+    local defaultButton
+    local cancelButton
+    local givingUpAfter=''
+    local commandOutput
+    local executionStatus=0
+
+    #  Alert text
+    alertText="${1}"
+    #  Message text
+    messageText="${2}"
+    #  Alert criticality
+    case "${3}" in
+        'informational')
+            alertCriticality='as informational'
+        ;;
+        'critical')
+            alertCriticality='as critical'
+        ;;
+        'warning')
+            alertCriticality='as warning'
+        ;;
+        *)
+            alertCriticality='informational'
+        ;;
+    esac
+    #  Button names
+    if [[ -z "${4}" ]] ; then
+        buttonNames="{'Cance', 'Ok'}"
+    else buttonNames="${4}"
+    fi
+    #  Default button
+    if [[ -z "${5}" ]] ; then
+        defaultButton='1'
+    else defaultButton="${5}"
+    fi
+    #  Cancel button
+    if [[ -z "${6}" ]] ; then
+        cancelButton=''
+    else cancelButton="cancel button \"${6}\""
+    fi
+    #  Giving up after
+    if [[ -z "${7}" ]] ; then
+        givingUpAfter=''
+    else givingUpAfter="giving up after ${7}"
+    fi
+
+    ## Debug variables
+    #echo "alertText: $alertText; messageText: $messageText; alertCriticality: $alertCriticality; buttonNames: $buttonNames; defaultButton: $defaultButton; cancelButton: $cancelButton; givingUpAfter: $givingUpAfter"
+
+    ## Display the alert.
+    commandOutput=$(osascript -e "
+        on run
+            display alert \"${alertText}\" message \"${messageText}\" ${alertCriticality} buttons ${buttonNames} default button ${defaultButton} ${cancelButton} ${givingUpAfter}
+            set commandOutput to alert reply of the result
+            return commandOutput
+        end run
+    ")
+    executionStatus=$?
+
+    ## Exit on error
+    if [[ $commandOutput = *"Error"* ]] ; then
+        displayNotification "Failed to display alert. Error: '$commandOutput'" '' '' '' 'suppressNotification'
+        return 140
+    fi
+
+    ## Return cancel if pressed
+    if [[ $executionStatus != 0 ]] ; then
+        displayNotification "User cancelled alert." '' '' '' 'suppressNotification'
+        return 141
+    fi
+
+    ## Return commandOutput. Remember to assign the result to a variable, if you print it to the terminal, it will be logged.
+    echo "$commandOutput"
+}
+#endregion
+
+#region Function checkSupportedOS
+#Assigned Error Codes: 150 - 159
+function checkSupportedOS() {
+#.SYNOPSIS
+#    Checks if the OS is supported.
+#.DESCRIPTION
+#    Checks if the OS is supported and exits if it is not.
+#.PARAMETER supportedOSMajorVersion
+#    Specify the major version of the OS to check.
+#.EXAMPLE
+#    checkSupportedOS '13'
+#.NOTES
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/ISSUES
+
+    ## Set human readable parameters
+    local supportedOSMajorVersion="$1"
+
+    ## Variable declaration
+    local macOSVersion
+    local macOSMajorVersion
+    local macOSAllLatestVersions
+    local macOSSupportedName
+    local macOSName
+
+    ## Set variables
+    macOSVersion=$(sw_vers -productVersion)
+    macOSMajorVersion=$(echo "$macOSVersion" | cut -d'.' -f1)
+
+    ## Set display notification and alert variables
+    #  Get all supported OS versions
+    macOSAllLatestVersions=$( (echo "<table>" ; curl -sfLS "https://support.apple.com/en-us/HT201260" \
+        | tidy --tidy-mark no --char-encoding utf8 --wrap 0 --show-errors 0 --show-warnings no --clean yes --force-output yes --output-xhtml yes --quiet yes \
+        | sed -e '1,/<table/d; /<\/table>/,$d' -e 's#<br />##g' ; echo "</table>" ) \
+        | xmllint --html --xpath "//table/tbody/tr/td/text()" - 2>/dev/null
+    )
+    #  Get supported OS display name
+    macOSSupportedName=$(echo "$macOSAllLatestVersions" | awk "/^${supportedOSMajorVersion}/{getline; print}")
+    #  Get current installed OS display name
+    macOSName=$(echo "$macOSAllLatestVersions" | awk "/^${macOSMajorVersion}/{getline; print}")
+
+    ## Check if OS is supported
+    if [[ "$macOSMajorVersion" -lt "$supportedOSMajorVersion" ]] ; then
+
+        #  Display notification and alert
+        displayNotification "Unsupported OS '$macOSName ($macOSVersion)', please upgrade. Terminating execution!"
+        displayAlert "OS needs to be at least '$macOSSupportedName ($supportedOSMajorVersion)'" 'Please upgrade and try again!' 'critical' '{"Upgrade macOS"}'
+
+        #  Forcefully install latest OS update
+        sudo softwareupdate -i -a
+        exit 150
+    else
+        displayNotification "Supported OS version '$macOSName ($macOSVersion)', continuing..."
+        return 0
+    fi
+}
+#endregion
+
+#region Function invokeFileVaultAction
+#Assigned Error Codes: 160 - 169
+function invokeFileVaultAction() {
+#.SYNOPSIS
+#    Invokes a FileVault action.
+#.DESCRIPTION
+#    Invokes a FileVault action for the current user by prompting for the password, and populating answers for the fdesetup prompts.
+#.PARAMETER action
+#    Specify the action to invoke. Valid values are 'enable', 'disable', and 'reissueKey'.
+#.EXAMPLE
+#    invokeFileVaultAction 'enable'
+#.EXAMPLE
+#    invokeFileVaultAction 'disable'
+#.EXAMPLE
+#    invokeFileVaultAction 'reissueKey'
+#.NOTES
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://github.com/jamf/FileVault2_Scripts/blob/master/reissueKey.sh (Original script and copyright notice)
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/ISSUES
+
+    ## Variable declaration
+    local fileVaultIcon
+    local userName
+    local userNameUUID
+    local isFileVaultUser
+    local isFileVaultOn
+    local loopCounter=1
+    local action
+    local actionMessage
+    local actionTitle
+    local actionSubtitle
+    local actionButtons
+    local checkFileVaultStatus
+
+    ## Set action
+    case "$1" in
+        'enable')
+            action="$1"
+            actionTitle='Enable FileVault'
+            actionSubtitle='FileVault needs to be enabled!'
+            actionButtons='{"Cancel", "Enable FileVault")'
+            checkFileVaultStatus='On'
+        ;;
+        'disable')
+            action="$1"
+            actionTitle='Disable FileVault'
+            actionSubtitle='FileVault needs to be disabled!'
+            actionButtons='{"Cancel", "Disable FileVault"}'
+            checkFileVaultStatus='Off'
+
+        ;;
+        'reissueKey')
+            action='changerecovery -personal'
+            actionTitle='Reissue FileVault Key'
+            actionSubtitle='FileVault needs to reissue the key!'
+            actionButtons='{"Cancel", "Reissue Key"}'
+            checkFileVaultStatus='NotNeeded'
+        ;;
+        *)
+            displayNotification "Invalid FileVault action '$1'. Skipping '$actionTitle'..." '' '' '' 'suppressNotification'
+            return 160
+        ;;
+    esac
+
+    ## Set filevault icon
+    fileVaultIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FileVaultIcon.icns'
+
+    ## Get the logged in user's name
+    userName=$(/usr/bin/stat -f%Su /dev/console)
+
+    ## Get the user's UUID
+    userNameUUID=$(dscl . -read /Users/"$userName"/ GeneratedUID | awk '{print $2}')
+
+    ## Check if user is an authorized FileVault user
+    isFileVaultUser=$(fdesetup list | awk -v usrN="$userNameUUID" -F, 'match($0, usrN) {print $1}')
+    if [ "${isFileVaultUser}" != "${userName}" ]; then
+        displayNotification "${userName} is not a FileVault authorized user. Skipping '$actionTitle'..."
+        return 161
+    fi
+
+    ## Check to see if the encryption has finished
+    isFileVaultOn=$(fdesetup status | grep "FileVault is On.")
+
+    ## Check FileVault status
+    if [ "$checkFileVaultStatus" = 'On' ]; then
+        if [ -n "$isFileVaultOn" ]; then
+            displayNotification "FileVault is already enabled. Skipping '$actionTitle'..."
+            return 162
+        fi
+    else
+        if [ -z "$isFileVaultOn" ]; then
+            displayNotification "FileVault is not enabled. Skipping '$actionTitle'..."
+            return 163
+        fi
+    fi
+
+    ## Disable FileVault
+    while true; do
+
+        ## Get the logged in user's password via a prompt
+        actionMessage="Enter $userName's password:"
+        userPassword=$(displayDialog "$actionTitle" "$actionSubtitle" "$actionMessage" "$actionButtons" '2' 'Cancel' "$fileVaultIcon" 'passwordPrompt')
+
+        ## Check if the user cancelled the prompt (return code 131)
+        if [ $? = 131 ]; then
+            displayNotification "User cancelled '$actionTitle' action!"
+            return 164
+        fi
+
+        displayNotification "Attempting FileVault action '$actionTitle'..." '' '' '1'
+
+        ## Automatically populate answers for the fdesetup prompts
+        output=$(
+            expect -c "
+            log_user 0
+            spawn fdesetup $action
+            expect \"Enter the user name:\"
+            send {${userName}}
+            send \r
+            expect \"Enter a password for '/', or the recovery key:\"
+            send {${userPassword}}
+            send \r
+            log_user 1
+            expect eof
+        ")
+
+        if [[ $output = *'Error'* ]] || [[ $output = *'FileVault was not disabled'* ]] ; then
+            displayNotification "Error performing FileVault action '$actionTitle' Attempt (${loopCounter}/3). $output"
+            if [ $loopCounter -ge 3 ] ; then
+                displayNotification "A maximum of 3 retries has been reached.\nContinuing without performing FileVault action '$action'..."
+                return 165
+            fi
+            ((loopCounter++))
+        else
+            displayNotification "Sucessfully performed FileVault action '$actionTitle'!"
+            return 0
+        fi
+    done
+}
+#endregion
+
+#region Function unbindFromAD
+#Assigned Error Codes: 170 - 179
 function unbindFromAD() {
 #.SYNOPSIS
 #    Unbinds device from AD.
@@ -487,157 +809,13 @@ function unbindFromAD() {
     ## Return execution status
     if [[ $executionStatus != 0 ]] ; then
         displayNotification "Failed to unbind from Active Directory. Error: '$executionStatus'" '' '' '' 'suppressNotification'
-        return 140
+        return 170
     fi
-}
-#endregion
-
-#region Function invokeFileVaultAction
-#Assigned Error Codes: 150 - 159
-function invokeFileVaultAction() {
-#.SYNOPSIS
-#    Invokes a FileVault action.
-#.DESCRIPTION
-#    Invokes a FileVault action for the current user by prompting for the password, and populating answers for the fdesetup prompts.
-#.PARAMETER action
-#    Specify the action to invoke. Valid values are 'enable', 'disable', and 'reissueKey'.
-#.EXAMPLE
-#    invokeFileVaultAction 'enable'
-#.EXAMPLE
-#    invokeFileVaultAction 'disable'
-#.EXAMPLE
-#    invokeFileVaultAction 'reissueKey'
-#.NOTES
-#    This is an internal script function and should typically not be called directly.
-#.LINK
-#    https://github.com/jamf/FileVault2_Scripts/blob/master/reissueKey.sh (Original script and copyright notice)
-#.LINK
-#    https://MEM.Zone
-#.LINK
-#    https://MEM.Zone/ISSUES
-
-    ## Variable declaration
-    local fileVaultIcon
-    local userName
-    local userNameUUID
-    local isFileVaultUser
-    local isFileVaultOn
-    local loopCounter=1
-    local action
-    local actionMessage
-    local actionTitle
-    local actionSubtitle
-    local actionButton
-    local checkFileVaultStatus
-
-    ## Set action
-    case "$1" in
-        'enable')
-            action="$1"
-            actionTitle='Enable FileVault'
-            actionSubtitle='FileVault needs to be enabled!'
-            actionButton='Enable FileVault'
-            checkFileVaultStatus='On'
-        ;;
-        'disable')
-            action="$1"
-            actionTitle='Disable FileVault'
-            actionSubtitle='FileVault needs to be disabled!'
-            actionButton='Disable FileVault'
-            checkFileVaultStatus='Off'
-
-        ;;
-        'reissueKey')
-            action='changerecovery -personal'
-            actionTitle='Reissue FileVault Key'
-            actionSubtitle='FileVault needs to reissue the key!'
-            actionButton='Reissue Key'
-            checkFileVaultStatus='NotNeeded'
-        ;;
-        *)
-            displayNotification "Invalid FileVault action '$1'. Skipping '$actionTitle'..." '' '' '' 'suppressNotification'
-            reuturn 150
-        ;;
-    esac
-
-    ## Set filevault icon
-    fileVaultIcon='/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FileVaultIcon.icns'
-
-    ## Get the logged in user's name
-    userName=$(/usr/bin/stat -f%Su /dev/console)
-
-    ## Get the user's UUID
-    userNameUUID=$(dscl . -read /Users/"$userName"/ GeneratedUID | awk '{print $2}')
-
-    ## Check if user is an authorized FileVault user
-    isFileVaultUser=$(fdesetup list | awk -v usrN="$userNameUUID" -F, 'match($0, usrN) {print $1}')
-    if [ "${isFileVaultUser}" != "${userName}" ]; then
-        displayNotification "${userName} is not a FileVault authorized user. Skipping '$actionTitle'..."
-        return 151
-    fi
-
-    ## Check to see if the encryption has finished
-    isFileVaultOn=$(fdesetup status | grep "FileVault is On.")
-
-    ## Check FileVault status
-    if [ "$checkFileVaultStatus" = 'On' ]; then
-        if [ -n "$isFileVaultOn" ]; then
-            displayNotification "FileVault is already enabled. Skipping '$actionTitle'..."
-            return 152
-        fi
-    else
-        if [ -z "$isFileVaultOn" ]; then
-            displayNotification "FileVault is not enabled. Skipping '$actionTitle'..."
-            return 153
-        fi
-    fi
-
-    ## Disable FileVault
-    while true; do
-
-        ## Get the logged in user's password via a prompt
-        actionMessage="Enter $userName's password:"
-        userPassword=$(displayDialog "$actionMessage" "$actionTitle" "$actionSubtitle" 'Exit' "$actionButton" '2' 'Exit' "$fileVaultIcon" 'passwordPrompt')
-
-        ## Check if the user cancelled the prompt (return code 131)
-        if [ $? = 131 ]; then
-            displayNotification "User cancelled '$actionTitle' action!"
-            return 154
-        fi
-
-        ## Automatically populate answers for the fdesetup prompts
-        output=$(
-            expect -c "
-            log_user 0
-            spawn fdesetup $action
-            expect \"Enter the user name:\"
-            send {${userName}}
-            send \r
-            expect \"Enter a password for '/', or the recovery key:\"
-            send {${userPassword}}
-            send \r
-            log_user 1
-            expect eof
-        ")
-        echo "$output"
-
-        if [[ $output = *'Error'* ]] || [[ $output = *'FileVault was not disabled'* ]] ; then
-            displayNotification "Error performing FileVault action '$actionTitle'. Error: '$output'. Attempt (${loopCounter}/3)."
-            if [ $loopCounter -ge 3 ] ; then
-                displayNotification "A maximum of 3 retries has been reached.\nContinuing without performing FileVault action '$action'..."
-                return 155
-            fi
-            ((loopCounter++))
-        else
-            displayNotification "Sucessfully performed FileVault action '$actionTitle'!"
-            return 0
-        fi
-    done
 }
 #endregion
 
 #region Function migrateUserPassword
-#Assigned Error Codes: 160 - 169
+#Assigned Error Codes: 180 - 189
 function migrateUserPassword() {
 #.SYNOPSIS
 #    Migrates the user password to the local account.
@@ -688,7 +866,7 @@ function migrateUserPassword() {
 #endregion
 
 #region Function convertMobileAccount
-#Assigned Error Codes: 170 - 179
+#Assigned Error Codes: 190 - 199
 function convertMobileAccount() {
 #.SYNOPSIS
 #    Converts mobile account to local account.
@@ -768,8 +946,8 @@ function convertMobileAccount() {
     ## Check if account is a mobile account
     accountType=$(/usr/bin/dscl . -read /Users/"$userName" AuthenticationAuthority | head -2 | awk -F'/' '{print $2}' | tr -d '\n')
     if [[ "$accountType" = "Active Directory" ]]; then
-        displayNotification "Error converting the $userName account! Terminating execution!"
-        exit 170
+        displayNotification "Error converting the $userName account! Terminating execution..."
+        exit 190
     else
         displayNotification "$userName was successfully converted to a local account."
     fi
@@ -794,7 +972,7 @@ function convertMobileAccount() {
 #endregion
 
 #region Function invokeJamfApiTokenAction
-#Assigned Error Codes: 180 - 189
+#Assigned Error Codes: 200 - 209
 function invokeJamfApiTokenAction() {
 #.SYNOPSIS
 #    Performs a JAMF API token action.
@@ -850,7 +1028,7 @@ function invokeJamfApiTokenAction() {
         TOKEN_EXPIRATION_EPOCH=$(date -j -f "%Y-%m-%dT%T" "$tokenExpiration" +"%s")
         if [[ -z "$BEARER_TOKEN" ]] ; then
             displayNotification "Failed to get a valid API token!" '' '' '' 'suppressNotification'
-            return 180
+            return 200
         else
             displayNotification "API token successfully retrieved!" '' '' '' 'suppressNotification'
         fi
@@ -876,7 +1054,7 @@ function invokeJamfApiTokenAction() {
             displayNotification "Token already invalid!" '' '' '' 'suppressNotification'
         else
             displayNotification "An unknown error occurred invalidating the token!" '' '' '' 'suppressNotification'
-            return 181
+            return 201
         fi
     }
     #endregion
@@ -896,15 +1074,15 @@ function invokeJamfApiTokenAction() {
             invalidateToken
             ;;
         *)
-            displayNotification "Invalid token action '$tokenAction' specified!"
-            exit 182
+            displayNotification "Invalid token action '$tokenAction' specified! Terminating execution..."
+            exit 202
             ;;
     esac
 }
 #endregion
 
 #region Function invokeSendJamfCommand
-#Assigned Error Codes: 190 - 199
+#Assigned Error Codes: 210 - 219
 function invokeSendJamfCommand() {
 #.SYNOPSIS
 #    Performs a JAMF API send command.
@@ -980,17 +1158,17 @@ function invokeSendJamfCommand() {
             return 0
         else
             displayNotification "Failed to perform command '${command}' on device '${serialNumber} [${deviceId}]'!" '' '' '' 'suppressNotification'
-            return 190
+            return 210
         fi
     else
         displayNotification "Invalid device id '${deviceId} [${serialNumber}]'. Skipping '${command}'..." '' '' '' 'suppressNotification'
-        return 191
+        return 211
     fi
 }
 #endregion
 
 #region Function startJamfOffboarding
-#Assigned Error Codes: 200 - 209
+#Assigned Error Codes: 220 - 229
 function startJamfOffboarding() {
 #.SYNOPSIS
 #    Starts JAMF offboarding.
@@ -1019,7 +1197,7 @@ function startJamfOffboarding() {
     hasJamfBinaries=$(which jamf)
     if [[ -z "$isJamfManaged" ]] && [[ -z "$hasJamfBinaries" ]]; then
         displayNotification 'Not JAMF managed. Skipping JAMF offboarding...'
-        return 1
+        return 0
     fi
 
     ## Display notification
@@ -1061,8 +1239,8 @@ function startJamfOffboarding() {
         sudo jamf removeMdmProfile
         #  Terminate execution after 3 retries
         if [ $loopCounter -ge 4 ] ; then
-            displayNotification "JAMF management profile could not be removed. Terminating execution!"
-            exit 200
+            displayNotification "JAMF management profile could not be removed! Terminating execution..."
+            exit 220
         fi
         #  Increment loop counter
         ((loopCounter++))
@@ -1114,24 +1292,15 @@ startLogging "$LOG_NAME" "$LOG_DIR" "$LOG_HEADER"
 ## Show script version and suppress terminal output
 displayNotification "Running $SCRIPT_NAME version $SCRIPT_VERSION" '' '' '' '' 'suppressTerminal'
 
-## Check if OS version is supported
-majorOSVersion=$(sw_vers -productVersion | cut -d'.' -f1)
-
-if [[ "$majorOSVersion" -lt "$LAST_SUPPORTED_OS_VERSION" ]] ; then
-    displayNotification "Unsupported OS version '$majorOSVersion', please upgrade. Terminating execution!"
-    osascript -e 'display alert "OS needs to be at least Monterey (12.0.1). \n \nPlease upgrade and try again!" buttons {"Upgrade macOS"} as critical'
-    sudo softwareupdate -i -a
-    exit 10
-else
-    displayNotification "Supported OS version '$(sw_vers -productVersion)', continuing..."
-fi
+## Check if OS is supported
+checkSupportedOS "$SUPPORTED_OS_MAJOR_VERSION"
 
 ## If Company Portal is installed, continue, otherwise quit
 if open -Ra 'Company Portal'; then
     displayNotification 'Company Portal application is installed, continuing...'
 else
     displayNotification 'Company Portal application not installed, contact support!'
-    osascript -e 'display alert "Company Portal app is not installed. \n \nIn order to continue, contact support!" buttons {"Contact Support"} as critical'
+    displayAlert "Company Portal app is not installed" 'In order to continue, please contact support!' 'critical' '{"Contact Support"}'
     open "$SUPPORT_LINK"
     exit 11
 fi

@@ -1,5 +1,17 @@
 # macOS Intune Onboarding Tool release history
 
+## 5.0.0 - 2023-03-24
+
+* Added better notifications and alerts.
+* Added `displayAlert` function.
+* Changed `displayDialog` icon parameter to allow icon resource names or IDs.
+* Changed `displayDialog` parameters position to make more sense [`Breaking`].
+* Changed last supported OS version to macOS 12 Monterey.
+* Changed macOS supported OS check by moving it to the `checkSupportedOS` function.
+* Changed `LAST_SUPPORTED_OS_VERSION` to `SUPPORTED_OS_MAJOR_VERSION` [`Breaking`].
+* Changed all exit code values [`Breaking`].
+* Updated descriptions.
+
 ## 4.1.0 - 2023-03-16
 
 * Added `macOS` version check with forced update prompt.
