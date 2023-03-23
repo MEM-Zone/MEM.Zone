@@ -1,5 +1,9 @@
 # macOS Intune Onboarding Tool release history
 
+## 5.0.1 - 2023-03-24
+
+* Updated `Error Code` legend.
+
 ## 5.0.0 - 2023-03-24
 
 * Added better notifications and alerts.

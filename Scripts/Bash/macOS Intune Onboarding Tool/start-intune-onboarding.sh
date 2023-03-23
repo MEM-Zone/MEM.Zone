@@ -18,19 +18,22 @@
 #    120 - Failed to display notification
 #    130 - Failed to display dialog
 #    131 - User cancelled dialog
-#    150 - Invalid FileVault action
-#    151 - Unauthorized FileVault user
-#    152 - FileVault is already enabled
-#    153 - FileVault is not enabled
-#    155 - Failed to perform FileVault action
-#    154 - User cancelled FileVault action
-#    170 - Failed to convert mobile account
-#    180 - Failed to get JAMF API token
-#    181 - Failed to invalidate JAMF API token
-#    182 - Invalid JAMF API token action
-#    190 - Faile to perform JAMF send command action
-#    191 - Invalid JAMF device id
-#    200 - Failed to remove JAMF management profile
+#    140 - Failed to display alert
+#    141 - User cancelled alert
+#    150 - OS version not supported
+#    160 - Invalid FileVault action
+#    161 - Unauthorized FileVault user
+#    162 - FileVault is already enabled
+#    163 - FileVault is not enabled
+#    164 - User cancelled FileVault action
+#    165 - Failed to perform FileVault action
+#    190 - Failed to convert mobile account
+#    200 - Failed to get JAMF API token
+#    201 - Failed to invalidate JAMF API token
+#    202 - Invalid JAMF API token action
+#    210 - Failed to perform JAMF send command action
+#    211 - Invalid JAMF device id
+#    220 - Failed to remove JAMF management profile
 #.LINK
 #    https://MEM.Zone
 #.LINK
@@ -66,7 +69,7 @@ JAMF_API_PASSWORD=''
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=5.0.0
+SCRIPT_VERSION=5.0.1
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
