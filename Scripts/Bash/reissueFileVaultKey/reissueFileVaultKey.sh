@@ -42,12 +42,12 @@
 ## User Defined variables
 COMPANY_NAME='MEM.Zone IT'
 DISPLAY_NAME='Reissue FileVault Key'
-#  Specify only major version number
-LAST_SUPPORTED_OS_VERSION=12
+#  Specify last supported OS major version
+SUPPORTED_OS_MAJOR_VERSION=12
 
 ## Script variables
 #  Version
-SCRIPT_VERSION=1.0.0
+SCRIPT_VERSION=3.0.0
 OS_VERSION=$(sw_vers -productVersion)
 #  Author
 AUTHOR='Ioan Popovici'
@@ -137,7 +137,7 @@ function startLogging() {
 
     ## Creating log directory
     if [[ ! -d "$logDir" ]]; then
-        echo "$(date) | Creating [$logDir] to store logs"
+        echo "$(date) | Creating '$logDir' to store logs"
         sudo mkdir -p "$logDir"
     fi
 
@@ -147,8 +147,8 @@ function startLogging() {
     ## Write log header
     echo   ""
     echo   "##*====================================================================================="
-    echo   "# $(date) | Logging run of [$logName] to log file"
-    echo   "# Log Path: [$logFullName]"
+    echo   "# $(date) | Logging run of '$logName' to log file"
+    echo   "# Log Path: '$logFullName'"
     printf "# ${logHeader}"
     echo   "##*====================================================================================="
     echo   ""
@@ -284,7 +284,7 @@ function displayDialog() {
 #.EXAMPLE
 #    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' '{"Ok", "Stop"}' '1' 'Stop' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'textPrompt'
 #.EXAMPLE
-#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' '{"Ok", "Don't Continue"}' '1' 'Don't Continue' '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
+#    displayDialog 'messageTitle' 'messageSubtitle' 'messageText' "{\"Ok\", \"Don't Continue\"}" '1' "Don't Continue" '/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/FinderIcon.icns' 'passwordPrompt'
 #.NOTES
 #    This is an internal script function and should typically not be called directly.
 #.LINK
@@ -673,6 +673,67 @@ function invokeFileVaultAction() {
 }
 #endregion
 
+#region Function checkSupportedOS
+#Assigned Error Codes: 150 - 159
+function checkSupportedOS() {
+#.SYNOPSIS
+#    Checks if the OS is supported.
+#.DESCRIPTION
+#    Checks if the OS is supported and exits if it is not.
+#.PARAMETER supportedOSMajorVersion
+#    Specify the major version of the OS to check.
+#.EXAMPLE
+#    checkSupportedOS '13'
+#.NOTES
+#    This is an internal script function and should typically not be called directly.
+#.LINK
+#    https://MEM.Zone
+#.LINK
+#    https://MEM.Zone/ISSUES
+
+    ## Set human readable parameters
+    local supportedOSMajorVersion="$1"
+
+    ## Variable declaration
+    local macOSVersion
+    local macOSMajorVersion
+    local macOSAllLatestVersions
+    local macOSSupportedName
+    local macOSName
+
+    ## Set variables
+    macOSVersion=$(sw_vers -productVersion)
+    macOSMajorVersion=$(echo "$macOSVersion" | cut -d'.' -f1)
+
+    ## Set display notification and alert variables
+    #  Get all supported OS versions
+    macOSAllLatestVersions=$( (echo "<table>" ; curl -sfLS "https://support.apple.com/en-us/HT201260" \
+        | tidy --tidy-mark no --char-encoding utf8 --wrap 0 --show-errors 0 --show-warnings no --clean yes --force-output yes --output-xhtml yes --quiet yes \
+        | sed -e '1,/<table/d; /<\/table>/,$d' -e 's#<br />##g' ; echo "</table>" ) \
+        | xmllint --html --xpath "//table/tbody/tr/td/text()" - 2>/dev/null
+    )
+    #  Get supported OS display name
+    macOSSupportedName=$(echo "$macOSAllLatestVersions" | awk "/^${supportedOSMajorVersion}/{getline; print}")
+    #  Get current installed OS display name
+    macOSName=$(echo "$macOSAllLatestVersions" | awk "/^${macOSMajorVersion}/{getline; print}")
+
+    ## Check if OS is supported
+    if [[ "$macOSMajorVersion" -lt "$supportedOSMajorVersion" ]] ; then
+
+        #  Display notification and alert
+        displayNotification "Unsupported OS '$macOSName ($macOSVersion)', please upgrade. Terminating execution!"
+        displayAlert "OS needs to be at least '$macOSSupportedName ($supportedOSMajorVersion)'" 'Please upgrade and try again!' 'critical' '{"Upgrade macOS"}'
+
+        #  Forcefully install latest OS update
+        sudo softwareupdate -i -a
+        exit 150
+    else
+        displayNotification "Supported OS version '$macOSName ($macOSVersion)', continuing..."
+        return 0
+    fi
+}
+#endregion
+
 #endregion
 ##*=============================================
 ##* END FUNCTION LISTINGS
@@ -696,29 +757,8 @@ startLogging "$LOG_NAME" "$LOG_DIR" "$LOG_HEADER"
 ## Show script version and suppress terminal output
 displayNotification "Running $SCRIPT_NAME version $SCRIPT_VERSION" '' '' '' '' 'suppressTerminal'
 
-## Check if OS version is supported
-macOSMajorVersion=$(sw_vers -productVersion | cut -d'.' -f1)
-
-if [[ "$macOSMajorVersion" -lt "$LAST_SUPPORTED_OS_VERSION" ]] ; then
-    #  Get all major OS versions
-    macOSAllLatestVersions=$( (echo "<table>" ; curl -sfLS "https://support.apple.com/en-us/HT201260" \
-        | tidy --tidy-mark no --char-encoding utf8 --wrap 0 --show-errors 0 --show-warnings no --clean yes --force-output yes --output-xhtml yes --quiet yes \
-        | sed -e '1,/<table/d; /<\/table>/,$d' -e 's#<br />##g' ; echo "</table>" ) \
-        | xmllint --html --xpath "//table/tbody/tr/td/text()" - 2>/dev/null
-    )
-    #  Get latest supported OS display name
-    macOSLastSupportedName=$(echo "$macOSAllLatestVersions" | awk "/^${LAST_SUPPORTED_OS_VERSION}/{getline; print}")
-    #  Get current installed OS display name
-    macOSName=$(echo "$macOSAllLatestVersions" | awk "/^${OS_VERSION}/{getline; print}")
-    #  Display notification and alert
-    displayNotification "Unsupported OS '$macOSName ($OS_VERSION)', please upgrade. Terminating execution!"
-    displayAlert "OS needs to be at least '$macOSLastSupportedName ($LAST_SUPPORTED_OS_VERSION)'" 'Please upgrade and try again!' 'critical' '{"Upgrade macOS"}'
-    #  Forcefully install latest OS update
-    sudo softwareupdate -i -a
-    exit 10
-else
-    displayNotification "Supported OS version '$(sw_vers -productVersion)', continuing..."
-fi
+## Check if OS is supported
+checkSupportedOS "$SUPPORTED_OS_MAJOR_VERSION"
 
 ## Reissue FileVault Key
 displayDialog '' 'Intune is unable to manage FileVault.' 'Please follow this process to remediate the issue.\n\nIf you have any questions or concerns, contact our Endpoint Management Team.' '{"Continue"}' '' '' "${toolbarCustomizeIcon}"
