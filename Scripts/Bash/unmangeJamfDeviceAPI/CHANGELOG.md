@@ -1,4 +1,4 @@
-# unmangeJamfDeviceAPI release history
+# macOS unmangeJamfDeviceAPI release history
 
 ## 1.0.0 - 2023-02-09
 

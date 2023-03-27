@@ -33,7 +33,7 @@
 #.LINK
 #    https://MEM.Zone/macOS-JAMF-Bulk-Unmanage-CHANGELOG
 #.LINK
-#    https://MEM.Zone/GIT
+#    https://MEM.Zone/macOS-JAMF-Bulk-Unmanage-GIT
 #.LINK
 #    https://MEM.Zone/ISSUES
 
