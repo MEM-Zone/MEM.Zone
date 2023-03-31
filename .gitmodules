@@ -10,3 +10,6 @@
 [submodule "Projects/MEM.Zone-Blog"]
 	path = Projects/MEM.Zone-Blog
 	url = https://Ioan-Popovici@github.com/MEM-Zone/MEM.Zone-Blog
+[submodule "Projects/IntuneAutopilotTool"]
+	path = Projects/IntuneAutopilotTool
+	url = git@github.com:MEM-Zone/IntuneAutopilotTool.git
