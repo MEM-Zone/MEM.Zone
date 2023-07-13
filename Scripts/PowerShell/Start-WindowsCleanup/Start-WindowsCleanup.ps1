@@ -646,6 +646,7 @@ Function Write-Log {
 #endregion
 
 #region Format-Bytes
+Function Format-Bytes {
 <#
 .SYNOPSIS
     Formats a number of bytes in the coresponding sizes.
@@ -678,26 +679,44 @@ Function Write-Log {
 .FUNCTIONALITY
     Format Bytes
 #>
-Function Format-Bytes {
     Param (
         [Parameter(ValueFromPipeline = $true)]
         [ValidateNotNullOrEmpty()]
         [float]$Bytes
     )
-    Begin{
+    Begin {
+        [string]$Output = $null
+        [boolean]$Negative = $false
         $Sizes = 'KB','MB','GB','TB','PB'
     }
     Process {
-        # New for loop
-        For($Counter = 0; $Counter -lt $Sizes.Count; $Counter++) {
-            If ($Bytes -lt "1$($Sizes[$Counter])") {
-                If ($Counter -eq 0) { Return "$Bytes B" }
-                Else {
-                    $Number = $Bytes / "1$($Sizes[$Counter-1])"
-                    $Number = '{0:N2}' -f $Number
-                    Return "$Number $($Sizes[$Counter-1])"
+        Try {
+            If ($Bytes -le 0) {
+                $Bytes = -$Bytes
+                [boolean]$Negative = $true
+            }
+            For ($Counter = 0; $Counter -lt $Sizes.Count; $Counter++) {
+                If ($Bytes -lt "1$($Sizes[$Counter])") {
+                    If ($Counter -eq 0) {
+                    $Number = $Bytes
+                    $Sizes = 'B'
+                    }
+                    Else {
+                        $Number = $Bytes / "1$($Sizes[$Counter-1])"
+                        $Number = '{0:N2}' -f $Number
+                        $Sizes = $Sizes[$Counter-1]
+                    }
                 }
             }
+        }
+        Catch {
+            $Output = "Format Failed for Bytes ($Bytes! Error: $($_.Exception.Message)"
+            Write-Log -Message $Output -EventID 2 -Severity 3
+        }
+        Finally {
+            If ($Negative) { $Number = -$Number }
+            $Output = '{0} {1}' -f $Number, $Sizes
+            Write-Output -InputObject $Output
         }
     }
     End{
@@ -1049,33 +1068,36 @@ Function Start-WindowsCleanup {
                             }
                             Else { Write-Warning -Message 'CCM Client is not installed! Skipping CCM Cache Cleanup...' }
                         }
-                        Default { $WindowsCleanup = "$CleanupOption is Not a Valid Cleanup Option!"; Break }
+                        Default { $Output = "$CleanupOption is Not a Valid Cleanup Option!"; Break }
                     }
                 }
 
                 ## Calculate the total freed up space and add it to the $VolumeInfo object
                 ForEach ($Volume in $VolumeInfo) {
-                    $CleanedSpace = $Volume.SizeRemaining - (Get-Volume -DriveLetter $Volume.DriveLetter).SizeRemaining | Format-Bytes
-                    $Volume | Add-Member -MemberType 'NoteProperty' -Name 'Reclaimed' -Value $CleanedSpace -ErrorAction 'SilentlyContinue'
+                    $CleanedSpace = (Get-Volume -DriveLetter $Volume.DriveLetter).SizeRemaining - $Volume.SizeRemaining | Format-Bytes
+                    $Volume | Add-Member -MemberType 'NoteProperty' -Name 'ReclaimedSpace' -Value $CleanedSpace -ErrorAction 'SilentlyContinue'
                 }
 
                 ## Format output
-                $WindowsCleanup = $VolumeInfo | Select-Object -Property 'DriveLetter',
-                    @{ Name = 'Size'     ; Expression = {Format-Bytes -Bytes $PSItem.Size} },
-                    @{ Name = 'Remaining'; Expression = {Format-Bytes -Bytes $PSItem.SizeRemaining} },
-                    Reclaimed
+                $Output = $VolumeInfo | Select-Object -Property 'DriveLetter',
+                    @{ Name = 'Size'         ; Expression = {Format-Bytes -Bytes $PSItem.Size} },
+                    @{ Name = 'FreeSpace'; Expression = {Format-Bytes -Bytes $PSItem.SizeRemaining} },
+                    ReclaimedSpace
+
+                ## Warn that a reboot might be needed
+                Write-Warning -Message "SxS proccesing only occurs on system startup. Negative 'Reclaimed' values on repeaded runs are normal, you need to reboot." -Verbose
 
                 ## Write to event log
-                [string]$EventLogEntry = "Cleanup Completed for $env:COMPUTERNAME ($MachineOS)!`n$($WindowsCleanup | Out-String)"
+                [string]$EventLogEntry = "Cleanup Completed for $env:COMPUTERNAME ($MachineOS)!`n$($Output | Out-String)"
                 Write-Log -Message $EventLogEntry
             }
         }
         Catch {
-            $WindowsCleanup = "Cleanup for $env:COMPUTERNAME ($MachineOS)! Error: $($_.Exception.Message)"
-            Write-Log -Message $WindowsCleanup -EventID 2 -Severity 3
+            $Output = "Cleanup Failed for $env:COMPUTERNAME ($MachineOS)! Error: $($_.Exception.Message)"
+            Write-Log -Message $Output -EventID 2 -Severity 3
         }
         Finally {
-            Write-Output -InputObject $WindowsCleanup
+            Write-Output -InputObject $Output
         }
     }
     End {

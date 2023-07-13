@@ -1,5 +1,18 @@
 # Start-WindowsCleanup release history
 
+## 4.0.0 - 2023-07-13
+
+* Renamed `Remaining` to `FreeSpace`
+* Renamed `Reclaimed` to `ReclaimedSpace`
+* Fixed `FreeSpace` computation
+* Fixed `FreeSpace` formatting for negative numbers
+* Fixed `Format-Bytes` function
+* Added Some code improvements
+* Added reboot warning for SxS proccesing for addressing [Less free space each time the cleanup script has been run](https://github.com/MEM-Zone/MEM.Zone/issues/12) @Glitchi85
+
+>Note
+>Renaming output headers is a breaking change, bumping major version.
+
 ## 3.1.1 - 2023-07-13
 
 * Added wait for `TiWorker` process to start
