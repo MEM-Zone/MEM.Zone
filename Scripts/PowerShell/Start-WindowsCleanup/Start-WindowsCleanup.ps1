@@ -1088,13 +1088,13 @@ Function Start-WindowsCleanup {
 #region ScriptBody
 
 Try {
-   $WindowsCleanup = Start-WindowsCleanup -CleanupOptions $CleanupOptions
+    $WindowsCleanup = Start-WindowsCleanup -CleanupOptions $CleanupOptions
 }
 Catch {
-   $WindowsCleanup = "Cleanup for $env:COMPUTERNAME ($MachineOS)! Error: $($_.Exception.Message)"
+    $WindowsCleanup = "Cleanup for $env:COMPUTERNAME ($MachineOS)! Error: $($_.Exception.Message)"
 }
 Finally {
-   Write-Output -InputObject $WindowsCleanup
+    Write-Output -InputObject $WindowsCleanup
 }
 
 #endregion
