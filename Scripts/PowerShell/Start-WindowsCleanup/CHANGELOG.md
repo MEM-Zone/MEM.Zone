@@ -1,5 +1,9 @@
 # Start-WindowsCleanup release history
 
+## 3.1.0 - 2023-07-13
+
+* Added `TiWorker` process priority as `High`, requested per [Increase TiWorker.exe CPU priority](https://github.com/MEM-Zone/MEM.Zone/issues/11)
+
 ## 3.0.1 - 2021-11-19
 
 * Fixed a typo in the `childpath` parameter form the `Remove orphaned CCM cache items` @asg2ki (Pull Request)
