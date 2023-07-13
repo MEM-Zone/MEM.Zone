@@ -2,6 +2,25 @@
 //---------------| SQL extension start |---------------
 //=====================================================
 
+/*
+.SYNOPSIS
+    Gathers SQL product info.
+.DESCRIPTION
+    Gathers SQL product info, id and product key and adds them to custom WMI Classes.
+.NOTES
+    Created by Ioan Popovici.
+.LINK
+    https://MEM.Zone/SW-SQL-Server-Products
+.LINK
+    https://MEM.Zone/SQL-SupportFunctions
+.LINK
+    https://MEM.Zone/SW-SQL-Server-Products-CHANGELOG
+.LINK
+    https://MEM.Zone/SW-SQL-Server-Products-GIT
+.LINK
+    https://MEM.Zone/ISSUES
+*/
+
 //-- Set default WMI namespace
 #Pragma NameSpace("\\\\.\\ROOT\\cimv2")
 
@@ -9,6 +28,7 @@
 
 //-- !! UNCOMMENT TO ACTIVATE !! (Remove '//' from '//#Pragma')
 
+//#Pragma DeleteClass("SQL_2022", NOFAIL)
 //#Pragma DeleteClass("SQL_2019", NOFAIL)
 //#Pragma DeleteClass("SQL_2017", NOFAIL)
 //#Pragma DeleteClass("SQL_2016", NOFAIL)
@@ -16,6 +36,34 @@
 //#Pragma DeleteClass("SQL_2012", NOFAIL)
 //#Pragma DeleteClass("SQL_2008", NOFAIL)
 //#Pragma DeleteClass("SQL_2000_And_2005", NOFAIL)
+
+
+//---------------| SQL 2022 class |---------------
+
+//-- Create custom WMI class
+//-  Class qualifiers
+[
+    Description("The SQL_2019_Property class contains information about the SQL 2022 service. You can use this information for SQL version reporting."): ToInstance,
+    UNION,
+    ViewSources {
+        "SELECT PropertyIndex, PropertyName, PropertyNumValue, PropertyStrValue, ServiceName, SqlServiceType FROM SqlServiceAdvancedProperty WHERE SQLServiceType=1"
+    },
+    ViewSpaces {
+        "\\\\.\\ROOT\\Microsoft\\SqlServer\\ComputerManagement16"
+    },
+    Dynamic,
+    Provider("MS_VIEW_INSTANCE_PROVIDER")
+]
+//-  Class properties
+Class SQL_2019_Property
+{
+    [PropertySources{"PropertyIndex"},  key]    uint32 PropertyIndex;
+    [PropertySources{"PropertyName"},   key]    string PropertyName;
+    [PropertySources{"PropertyNumValue"}   ]    uint32 PropertyNumValue;
+    [PropertySources{"PropertyStrValue"}   ]    string PropertyStrValue;
+    [PropertySources{"ServiceName"},    key]    string ServiceName;
+    [PropertySources{"SqlServiceType"}, key]    uint32 SqlServiceType;
+};
 
 //---------------| SQL 2019 class |---------------
 
@@ -224,11 +272,30 @@ Class SQL_ProductID
     boolean DigitalProductID[];
 };
 
+//- SQL 2022 class instance
+[DYNPROPS]
+Instance of SQL_ProductID
+{
+    Release = "2022";
+    [
+        PropertyContext("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SQL Server\\160\\Tools\\ClientSetup|ProductID"),
+        Dynamic,
+        Provider("RegPropProv")
+    ]
+    ProductID;
+    [
+        PropertyContext("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SQL Server\\160\\Tools\\ClientSetup|DigitalProductID"),
+        Dynamic,
+        Provider("RegPropProv")
+    ]
+    DigitalProductID;
+};
+
 //- SQL 2019 class instance
 [DYNPROPS]
 Instance of SQL_ProductID
 {
-    Release = "2017";
+    Release = "2019";
     [
         PropertyContext("Local|HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SQL Server\\150\\Tools\\ClientSetup|ProductID"),
         Dynamic,

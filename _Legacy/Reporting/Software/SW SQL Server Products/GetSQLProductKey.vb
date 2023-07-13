@@ -18,9 +18,11 @@
 '    http://mspowershell.blogspot.com/2010/11/sql-server-product-key.html (Jakob Bindslet)
 '    https://gallery.technet.microsoft.com/scriptcenter/Get-SQL-Server-Product-4b5bf4f8 (Chrissy LeMaire)
 '.LINK
-'    https://SCCM.Zone
+'    https://MEM.Zone
 '.LINK
-'    https://SCCM.Zone/Issues
+'    https://MEM.Zone/SW-SQL-Server-Products
+'.LINK
+'    https://MEM.Zone/ISSUES
 '
 '/*##=============================================*/
 '/*## SCRIPT BODY                                 */

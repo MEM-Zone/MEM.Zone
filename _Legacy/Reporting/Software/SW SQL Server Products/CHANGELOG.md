@@ -1,5 +1,12 @@
 # SW SQL Server Products release history
 
+## 3.0.0 - 2023-07-13
+
+* Fixed extension for `SQL 2019` in [Error content file HWI Extension sql server 2019](https://github.com/MEM-Zone/MEM.Zone/issues/9) @tuffgong31
+* Added support for `SQL 2022` (Not tested, please report issues)
+* Replaced hardcoded operating system names.
+* Updated descriptions and links
+
 ## 2.6.6 - 2020-03-29
 
 * Fixed extension for `SQL 2019`. For real this time, I promise!

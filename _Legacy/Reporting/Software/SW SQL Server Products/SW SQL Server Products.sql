@@ -9,15 +9,15 @@
     Requires SQL Property and ProductID HWI extensions.
     Part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/SW-SQL-Server-Products
+    https://MEM.Zone/SW-SQL-Server-Products
 .LINK
-    https://SCCM.Zone/SQL-SupportFunctions
+    https://MEM.Zone/SQL-SupportFunctions
 .LINK
-    https://SCCM.Zone/SW-SQL-Server-Products-CHANGELOG
+    https://MEM.Zone/SW-SQL-Server-Products-CHANGELOG
 .LINK
-    https://SCCM.Zone/SW-SQL-Server-Products-GIT
+    https://MEM.Zone/SW-SQL-Server-Products-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/
@@ -61,7 +61,8 @@ SET @StaticColumnList = N'[SKUNAME],[VERSION],[FILEVERSION],[SPLEVEL],[CLUSTERED
 /* Populate SQLRelease table */
 INSERT INTO @SQLRelease (FileVersion, Release)
 VALUES
-    ('2019', '2019')
+    ('2022', '2022')
+    , ('2019', '2019')
     , ('2017', '2017')
     , ('2016', '2017')
     , ('2015', '2016')
@@ -75,6 +76,15 @@ VALUES
     , ('2005', '2005')
     , ('2000', '2000')
     , ('',     'Unknown')
+
+/* Get SQL 2022 data */
+INSERT INTO #SQLProducts
+EXECUTE dbo.usp_PivotWithDynamicColumns
+    @TableName           = N'dbo.v_GS_EXT_SQL_2022_Property0'
+    , @NonPivotedColumn  = N'ResourceID'
+    , @DynamicColumn     = N'PropertyName0'
+    , @AggregationColumn = N'ISNULL(PropertyStrValue0, PropertyNumValue0)'
+	, @StaticColumnList  = @StaticColumnList;
 
 /* Get SQL 2019 data */
 INSERT INTO #SQLProducts
@@ -185,32 +195,15 @@ AS (
         , ProductKey        = ISNULL(SQLProductID.DigitalProductID0, 'N/A')
         , Device            = Devices.[Name]
         , DomainOrWorkgroup = ISNULL(Systems.Full_Domain_Name0, Systems.Resource_Domain_Or_Workgr0)
-        , OperatingSystem   = (
-
-            /* Get OS caption by version */
-            CASE
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Workstation 5.%'              THEN 'Windows XP'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Workstation 6.0%'             THEN 'Windows Vista'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Workstation 6.1%'             THEN 'Windows 7'
-                WHEN Systems.Operating_System_Name_And0 LIKE 'Windows_7 Entreprise 6.1'      THEN 'Windows 7'
-                WHEN Systems.Operating_System_Name_And0 =    'Windows Embedded Standard 6.1' THEN 'Windows 7'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Workstation 6.2%'             THEN 'Windows 8'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Workstation 6.3%'             THEN 'Windows 8.1'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Workstation 10%'              THEN 'Windows 10'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Workstation 10%'              THEN 'Windows 10'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Server 5.%'                   THEN 'Windows Server 2003'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Server 6.0%'                  THEN 'Windows Server 2008'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Server 6.1%'                  THEN 'Windows Server 2008 R2'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Server 6.2%'                  THEN 'Windows Server 2012'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Server 6.3%'                  THEN 'Windows Server 2012 R2'
-                WHEN Systems.Operating_System_Name_And0 LIKE '%Server 10%'                   THEN (
-                    CASE
-                        WHEN CAST(REPLACE(Build01, '.', '') AS INTEGER) > 10017763 THEN 'Windows Server 2019'
-                        ELSE 'Windows Server 2016'
-                    END
+        , OperatingSystem = (
+            IIF(
+                OperatingSystem.Caption0 != N''
+                , CONCAT(
+                    REPLACE(OperatingSystem.Caption0, N'Microsoft ', N''),         --Remove 'Microsoft ' from OperatingSystem
+                    REPLACE(OperatingSystem.CSDVersion0, N'Service Pack ', N' SP') --Replace 'Service Pack ' with ' SP' in OperatingSystem
                 )
-                ELSE Systems.Operating_System_Name_And0
-            END
+                , Systems.Operating_System_Name_And0
+            )
         )
         , IsVirtualMachine  = (
             CASE Devices.IsVirtualMachine
@@ -227,6 +220,7 @@ AS (
         JOIN v_CombinedDeviceResources AS Devices ON Devices.MachineID = CollectionMembers.ResourceID
         JOIN v_GS_PROCESSOR AS Processor ON Processor.ResourceID = CollectionMembers.ResourceID
         JOIN #SQLProducts AS SQLProducts ON SQLProducts.ResourceID = CollectionMembers.ResourceID
+        LEFT JOIN fn_rbac_GS_OPERATING_SYSTEM(@UserSIDs) AS OperatingSystem ON OperatingSystem.ResourceID = CollectionMembers.ResourceID
         LEFT JOIN dbo.v_GS_EXT_SQL_PRODUCTID0 AS SQLProductID ON SQLProductID.ResourceID = SQLProducts.ResourceID
             AND SQLProductID.Release0 = (
                 SELECT Release FROM @SQLRelease WHERE FileVersion = LEFT(SQLProducts.FileVersion, 4)
@@ -246,6 +240,8 @@ AS (
         , Systems.Resource_Domain_Or_Workgr0
         , Systems.Operating_System_Name_and0
         , Systems.Build01
+        , OperatingSystem.Caption0
+        , OperatingSystem.CSDVersion0
         , Devices.IsVirtualMachine
         , Processor.NumberOfCores0
         , Processor.NumberOfLogicalProcessors0
