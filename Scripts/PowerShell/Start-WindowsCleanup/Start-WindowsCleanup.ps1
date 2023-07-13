@@ -959,6 +959,7 @@ Function Start-WindowsCleanup {
                             ## Start Component Cache Repair
                             Show-Progress -Status 'Running Component Cache Repair. This Can Take a While...' -Loop
                             Start-Process -FilePath 'DISM.exe' -ArgumentList '/Online /Cleanup-Image /RestoreHealth' -WindowStyle 'Hidden'
+                            While (-not (Get-Process -Name 'TiWorker' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 5 }
                             Get-Process -Name 'TiWorker' | ForEach-Object { $PSItem.PriorityClass='High' }
                             Wait-Process -Name 'DISM'
                         }
@@ -967,6 +968,7 @@ Function Start-WindowsCleanup {
                             ## Start Component Cache Cleanup
                             Show-Progress -Status 'Running Component Cache Cleanup. This Can Take a While...' -Loop
                             Start-Process -FilePath 'DISM.exe' -ArgumentList '/Online /Cleanup-Image /StartComponentCleanup /ResetBase' -WindowStyle 'Hidden'
+                            While (-not (Get-Process -Name 'TiWorker' -ErrorAction SilentlyContinue)) { Start-Sleep -Seconds 5 }
                             Get-Process -Name 'TiWorker' | ForEach-Object { $PSItem.PriorityClass='High' }
                             Wait-Process -Name 'DISM'
                         }

@@ -1,5 +1,9 @@
 # Start-WindowsCleanup release history
 
+## 3.1.1 - 2023-07-13
+
+* Added wait for `TiWorker` process to start
+
 ## 3.1.0 - 2023-07-13
 
 * Added `TiWorker` process priority as `High`, requested per [Increase TiWorker.exe CPU priority](https://github.com/MEM-Zone/MEM.Zone/issues/11)
