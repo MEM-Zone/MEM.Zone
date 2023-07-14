@@ -1,4 +1,4 @@
-# ConfigMgr - Detailed Port Information release history
+# ConfigMgr-PortInformation release history
 
 ## 4.0.0 - 2023-07-14
 
