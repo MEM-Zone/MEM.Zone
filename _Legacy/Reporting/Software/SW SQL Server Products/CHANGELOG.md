@@ -1,5 +1,11 @@
 # SW SQL Server Products release history
 
+## 3.0.1 - 2023-07-14
+* Fixed  support for `SQL 2022`
+* Removed `Cannot decode key` for SQL Developer
+* Added `usp_PivotWithDynamicColumns.sql` to the project folder
+* Changed <> back to &lt;&gt; because "MarkupNotRecognizedInContent" problem highlight in VSCode
+
 ## 3.0.0 - 2023-07-13
 
 * Fixed extension for `SQL 2019` in [Error content file HWI Extension sql server 2019](https://github.com/MEM-Zone/MEM.Zone/issues/9) @tuffgong31

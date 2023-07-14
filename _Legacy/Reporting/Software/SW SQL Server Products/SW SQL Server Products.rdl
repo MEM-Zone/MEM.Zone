@@ -4004,7 +4004,7 @@ ORDER BY
                                                                       <Paragraph>
                                                                         <TextRuns>
                                                                           <TextRun>
-                                                                            <Value>=IIF(Fields!EditionGroup.Value &lt;&gt; "Express", IIF(Parameters!HideProductKey.Value = false, Code.GetSQLProductKey(Split(Replace(Fields!ProductKey.Value, " ",""), ","), Left(Fields!Version.Value, 2)), "Hidden"), Nothing)</Value>
+                                                                            <Value>=IIF(Fields!EditionGroup.Value &lt;&gt; "Express" and Fields!EditionGroup.Value &lt;&gt; "Developer", IIF(Parameters!HideProductKey.Value = false, Code.GetSQLProductKey(Split(Replace(Fields!ProductKey.Value, " ",""), ","), Left(Fields!Version.Value, 2)), "Hidden"), Nothing)</Value>
                                                                             <Style>
                                                                               <FontFamily>Segoe UI</FontFamily>
                                                                               <FontSize>9pt</FontSize>
@@ -4913,7 +4913,7 @@ ORDER BY
           Dim iastrBinaryKeyOuterLoop As Long
           Dim iastrBinaryKeyInnerLoop As Long
           Try
-              If (intVersion >= 11) Then
+              If (intVersion &gt;= 11) Then
                   iastrBinaryKey = 0
               Else
                   iastrBinaryKey = 52
@@ -4926,7 +4926,7 @@ ORDER BY
                       iachrKeyChars = iachrKeyChars Mod 24
                   Next iastrBinaryKeyInnerLoop
                   strSQLProductKey = achrKeyChars(iachrKeyChars) + strSQLProductKey
-                  If (iastrBinaryKeyOuterLoop Mod 5) = 0 And iastrBinaryKeyOuterLoop <> 0 Then
+                  If (iastrBinaryKeyOuterLoop Mod 5) = 0 And iastrBinaryKeyOuterLoop &lt;&gt; 0 Then
                       strSQLProductKey = "-" + strSQLProductKey
                   End If
               Next iastrBinaryKeyOuterLoop
@@ -4945,6 +4945,6 @@ ORDER BY
     <CodeModule>SrsResources, Culture=neutral</CodeModule>
   </CodeModules>
   <rd:ReportUnitType>Cm</rd:ReportUnitType>
-  <rd:ReportServerUrl>http://ulb-cm-sql-01a/ReportServer</rd:ReportServerUrl>
+  <rd:ReportServerUrl>http://YOUR_SSRS_SERVER_DNS_NAME/ReportServer</rd:ReportServerUrl>
   <rd:ReportID>6fbd236a-d836-4950-8788-14b828deb616</rd:ReportID>
 </Report>

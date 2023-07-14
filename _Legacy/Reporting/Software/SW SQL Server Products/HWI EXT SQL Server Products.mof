@@ -43,7 +43,7 @@
 //-- Create custom WMI class
 //-  Class qualifiers
 [
-    Description("The SQL_2019_Property class contains information about the SQL 2022 service. You can use this information for SQL version reporting."): ToInstance,
+    Description("The SQL_2022_Property class contains information about the SQL 2022 service. You can use this information for SQL version reporting."): ToInstance,
     UNION,
     ViewSources {
         "SELECT PropertyIndex, PropertyName, PropertyNumValue, PropertyStrValue, ServiceName, SqlServiceType FROM SqlServiceAdvancedProperty WHERE SQLServiceType=1"
@@ -55,7 +55,7 @@
     Provider("MS_VIEW_INSTANCE_PROVIDER")
 ]
 //-  Class properties
-Class SQL_2019_Property
+Class SQL_2022_Property
 {
     [PropertySources{"PropertyIndex"},  key]    uint32 PropertyIndex;
     [PropertySources{"PropertyName"},   key]    string PropertyName;
