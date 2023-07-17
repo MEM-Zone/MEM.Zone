@@ -20,9 +20,11 @@
     Created by Ioan Popovici
     If more than one application is detected the script will throw 'Multiple Applications (x) Found!' error.
 .LINK
-    https://MEM.Zone
+    https://MEM.Zone/Test-CMApplication
 .LINK
-    https://MEM.Zone/GIT
+    https://MEM.Zone/Test-CMApplication-CHANGELOG
+.LINK
+    https://MEM.Zone/Test-CMApplication-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -84,9 +86,11 @@ Function Test-CMApplication {
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone
+    https://MEM.Zone/Test-CMApplication
 .LINK
-    https://MEM.Zone/GIT
+    https://MEM.Zone/Test-CMApplication-CHANGELOG
+.LINK
+    https://MEM.Zone/Test-CMApplication-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
