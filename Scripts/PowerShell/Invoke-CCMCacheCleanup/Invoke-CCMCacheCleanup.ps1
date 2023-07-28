@@ -1297,7 +1297,10 @@ Function Get-CCMCacheInfo {
                 'Orphaned' {
                     Get-CCMOrphanedCache
                 }
-            } | Sort-Object -Property 'CacheType'
+            }
+
+            ## Sort by CacheType
+            $CachedElements = $CachedElements | Sort-Object -Property 'CacheType'
 
             ## Get cached element info
             ForEach ($CachedElement in $CachedElements) {
