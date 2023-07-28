@@ -1,5 +1,15 @@
 # Invoke-CCMCacheCleanup release history
 
+## 6.0.0 - 2023-07-28
+
+* [Breaking] Completely rewritten, functionality has changed
+* [Breaking] Renamed `CleanupActions` to `CacheType`
+* [Breaking] Added `CleanupType` parameter with `Automatic` mode for cache cleanup
+* Fixed [Get-CimInstance : Invalid class](https://github.com/MEM-Zone/MEM.Zone/issues/14) @idrositis
+* Fixed [Error On Line 831](https://github.com/MEM-Zone/MEM.Zone/issues/8) @SCCMWalker
+* Fixed [Not detecting or removing most content](https://github.com/MEM-Zone/MEM.Zone/issues/7) @PhilAitman
+* Added a lot of optimizations under the hood
+
 ## 5.0.0 - 2022-09-28
 
 * Renamed script to `Invoke-CCMCacheCleanup` to as per PowerShell verb requirements
@@ -15,8 +25,6 @@
 
 ## 4.0.0 - 2019-03-15
 
-## Changes
-
 * Fixed error on ContentID with multiple CacheElementIDs
 * [Breaking] Changed the logic of the Get-* functions
 * [Breaking] Changed the logic of the Remove* functions
@@ -26,8 +34,6 @@
 
 ## 3.5.0 - 2018-09-13
 
-## Changes
-
 * Fixed Get-Help functionality.
 * Moved written requirements to #Required statement
 * Added full Get-Help support
@@ -35,11 +41,9 @@
 
 ## 3.4.0 - 2018-08-30
 
-### Fixed
-
-* Write-log inconsistencies
-* Incorrect size for orphaned items cleanup
-* 00:00:00 time in support center log viewer
+* Fixed `Write-log` inconsistencies
+* Fixed Incorrect size for orphaned items cleanup
+* Fixed `00:00:00` time in support center log viewer
 * Changed task category to 'None'
 
 ### Changes
@@ -53,69 +57,47 @@
 
 ## 3.3.0 - 2018-08-07
 
-### Changes
-
 * Fixed division by 0
 * Added basic debug info
 
 ## 3.2.0 - 2018-07-10
 
-### Fixes
-
 * Fixed should run bug
 
 ## 3.1.0 - 2018-07-09
 
-### Changes
-
 * Added ReferencedThreshold
-* Squashed lots of bugs
+* Fixed lots of bugs
 
 ## 3.0.0 - 2018-07-05
 
-### Added
-
-* Better logging and logging options by adapting the PADT logging cmdlet. (Slightly modified version)
-* Support for verbose and debug to the PADT logging cmdlet
-* More cleaning options
-* LowDiskSpaceThreshold option to only clean cache when there is not enough space on the disk.
-* SkipSuperPeer, for Peer Cache 'Hosts'
-* ReferencedThreshold, for skipping cache younger than specified number of days
-
-### Fixes
-
-* Persisted cache cleaning, it's not removed without the RemovePersisted switch
-* Orphaned cache cleaning and it's not a hack anymore
-* Error reporting
-
-### Optimizations
-
-* Speed.
-* The functionality is now split correctly in functions
-* Script is now ConfigurationItem friendly
-* Cmdlets are now module friendly
-* Moved file log in $Env:WinDir\Logs\Configuration Manager\Clean-CCMClientCache.log
-
-### Changes
-
-* Completely re-written
+* Added better logging and logging options by adapting the PADT logging cmdlet. (Slightly modified version)
+* Added support for verbose and debug to the PADT logging cmdlet
+* Added more cleaning options
+* Added `LowDiskSpaceThreshold` option to only clean cache when there is not enough space on the disk.
+* Added `SkipSuperPeer`, for Peer Cache 'Hosts'
+* Added `ReferencedThreshold`, for skipping cache younger than specified number of days
+* Added `ConfigurationItem` support
+* Fixed persisted cache cleaning, it's not removed without the RemovePersisted switch
+* Fixed orphaned cache cleaning and it's not a hack anymore
+* Fixed error reporting
+* Moved file log in `$Env:WinDir\Logs\Configuration Manager\Clean-CCMClientCache.log`
+* Optimized for speed
+* Optimized the functionality by splitting correctly into functions
+* Optimized Cmdlets to be module friendly
+* Optimized by complete re-write
 
 ## 1.1.0 - 2.9.0 (2015 - 2018)
 
-### Fixed
-
-* First time run logging bug  (Walker)
-* Remove package bug, better logging (Christopher Winney)
-* TotalSize decimals
-* NULL ContentID
-
-### Added
-
-* EventLog logging support
-* Check for not downloaded Cache Items
-* Orphaned cache cleanup
-* Improved logging
-* Basic error Management
+* Fixed first time run logging bug @Walker
+* Fixed remove package bug, better logging @ChristopherWinney
+* Fixed `TotalSize` decimals
+* Fixed `NULL` ContentID
+* Added eventLog logging support
+* Added check for not downloaded Cache Items
+* Added Orphaned cache cleanup
+* Added Improved logging
+* Added Basic error Management
 
 ## 1.0.0 - 2015-11-13
 
