@@ -1,5 +1,10 @@
 # Invoke-CCMCacheCleanup release history
 
+## 6.0.1 - 2023-07-28
+
+* Fixed `Error getting cached element` for `Package` type
+* Added `ListOnly` CleanupType option
+
 ## 6.0.0 - 2023-07-28
 
 * [Breaking] Completely rewritten, functionality has changed

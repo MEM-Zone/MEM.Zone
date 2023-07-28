@@ -7,8 +7,8 @@
     Specifies Cache Type to clean. ('All', 'Application', 'Package', 'Update', 'Orphaned'). Default is: 'All'.
     If it's set to 'All' all cache will be processed.
 .PARAMETER CleanupType
-    Specifies Cleanup Type to clean. ('All', 'Automatic', 'Tombstoned', 'Referenced'). Default is: 'Automatic'.
-    If 'All' or 'Automatic' is selected the other options will be ignored.
+    Specifies Cleanup Type to clean. ('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced'). Default is: 'Automatic'.
+    If 'All', 'Automatic' or 'ListOnly' is selected the other options will be ignored.
     An 'Referenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified 'MaxCacheDuration'.
     An 'Unreferenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified in 'TombStoneDuration'.
 
@@ -82,7 +82,7 @@ Param (
     [Alias('Type')]
     [string[]]$CacheType = 'All',
     [Parameter(Mandatory = $false, Position = 1)]
-    [ValidateSet('All', 'Automatic', 'Tombstoned', 'Referenced')]
+    [ValidateSet('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced')]
     [Alias('Action')]
     [string[]]$CleanupType = 'Automatic',
     [Parameter(Mandatory = $false, Position = 2)]
@@ -1022,7 +1022,7 @@ Function Get-CCMApplicationInfo {
             $PSCmdlet.ThrowTerminatingError($ErrorRecord)
         }
         Finally {
-            If (-not [string]::IsNullOrWhiteSpace($ContentID)) { $Output = $Output.Where({ $PSItem.ContentID -eq $ContentID }) }
+            If (-not [string]::IsNullOrWhiteSpace($ContentID)) { $Output = $Output | Where-Object -Property 'ContentID' -eq $ContentID }
             Write-Output -InputObject $Output
         }
     }
@@ -1312,17 +1312,17 @@ Function Get-CCMCacheInfo {
                 Switch -Regex ($CachedElement.ContentID) {
                     '^Content' {
                         $ResolvedCacheType = 'Application'
-                        $Name      = $($ApplicationInfo.Where({ $PSItem.ContentID -eq $CachedElement.ContentID })).FullName
+                        $Name      = $($ApplicationInfo | Where-Object -Property 'ContentID' -eq $CachedElement.ContentID).FullName
                         Break
                     }
                     '^\w{8}$' {
                         $ResolvedCacheType = 'Package'
-                        $Name      = $($PackageInfo.Where({ $PSItem.PackageID -eq $CachedElement.ContentID })).FullName
+                        $Name      = $($PackageInfo | Where-Object -Property 'PackageID' -eq $CachedElement.ContentID).FullName
                         Break
                     }
                     '^[\dA-F]{8}-(?:[\dA-F]{4}-){3}[\dA-F]{12}$'   {
                         $ResolvedCacheType = 'Update'
-                        $Name      = $($UpdateInfo.Where({ $PSItem.UniqueID -eq $CachedElement.ContentID })).Title
+                        $Name      = $($UpdateInfo | Where-Object -Property 'UniqueID' -eq $CachedElement.ContentID).Title
                         Break
                     }
                     Default {
@@ -1529,8 +1529,8 @@ Function Invoke-CCMCacheCleanup {
     Specifies Cache Type to clean. ('All', 'Application', 'Package', 'Update', 'Orphaned'). Default is: 'All'.
     If it's set to 'All' all cache will be processed.
 .PARAMETER CleanupType
-    Specifies Cleanup Type to clean. ('All', 'Automatic', 'Tombstoned', 'Referenced'). Default is: 'Automatic'.
-    If 'All' or 'Automatic' is selected the other options will be ignored.
+    Specifies Cleanup Type to clean. ('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced'). Default is: 'Automatic'.
+    If 'All', 'Automatic' or 'ListOnly' is selected the other options will be ignored.
     An 'Referenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified 'MaxCacheDuration'.
     An 'Unreferenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified in 'TombStoneDuration'.
 
@@ -1579,7 +1579,7 @@ Function Invoke-CCMCacheCleanup {
         [Alias('Type')]
         [string[]]$CacheType = 'All',
         [Parameter(Mandatory = $false, Position = 1)]
-        [ValidateSet('All', 'Automatic', 'Tombstoned', 'Referenced')]
+        [ValidateSet('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced')]
         [Alias('Action')]
         [string[]]$CleanupType = 'Automatic',
         [Parameter(Mandatory = $false, Position = 2)]
@@ -1637,7 +1637,7 @@ Function Invoke-CCMCacheCleanup {
 
             ## Process cache elements
             $Output = ForEach ($CacheElement in $CacheElements) {
-                If ($CacheElement.EligibleForDeletion -or $CleanupType -contains 'All') {
+                If ($CacheElement.EligibleForDeletion -or $CleanupType -contains 'All' -or $CleanupType -contains 'ListOnly') {
                     Switch ($CleanupType) {
                         'All' {
                             $CleanupCacheSB.Invoke()
@@ -1652,6 +1652,10 @@ Function Invoke-CCMCacheCleanup {
                             Else {
                                 $CleanupCacheSB.Invoke()
                             }
+                            Break
+                        }
+                        'ListOnly' {
+                            $CacheElement
                             Break
                         }
                         'TombStoned' {
