@@ -41,7 +41,7 @@
 .PARAMETER LogName
     Specifies log folder name and event log name. Default is: 'Configuration Manager'.
 .PARAMETER LogSource
-    Specifies log file name and event source name. Default is: 'Clean-CMClientCache'.
+    Specifies log file name and event source name. Default is: 'Invoke-CCMCacheCleanup'.
 .PARAMETER LogDebugMessages
     This switch specifies to log debug messages. Default is: $false.
 .EXAMPLE
@@ -100,7 +100,7 @@ Param (
     [Parameter(Mandatory = $false, Position = 6)]
     [string]$LogName = 'Configuration Manager',
     [Parameter(Mandatory = $false, Position = 7)]
-    [string]$LogSource = 'Clean-CMClientCache',
+    [string]$LogSource = 'Invoke-CCMCacheCleanup',
     [Parameter(Mandatory = $false, Position = 8)]
     [switch]$LogDebugMessages = $false
 )
@@ -1745,7 +1745,7 @@ Try {
     $CanBeSuperPeer = [boolean]$(Get-CimInstance -Namespace 'root\ccm\Policy\Machine\ActualConfig' -ClassName 'CCM_SuperPeerClientConfig' -Verbose:$false -ErrorAction 'SilentlyContinue').CanBeSuperPeer
 
     ## Set run condition. If disk free space is above the specified threshold or CanBeSuperPeer is true and SkipSuperPeer is not specified, the script will not run.
-    If (($DriveFreeSpacePercentage -gt $FreeDiskSpaceThreshold) -or ($CanBeSuperPeer -eq $true -and $SkipSuperPeer)) { $ShouldRun = $false }
+    If (($DriveFreeSpacePercentage -gt $FreeDiskSpaceThreshold -or $CleanupType -notcontains 'Automatic') -or ($CanBeSuperPeer -eq $true -and $SkipSuperPeer)) { $ShouldRun = $false }
 
     ## Check run condition and stop execution if $ShouldRun is not $true
     If ($ShouldRun) {

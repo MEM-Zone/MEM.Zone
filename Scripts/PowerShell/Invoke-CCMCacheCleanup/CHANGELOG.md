@@ -1,5 +1,10 @@
 # Invoke-CCMCacheCleanup release history
 
+## 6.0.2 - 2023-08-01
+
+* Fixed `FreeDiskSpaceThreshold` terminating the script if `Automatic` cleanup type is not selected and free disk space is over threshold.
+* Renamed default log to `Invoke-CCMCleanup` if `LogSource` is not specified.
+
 ## 6.0.1 - 2023-07-28
 
 * Fixed `Error getting cached element` for `Package` type
