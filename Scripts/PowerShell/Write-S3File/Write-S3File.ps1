@@ -42,6 +42,8 @@
     https://MEM.Zone/Write-S3File-CHANGELOG
 .LINK
     https://MEM.Zone/Write-S3File-GIT
+.LINK
+    https://MEM.Zone/ISSUES
 .COMPONENT
     S3 Bucket
 .FUNCTIONALITY
