@@ -11,7 +11,7 @@
     SELECT dbo.ufn_IsIPInRange('10.10.10.22', '10.10.10.0-10.10.10.254')
 .NOTES
     Created by Ioan Popovici (2019-01-14)
-    Replace the <CM_Your_Site_Code> with your CM or custom database name.
+    Replace the <SITE_CODE> with your CM site code.
     Run the code in SQL Server Management Studio.
 .LINK
     https://SCCM.Zone
@@ -24,7 +24,7 @@
 /*##=============================================*/
 /* #region QueryBody */
 
-USE [<CM_Your_Site_Code/Custom_Function_Database>]
+USE [CM_<SITE_CODE>]
 GO
 
 SET ANSI_NULLS ON

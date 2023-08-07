@@ -10,7 +10,7 @@
 .NOTES
     Created by Ioan Popovici (2018-12-11)
     Credit to Chris O'Connor
-    Replace the <CM_Your_Site_Code> with your CM or custom database name.
+    Replace the <SITE_CODE> with your CM site code.
     Run the code in SQL Server Management Studio.
 .LINK
     https://clouddeveloper.space/2015/07/14/sql-inet_aton-ip-address-cidr/ (Chris o'Connor)
@@ -25,7 +25,7 @@
 /*##=============================================*/
 /* #region QueryBody */
 
-USE [<CM_Your_Site_Code/Custom_Function_Database>]
+USE [CM_<SITE_CODE>]
 GO
 
 SET ANSI_NULLS ON
