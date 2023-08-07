@@ -8,7 +8,7 @@
 .PARAMETER Key
     Specifies the S3 path or key.
 .PARAMETER Path
-    Specifies path to local folder or file, to upload.
+    Specifies the path to a local folder or file, to upload.
 .PARAMETER Filter
     Specifies filter for file or path, optional, supports wildcards.
 .PARAMETER Region
