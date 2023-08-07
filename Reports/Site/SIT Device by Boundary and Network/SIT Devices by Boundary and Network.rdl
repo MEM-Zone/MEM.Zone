@@ -83,13 +83,13 @@ ORDER BY
         CM_Tools.dbo.ufn_IsIPInRange
         CM_Tools.dbo.ufn_CIDRFromIPMask
 .LINK
-    https://SCCM.Zone/SIT-Devices-by-Boundary-and-Network
+    https://MEM.Zone/SIT-Devices-by-Boundary-and-Network
 .LINK
-    https://SCCM.Zone/SIT-Devices-by-Boundary-and-Network-CHANGELOG
+    https://MEM.Zone/SIT-Devices-by-Boundary-and-Network-CHANGELOG
 .LINK
-    https://SCCM.Zone/SIT-Devices-by-Boundary-and-Network-GIT
+    https://MEM.Zone/SIT-Devices-by-Boundary-and-Network-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/Issues
 */
 
 /*##=============================================*/

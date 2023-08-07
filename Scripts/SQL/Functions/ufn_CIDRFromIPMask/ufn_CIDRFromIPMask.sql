@@ -15,9 +15,9 @@
 .LINK
     https://clouddeveloper.space/2015/07/14/sql-inet_aton-ip-address-cidr/ (Chris o'Connor)
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/Issues
 */
 
 /*##=============================================*/
