@@ -23,7 +23,7 @@
     Replace the <SITE_CODE> with your CM site code.
     Run the code in SQL Server Management Studio.
 .LINK
-    http://www.anthonymattas.com
+    https://www.anthonymattas.com
 .LINK
     https://MEM.Zone
 .LINK
