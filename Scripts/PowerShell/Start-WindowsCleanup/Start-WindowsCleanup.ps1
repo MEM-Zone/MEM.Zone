@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-    Performs a windows cleanup.
+    Performs a Windows cleanup.
 .DESCRIPTION
-    Performs a windows cleanup by removing volume caches, update backups, update and CCM caches.
+    Performs a Windows cleanup by removing volume caches, update backups, updates and CCM caches.
 .PARAMETER CleanupOptions
     Supported options:
         "comCacheRepair"   # Component Cache Repair
@@ -11,9 +11,9 @@
         "volShadowCleanup" # Volume Shadow Copy Cleanup
         "updCacheCleanup"  # Update Cache Cleanup
         "ccmCacheCleanup"  # CCM Cache Cleanup
-        "Recommended"      # Performs some or all of the above mentioned cleanup operations in a specific order depending on the operating system.
-        "All"              # Performs all the above mentioned cleanup operations.
-    If set to "Recommended", the cleanup will be done with in the recommended order.
+        "Recommended"      # Performs some or all of the above-mentioned cleanup operations in a specific order depending on the operating system.
+        "All"              # Performs all the above-mentioned cleanup operations.
+    If set to "Recommended", the cleanup will be performed in the recommended order.
     Default is: "Recommended".
 .EXAMPLE
     Start-WindowsCleanup.ps1 -CleanupOptions "comCacheRepair", "comCacheCleanup", "updCacheCleanup", "volCacheCleanup", "ccmCacheCleanup"
@@ -649,9 +649,9 @@ Function Write-Log {
 Function Format-Bytes {
 <#
 .SYNOPSIS
-    Formats a number of bytes in the coresponding sizes.
+    Formats a number of bytes in the corresponding sizes.
 .DESCRIPTION
-    Formats a number of bytes bytes in the coresponding sizes depending or the size ('KB','MB','GB','TB','PB').
+    Formats a number of bytes in the corresponding sizes depending on the size ('KB','MB','GB','TB','PB').
 .PARAMETER Bytes
     Specifies bytes to format.
 .EXAMPLE
@@ -757,11 +757,11 @@ Function Show-Progress {
     Created by Ioan Popovici.
     v1.0.0 - 2021-01-01
 
-    This is an private function should tipically not be called directly.
+    This is a private function and should typically not be called directly.
     Credit to Adam Bertram.
 
     ## !! IMPORTANT !! ##
-    #  You need to tokenize the scripts steps at the begining of the script in order for Show-Progress to work:
+    #  You need to tokenize the scripts steps at the beginning of the script for Show-Progress to work:
 
     ## Get script path and name
     [string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
@@ -838,9 +838,9 @@ Function Show-Progress {
 Function Start-WindowsCleanup {
 <#
 .SYNOPSIS
-    Performs a windows cleanup.
+    Performs a Windows cleanup.
 .DESCRIPTION
-    Performs a windows cleanup by removing volume caches, update backups, update and CCM caches.
+    Performs a Windows cleanup by removing volume caches, update backups, updates and CCM caches.
 .PARAMETER CleanupOptions
     Supported options:
         "comCacheRepair"   # Component Cache Repair
@@ -849,9 +849,9 @@ Function Start-WindowsCleanup {
         "volShadowCleanup" # Volume Shadow Copy Cleanup
         "updCacheCleanup"  # Update Cache Cleanup
         "ccmCacheCleanup"  # CCM Cache Cleanup
-        "Recommended"      # Performs some or all of the above mentioned cleanup operations in a specific order depending on the operating system.
-        "All"              # Performs all the above mentioned cleanup operations.
-    If set to "Recommended", the cleanup will be done with in the recommended order.
+        "Recommended"      # Performs some or all of the above-mentioned cleanup operations in a specific order depending on the operating system.
+        "All"              # Performs all the above-mentioned cleanup operations.
+    If set to "Recommended", the cleanup will be done in the recommended order.
     Default is: "Recommended".
 .EXAMPLE
     Start-WindowsCleanup.ps1 -CleanupOptions "comCacheRepair", "comCacheCleanup", "updCacheCleanup", "volCacheCleanup", "ccmCacheCleanup"
@@ -1012,7 +1012,7 @@ Function Start-WindowsCleanup {
                                 $null = New-ItemProperty -Path Registry::$RegistryVolumeCachesPath -Name $RegistryName -Value $RegistryValue -PropertyType $RegistryType -Force
                             }
 
-                            ## If machine is Windows Server 2008 R2, copy files required by CleanMgr and wait for action to complete
+                            ## If the machine is running Windows Server 2008 R2, copy the files required by CleanMgr and wait for the action to complete
                             If ($MachineOS -eq 'Windows Server 2008 R2') {
 
                                 ## Copy CleanMgr.exe and CleanMgr.exe.mui
@@ -1085,9 +1085,9 @@ Function Start-WindowsCleanup {
                     ReclaimedSpace
 
                 ## Warn that a reboot might be needed
-                Write-Warning -Message "SxS proccesing only occurs on system startup. Negative 'Reclaimed' values on repeaded runs are normal, you need to reboot." -Verbose
+                Write-Warning -Message "SxS processing only occurs on system startup. Negative 'Reclaimed' values on repeaded runs are normal, you need to reboot." -Verbose
 
-                ## Write to event log
+                ## Write to the event log
                 [string]$EventLogEntry = "Cleanup Completed for $env:COMPUTERNAME ($MachineOS)!`n$($Output | Out-String)"
                 Write-Log -Message $EventLogEntry
             }

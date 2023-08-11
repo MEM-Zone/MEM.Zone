@@ -1,5 +1,9 @@
 # Start-WindowsCleanup release history
 
+## 4.0.1 - 2023-08-11
+
+* Fixed spelling mistakes in descriptions
+
 ## 4.0.0 - 2023-07-13
 
 * Renamed `Remaining` to `FreeSpace`
@@ -8,7 +12,7 @@
 * Fixed `FreeSpace` formatting for negative numbers
 * Fixed `Format-Bytes` function
 * Added Some code improvements
-* Added reboot warning for SxS proccesing for addressing [Less free space each time the cleanup script has been run](https://github.com/MEM-Zone/MEM.Zone/issues/12) @Glitchi85
+* Added reboot warning for SxS processing for addressing [Less free space each time the cleanup script has been run](https://github.com/MEM-Zone/MEM.Zone/issues/12) @Glitchi85
 
 >Note
 >Renaming output headers is a breaking change, bumping major version.
@@ -35,7 +39,7 @@
 * Added Cleanup Result with dynamic size output
 * Added EventLog support
 * Added orphaned CCM Cache cleanup
-* Added Windows 11 support for `Recomended Cleanup`
+* Added Windows 11 support for `Recommended Cleanup`
 * Added Error Handling
 * Refactoring and optimizations for most of the code
 * Changed links to MEM.Zone
@@ -59,7 +63,7 @@
 
 ## 2.5.0 - 2018-10-01
 
-* Regression, switched back to Get-WmiObject, Cim seems to fail in some cases
+* Regression switched back to Get-WmiObject, Cim seems to fail in some cases
 * Fixed cleanup is not performed on some systems
 * Moved release history to separate markdown file
 
@@ -87,4 +91,4 @@
 
 ## 1.0.0 - 2017-07-10
 
-* Cleans the windows base image by removing volume caches, update backups and update caches
+Performs a Windows cleanup by removing volume caches, update backups, updates and CCM caches.
