@@ -71,13 +71,13 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Add-Certificate-CREDIT (FTW)
+    https://MEM.Zone/Manage-Certificate-CREDIT (FTW)
 .LINK
-    https://MEM.Zone/Add-Certificate
+    https://MEM.Zone/Manage-Certificate
 .LINK
-    https://MEM.Zone/Add-Certificate-CHANGELOG
+    https://MEM.Zone/Manage-Certificate-CHANGELOG
 .LINK
-    https://MEM.Zone/Add-Certificate-GIT
+    https://MEM.Zone/Manage-Certificate-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

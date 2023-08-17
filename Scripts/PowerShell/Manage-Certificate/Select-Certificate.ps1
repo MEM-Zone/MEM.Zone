@@ -81,13 +81,13 @@
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://MEM.Zone/Add-Certificate-CREDIT (FTW)
+    https://MEM.Zone/Manage-Certificate-CREDIT (FTW)
 .LINK
-    https://MEM.Zone/Add-Certificate
+    https://MEM.Zone/Manage-Certificate
 .LINK
-    https://MEM.Zone/GIT
+    https://MEM.Zone/Manage-Certificate-CHANGELOG
 .LINK
-    https://MEM.Zone/Select-Certificate-CHANGELOG
+    https://MEM.Zone/Manage-Certificate-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
