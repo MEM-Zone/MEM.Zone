@@ -105,7 +105,7 @@
 #Requires -Version 3.0
 
 <#
-#region Coment section if using inline variables
+#region Comment section if using inline variables
 [CmdletBinding()]
 Param (
     [Parameter(Mandatory=$true,ParameterSetName='Subject',Position=1)]
@@ -173,7 +173,7 @@ Function Format-Spacer {
 .SYNOPSIS
     Adds padding before and after the specified variable.
 .DESCRIPTION
-    Adds padding before and after the specified variable in order to make it more visible.
+    Adds padding before and after the specified variable to make it more visible.
 .PARAMETER Message
     Specifies input message for this function.
 .PARAMETER Type
@@ -416,7 +416,7 @@ Function Select-Certificate {
                     ForEach ($Parameter in $FilterParameters) {
                         #  Prefix parameters with '$PSItem.'
                         If ($Parameter -in $ValidParameters) {
-                            #  Check if parameter is 'TemplateOID' and if so, check if it matches the certificate's Template OID
+                            #  Check if the parameter is 'TemplateOID' and if so, check if it matches the certificate's Template OID
                             If ($Parameter -eq 'TemplateOID') {
                                 #  Extract the template value from the filter
                                 [regex]$Pattern = "(?:Template)[^']*.([^']*)"

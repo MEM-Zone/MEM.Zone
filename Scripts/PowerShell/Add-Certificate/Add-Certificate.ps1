@@ -4,8 +4,8 @@
 .DESCRIPTION
     Adds a certificate to the certificate store using the certificate base64 key.
 .PARAMETER CertificateBase64
-    The certificate key to add in base64 string format.
-    Convert certificate to base64 string using the following command:
+    The certificate in base64 string format.
+    Convert the certificate to base64 string using the following command:
     [System.Convert]::ToBase64String($(Get-Content -Path .\Certificate.cer -Encoding Byte))
 .PARAMETER StoreLocation
     Specifies the Certificate Store Location to search. Default is: 'LocalMachine'.
@@ -90,7 +90,7 @@
 #Requires -Version 3.0
 
 <#
-#region Coment section if using inline variables
+#region Comment section if using inline variables
 [CmdletBinding()]
 Param (
     [Parameter(Mandatory = $true, HelpMessage = 'Certificate Key in Base64 Format', Position = 1)]
@@ -211,10 +211,10 @@ Function Add-Certificate {
     ## Convert the base64 string
     $ByteArray = [System.Convert]::FromBase64String($CertificateBase64)
 
-    ## Create new certificate object
+    ## Create the new certificate object
     $Certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new()
 
-    ## Add certificate to the store
+    ## Add the certificate to the store
     $Certificate.Import($ByteArray)
     $CertificateStore.Add($Certificate)
 
@@ -237,7 +237,7 @@ Function Add-Certificate {
 ForEach ($Store in $StoreName) {
     Try {
 
-        ## Add certificate to specified store
+        ## Add the certificate to the specified store
         Add-Certificate -CertificateBase64 $CertificateBase64 -StoreName $Store -ErrorAction 'Stop'
         #  Add OutputProps to Output
         $Output += [psobject]@{
@@ -254,7 +254,7 @@ ForEach ($Store in $StoreName) {
             'Error' = $PsItem.Exception.Message
         }
 
-        ## Add ErrorMessage hash table to output object
+        ## Add ErrorMessage hash table to the output object
         $Output += [psobject]$ErrorProps
 
         ## Return custom error. The error handling is done here in order not to break the ForEach loop and allow it to continue.
