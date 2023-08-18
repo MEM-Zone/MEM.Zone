@@ -71,13 +71,13 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Manage-Certificate-CREDIT (FTW)
+    https://MEM.Zone/PSCertificateManagementToolKit-CREDIT (FTW)
 .LINK
-    https://MEM.Zone/Manage-Certificate
+    https://MEM.Zone/PSCertificateManagementToolKit
 .LINK
-    https://MEM.Zone/Manage-Certificate-CHANGELOG
+    https://MEM.Zone/PSCertificateManagementToolKit-CHANGELOG
 .LINK
-    https://MEM.Zone/Manage-Certificate-GIT
+    https://MEM.Zone/PSCertificateManagementToolKit-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
