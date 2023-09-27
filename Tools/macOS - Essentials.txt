@@ -1,0 +1,58 @@
+Package manager for installing non-appstore apps
+https://brew.sh
+
+ie:
+ brew search textmate
+ brew install textmate
+ brew uninstall textmate
+ brew list
+ 
+ Application updater for brew (apps installed with brew)
+ https://github.com/buo/homebrew-cask-upgrade
+
+Window Manager 
+https://rectangleapp.com
+
+Torrent Manager
+https://transmissionbt.com
+
+Virtualization
+https://www.parallels.com/
+
+Password Manager
+https://1password.com/downloads/android/
+
+Text Editor
+https://macromates.com/download
+
+Callendar / Tasks
+https://apps.apple.com/us/app/fantastical-calendar/id975937182?mt=12
+
+NTFS Read/Write
+https://mounty.app
+
+HotKeys
+https://www.mediaatelier.com/CheatSheet/
+
+Cleaner / Health / Uninstaller
+https://macpaw.com/cleanmymac
+
+Meeting Reminder
+https://apps.apple.com/us/app/in-your-face/id1476964367?mt=12
+
+Search replacement, clipboard manager and limitless possibilities trough extensions
+https://www.raycast.com
+
+Unlock max screen brightness
+https://github.com/waydabber/BetterDisplay
+
+Unarchive third party (RAR, etc)
+https://apps.apple.com/us/app/unzip-one-rar-zip-extractor/id1127253508?mt=12
+
+Video player
+https://www.videolan.org/vlc/
+
+Torrent Streamer
+https://github.com/popcorn-official/popcorn-desktop
+https://www.stremio.com (with unofficial extension)
+
