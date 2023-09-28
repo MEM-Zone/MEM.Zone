@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     Part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/SIT-Maintenance-Windows
+    https://MEM.Zone/SIT-Maintenance-Windows
 .LINK
-    https://SCCM.Zone/SIT-Maintenance-Windows-CHANGELOG
+    https://MEM.Zone/SIT-Maintenance-Windows-CHANGELOG
 .LINK
-    https://SCCM.Zone/SIT-Maintenance-Windows-GIT
+    https://MEM.Zone/SIT-Maintenance-Windows-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

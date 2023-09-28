@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     Part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/SU-KB-Compliance-by-ArticleID
+    https://MEM.Zone/SU-KB-Compliance-by-ArticleID
 .LINK
-    https://SCCM.Zone/SU-KB-Compliance-by-ArticleID-CHANGELOG
+    https://MEM.Zone/SU-KB-Compliance-by-ArticleID-CHANGELOG
 .LINK
-    https://SCCM.Zone/SU-KB-Compliance-by-ArticleID-GIT
+    https://MEM.Zone/SU-KB-Compliance-by-ArticleID-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

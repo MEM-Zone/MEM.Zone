@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition">
   <Description>Lists installed software by user selection (Device, Publisher or Software). Supports filtering and exclusions by multiple software names using comma separated values and sql wildcards. Supported wildcards: '%', '[]', '_'. Example: Like = 'Adobe%,7zip'; NotLike = 'Adobe Acrobat%,winzip'. Don't abuse wildcards, they are very resource intensive.</Description>
-  <Author>Ioan Popovici @SCCM-Zone.com</Author>
+  <Author>Ioan Popovici @MEM.Zone</Author>
   <AutoRefresh>0</AutoRefresh>
   <DataSources>
     <DataSource Name="CMSQLDatabase">
@@ -94,11 +94,11 @@ ORDER BY
     Requires ufn_csv_String_Parser custom function.
     Part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/SW-Installed-Software-by-User-Selection
+    https://MEM.Zone/SW-Installed-Software-by-User-Selection
 .LINK
-    https://SCCM.Zone/SW-Installed-Software-by-User-Selection-CHANGELOG
+    https://MEM.Zone/SW-Installed-Software-by-User-Selection-CHANGELOG
 .LINK
-    https://SCCM.Zone/SW-Installed-Software-by-User-Selection-GIT
+    https://MEM.Zone/SW-Installed-Software-by-User-Selection-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

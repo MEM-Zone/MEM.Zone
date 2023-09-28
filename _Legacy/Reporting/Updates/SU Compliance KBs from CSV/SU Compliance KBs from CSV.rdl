@@ -2073,7 +2073,7 @@ ORDER BY Name
                 <Paragraph>
                   <TextRuns>
                     <TextRun>
-                      <Value>Copyright © SCCM-Zone.com</Value>
+                      <Value>Copyright © MEM.Zone</Value>
                       <Style>
                         <FontFamily>Verdana</FontFamily>
                         <FontSize>9pt</FontSize>

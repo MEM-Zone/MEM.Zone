@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     This query is part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/HW-BIOS-Manufacturer
+    https://MEM.Zone/HW-BIOS-Manufacturer
 .LINK
-    https://SCCM.Zone/HW-BIOS-Manufacturer-CHANGELOG
+    https://MEM.Zone/HW-BIOS-Manufacturer-CHANGELOG
 .LINK
-    https://SCCM.Zone/HW-BIOS-Manufacturer-GIT
+    https://MEM.Zone/HW-BIOS-Manufacturer-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
   <Description>Displays a summary of all audit status messages for one or all users. You can also search by ObjectID, name or any other status message substring. Audit messages describe actions taken in the Configuration Manager Console that add, modify, or delete objects.</Description>
-  <Author>Popovici Ioan @ SCCM-Zone.com</Author>
+  <Author>Popovici Ioan @ MEM.Zone</Author>
   <AutoRefresh>0</AutoRefresh>
   <DataSources>
     <DataSource Name="AutoGen__5C6358F2_4BB6_4a1b_A16E_8D96795D8602_">

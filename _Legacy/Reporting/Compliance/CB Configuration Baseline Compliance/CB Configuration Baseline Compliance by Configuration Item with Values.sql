@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     Requires SSRS/SQL, SCCM Configuration Baseline
 .LINK
-    https://SCCM.Zone/CB-Configuration-Baseline-Compliance
+    https://MEM.Zone/CB-Configuration-Baseline-Compliance
 .LINK
-    https://SCCM.Zone/CB-Configuration-Baseline-Compliance-CHANGELOG
+    https://MEM.Zone/CB-Configuration-Baseline-Compliance-CHANGELOG
 .LINK
-    https://SCCM.Zone/CB-Configuration-Baseline-Compliance-GIT
+    https://MEM.Zone/CB-Configuration-Baseline-Compliance-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
   <Description>Lists software update compliance by computer, classification and severity. Note: Only updates present in the SCCM database are displayed. This affects both the installed and required update information displayed. Default exclusions are for antivirus definitions.</Description>
-  <Author>Popovici Ioan @ SCCM-Zone.com</Author>
+  <Author>Popovici Ioan @ MEM.Zone</Author>
   <AutoRefresh>0</AutoRefresh>
   <DataSources>
     <DataSource Name="DataSource">

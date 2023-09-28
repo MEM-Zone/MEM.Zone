@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
   <Description>Lists all maintenance windows by collection, type and name. For filtering wildcards "*" must be used. By default all maintenance windows will be displayed.</Description>
-  <Author>Popovici Ioan @ SCCM-Zone.com</Author>
+  <Author>Popovici Ioan @ MEM.Zone</Author>
   <AutoRefresh>0</AutoRefresh>
   <DataSources>
     <DataSource Name="DataSource">
@@ -28,11 +28,11 @@
     Created by Ioan Popovici
     Part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/SIT-Maintenance-Windows
+    https://MEM.Zone/SIT-Maintenance-Windows
 .LINK
-    https://SCCM.Zone/SIT-Maintenance-Windows-CHANGELOG
+    https://MEM.Zone/SIT-Maintenance-Windows-CHANGELOG
 .LINK
-    https://SCCM.Zone/SIT-Maintenance-Windows-GIT
+    https://MEM.Zone/SIT-Maintenance-Windows-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

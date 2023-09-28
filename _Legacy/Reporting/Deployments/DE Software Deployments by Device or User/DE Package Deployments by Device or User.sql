@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     Part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/DE-Deployments-by-Device-or-User
+    https://MEM.Zone/DE-Deployments-by-Device-or-User
 .LINK
-    https://SCCM.Zone/DE-Deployments-by-Device-or-User-CHANGELOG
+    https://MEM.Zone/DE-Deployments-by-Device-or-User-CHANGELOG
 .LINK
-    https://SCCM.Zone/DE-Deployments-by-Device-or-User-GIT
+    https://MEM.Zone/DE-Deployments-by-Device-or-User-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

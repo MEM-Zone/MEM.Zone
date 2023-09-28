@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition" xmlns="http://schemas.microsoft.com/sqlserver/reporting/2010/01/reportdefinition">
   <Description>Sub report for displaying formatted text.</Description>
-  <Author>Ioan Popovici @ SCCM-Zone.com</Author>
+  <Author>Ioan Popovici @ MEM.Zone</Author>
   <AutoRefresh>0</AutoRefresh>
   <ReportSections>
     <ReportSection>

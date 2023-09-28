@@ -8,11 +8,11 @@
     Requires ufn_csv_String_Parser custom function.
     Part of a report should not be run separately.
 .LINK
-    https://SCCM.Zone/SU-Compliance-Classification-Severity
+    https://MEM.Zone/SU-Compliance-Classification-Severity
 .LINK
-    https://SCCM.Zone/SU-Compliance-Classification-CHANGELOG
+    https://MEM.Zone/SU-Compliance-Classification-CHANGELOG
 .LINK
-    https://SCCM.Zone/SU-Compliance-Classification-GIT
+    https://MEM.Zone/SU-Compliance-Classification-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Report xmlns="http://schemas.microsoft.com/sqlserver/reporting/2016/01/reportdefinition" xmlns:rd="http://schemas.microsoft.com/SQLServer/reporting/reportdesigner" xmlns:cl="http://schemas.microsoft.com/sqlserver/reporting/2010/01/componentdefinition">
   <Description>List the compliance of all configuration items for the selected baseline for a specified collection with the actual values returned by the configuration item setting. Note: The value is gathered only when the setting is found as non-compliant so you must set a compliance rule that is never compliant for it to be displayed. Use the second header for the 'Error' compliance state.</Description>
-  <Author>Popovici Ioan @ SCCM-Zone.com</Author>
+  <Author>Popovici Ioan @ MEM.Zone</Author>
   <AutoRefresh>0</AutoRefresh>
   <DataSources>
     <DataSource Name="CMSQLDatabase">
@@ -53,11 +53,11 @@ SELECT dbo.fn_rbac_GetAdminIDsfromUserSIDs (@UserTokenSIDs) AS UserSIDs</Command
     Created by Ioan Popovici
     Requires SSRS/SQL, SCCM Configuration Baseline
 .LINK
-    https://SCCM.Zone/CB-Configuration-Baseline-Compliance
+    https://MEM.Zone/CB-Configuration-Baseline-Compliance
 .LINK
-    https://SCCM.Zone/CB-Configuration-Baseline-Compliance-CHANGELOG
+    https://MEM.Zone/CB-Configuration-Baseline-Compliance-CHANGELOG
 .LINK
-    https://SCCM.Zone/CB-Configuration-Baseline-Compliance-GIT
+    https://MEM.Zone/CB-Configuration-Baseline-Compliance-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     Requires SCCM with SSRS/SQL, HWI Extension
 .LINK
-    BlogPost: https://SCCM.Zone/SEC-BitLocker-Compliance-And-Policy
+    BlogPost: https://MEM.Zone/SEC-BitLocker-Compliance-And-Policy
 .LINK
-    Changes : https://SCCM.Zone/SEC-BitLocker-Compliance-And-Policy-CHANGELOG
+    Changes : https://MEM.Zone/SEC-BitLocker-Compliance-And-Policy-CHANGELOG
 .LINK
-    Github  : https://SCCM.Zone/SEC-BitLocker-Compliance-And-Policy-GIT
+    Github  : https://MEM.Zone/SEC-BitLocker-Compliance-And-Policy-GIT
 .LINK
     Issues  : https://MEM.Zone/ISSUES
 */
