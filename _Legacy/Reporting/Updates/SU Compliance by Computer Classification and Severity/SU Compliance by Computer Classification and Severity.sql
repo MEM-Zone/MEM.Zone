@@ -14,7 +14,7 @@
 .LINK
     https://SCCM.Zone/SU-Compliance-Classification-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

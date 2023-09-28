@@ -37,9 +37,9 @@
 .LINK
     https://www.sqlshack.com/multiple-options-to-transposing-rows-into-columns/ (Sifiso W. Ndlovu)
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

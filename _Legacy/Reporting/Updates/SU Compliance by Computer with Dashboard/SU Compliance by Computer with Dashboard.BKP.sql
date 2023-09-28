@@ -10,7 +10,7 @@
         https://github.com/Ioan-Popovici/SCCMZone/blob/master/Reporting/Updates/SU%20Compliance%20by%20Computer%20Classification%20and%20Severity/CHANGELOG.md
     This query is part of a report should not be run separately.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
 .LINK
     https://github.com/Ioan-Popovici/SCCMZone
 */

@@ -105,7 +105,7 @@ IF @CollectionType = 2
 .NOTES
     Part of a report should not be run separately.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 */
 
@@ -370,7 +370,7 @@ DROP TABLE #CollectionMembers;
           </QueryParameter>
         </QueryParameters>
         <CommandText>/* ReportDescription Dataset */
-SELECT DISTINCT Description 
+SELECT DISTINCT Description
 FROM ReportServer.dbo.Catalog
 WHERE Name = @ReportName</CommandText>
       </Query>

@@ -18,7 +18,7 @@
         https://github.com/Ioan-Popovici/SCCMZone/blob/master/Reporting/Compliance/CB%20Configuration%20Baseline%20Compliance/CHANGELOG.md
     Part of a report should not be run separately.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 */
 

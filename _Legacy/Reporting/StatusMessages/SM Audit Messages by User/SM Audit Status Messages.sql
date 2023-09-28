@@ -18,7 +18,7 @@
     This query requires to export status messages strings from sms provider DLL.
     Status Messages are deleted after 6 months so you might have an empty result if the object was not modified recently.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 */
 

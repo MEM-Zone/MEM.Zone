@@ -33,7 +33,7 @@ Function Get-LocalGroupMemberLegacy {
 .NOTES
     This is a regular function and can typically be called directly.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
 .LINK
     https://github.com/Ioan-Popovici/SCCMZone
 #>

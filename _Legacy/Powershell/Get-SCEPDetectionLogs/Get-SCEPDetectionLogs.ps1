@@ -22,7 +22,7 @@
 .EXAMPLE
     C:\Windows\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoExit -NoProfile -File Get-SCEPDetectionLogs.ps1 -CMSQLServer 'SCCM_SQL_Server_Name' -CMDatabase 'CM_Database_Name'
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 #>
 

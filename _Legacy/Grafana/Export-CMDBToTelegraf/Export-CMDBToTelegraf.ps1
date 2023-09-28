@@ -18,7 +18,7 @@
 .LINK
     https://SCCM.Zone/Export-CMDBToTelegraf-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     CMDB
 .FUNCTIONALITY
@@ -88,9 +88,9 @@ Function Format-Telegraf {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -177,9 +177,9 @@ Function Get-CMDBClientInfo {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -266,9 +266,9 @@ Function Get-CMDBDeviceInfo {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -343,9 +343,9 @@ Function Get-CMDBDistributionInfo {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -460,9 +460,9 @@ Function Get-CMDBDistributionTraffic {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -601,9 +601,9 @@ Function Get-CMDBOSInfo {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (

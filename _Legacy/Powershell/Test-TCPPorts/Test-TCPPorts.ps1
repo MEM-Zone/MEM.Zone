@@ -24,7 +24,7 @@
     The script will use name resolution lookup to find all DCs in the specified domain an will perform the
     tests on all of them.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 #>
 
@@ -89,7 +89,7 @@ Function Remove-InvalidCharacters {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 #>
     [CmdletBinding()]

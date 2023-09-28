@@ -90,7 +90,7 @@ ORDER BY Name;</CommandText>
 .LINK
     https://SCCM.Zone/DE-Deployments-by-Device-or-User-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/
@@ -388,7 +388,7 @@ IF @CollectionType = 2
 .LINK
     https://SCCM.Zone/DE-Deployments-by-Device-or-User-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

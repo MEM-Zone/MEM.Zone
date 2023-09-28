@@ -19,7 +19,7 @@
 .NOTES
     Part of a report should not be run separately.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 */
 

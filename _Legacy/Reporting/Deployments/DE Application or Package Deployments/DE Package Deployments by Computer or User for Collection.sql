@@ -18,7 +18,7 @@
 .NOTES
     Part of a report should not be run separately.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 */
 
@@ -54,7 +54,7 @@ IF OBJECT_ID(N'TempDB.DBO.#CollectionMembers') IS NOT NULL
 SELECT *
 INTO #CollectionMembers
 FROM fn_rbac_FullCollectionMembership(@UserSIDs) AS CM
-WHERE CM.CollectionID = @CollectionID 
+WHERE CM.CollectionID = @CollectionID
     AND CM.ResourceType IN (4, 5); --Only Users or Devices
 
 /* User collection query */

@@ -13,7 +13,7 @@
 .LINK
     https://SCCM.Zone/HW-BIOS-Manufacturer-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

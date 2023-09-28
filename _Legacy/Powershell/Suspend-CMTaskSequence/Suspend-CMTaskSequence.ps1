@@ -26,7 +26,7 @@
 .NOTES
     This function can typically be called directly.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
 .LINK
     https://github.com/Ioan-Popovici/SCCMZone
 .COMPONENT
@@ -80,7 +80,7 @@ Function Suspend-CMTaskSequence {
 .NOTES
     This function can typically be called directly.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
 .LINK
     https://github.com/Ioan-Popovici/SCCMZone
 .COMPONENT
@@ -106,7 +106,7 @@ Function Suspend-CMTaskSequence {
         ## Create the Task Sequence Environment and TS ProgressUI objects
         $TsEnvironment = New-Object -ComObject 'Microsoft.SMS.TSEnvironment'
         $TsProgressUI = New-Object -ComObject 'Microsoft.SMS.TsProgressUI'
-        #  Set Task Sequence variable names 
+        #  Set Task Sequence variable names
         $SMSTSPackageName = $TsEnvironment.Value("_SMSTSPackageName")
         $OSDComputerName = $TsEnvironment.Value("OSDComputerName")
         $SMSTSLogPath = $TsEnvironment.Value( $(Join-Path -Path "_SMSTSLogPath" -ChildPath '\smsts.log') )

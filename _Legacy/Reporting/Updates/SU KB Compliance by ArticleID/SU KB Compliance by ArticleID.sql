@@ -13,7 +13,7 @@
 .LINK
     https://SCCM.Zone/SU-KB-Compliance-by-ArticleID-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

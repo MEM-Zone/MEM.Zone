@@ -14,9 +14,9 @@
     Replace the <CM_Your_Site_Code> with your CM or custom database name.
     Run the code in SQL Server Management Studio.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

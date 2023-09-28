@@ -39,7 +39,7 @@ SELECT dbo.fn_rbac_GetAdminIDsfromUserSIDs (@UserTokenSIDs) AS UserSIDs</Command
           </QueryParameter>
         </QueryParameters>
         <CommandText>/* Get ReportDescription */
-SELECT DISTINCT Description 
+SELECT DISTINCT Description
 FROM ReportServer.dbo.Catalog
 WHERE Name = @ReportName</CommandText>
         <rd:UseGenericDesigner>true</rd:UseGenericDesigner>
@@ -88,7 +88,7 @@ WHERE Name = @ReportName</CommandText>
         https://github.com/Ioan-Popovici/SCCMZone/blob/master/Reporting/Compliance/CB%20Configuration%20Baseline%20Compliance/CHANGELOG.md
     Part of a report should not be run separately.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 */
 

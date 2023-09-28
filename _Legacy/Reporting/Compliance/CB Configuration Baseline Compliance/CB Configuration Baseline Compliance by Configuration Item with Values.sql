@@ -13,7 +13,7 @@
 .LINK
     https://SCCM.Zone/CB-Configuration-Baseline-Compliance-GIT
 .LINK
-    https://SCCM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

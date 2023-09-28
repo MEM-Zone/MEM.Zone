@@ -40,7 +40,7 @@
 .LINK
     Github  : https://SCCM.Zone/SEC-BitLocker-Compliance-And-Policy-GIT
 .LINK
-    Issues  : https://SCCM.Zone/Issues
+    Issues  : https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/
@@ -457,7 +457,7 @@ ORDER BY
           </QueryParameter>
         </QueryParameters>
         <CommandText>/* ReportInfo Dataset */
-SELECT DISTINCT 
+SELECT DISTINCT
 	Description
 	, Path = REPLACE(Path, Name, '')
 FROM ReportServer.dbo.Catalog

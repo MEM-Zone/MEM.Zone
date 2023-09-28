@@ -13,7 +13,7 @@
 .LINK
     Github  : https://SCCM.Zone/SEC-BitLocker-Compliance-And-Policy-GIT
 .LINK
-    Issues  : https://SCCM.Zone/Issues
+    Issues  : https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

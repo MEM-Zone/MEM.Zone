@@ -18,9 +18,9 @@ Function Get-CMDBDistributionTraffic {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (

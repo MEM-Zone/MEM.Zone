@@ -16,7 +16,7 @@
 .EXAMPLE
     C:\Windows\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoExit -NoProfile -File Start-CMStatusMessageProcessing.ps1 -SMDescription 'associated'
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 #>
 
@@ -69,7 +69,7 @@ Function Send-Mail {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
     https://github.com/Ioan-Popovici/SCCMZone
 #>
     [CmdletBinding()]

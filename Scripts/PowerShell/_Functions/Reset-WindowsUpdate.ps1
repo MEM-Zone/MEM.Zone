@@ -14,9 +14,9 @@ Function Reset-WindowsUpdate {
 .NOTES
     This function can typically be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/Git
+    https://MEM.Zone/GIT
 .COMPONENT
     WindowsUpdate
 .FUNCTIONALITY

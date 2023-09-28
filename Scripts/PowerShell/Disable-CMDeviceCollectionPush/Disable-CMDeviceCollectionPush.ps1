@@ -123,9 +123,9 @@ Function Write-Log {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://SCCM.Zone
+    https://MEM.Zone
 .LINK
-    https://SCCM.Zone/GIT
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (

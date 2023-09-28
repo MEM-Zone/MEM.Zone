@@ -10,7 +10,7 @@
         ---https://github.com/Ioan-Popovici/SCCMZone/blob/master/Reporting/Hardware/HW%20BIOS%20by%20Company%20or%20Manufacturer/CHANGELOG.md
     This query is part of a report should not be run separately.
 .LINK
-    https://SCCM-Zone.com
+    https:/MEM.Zone
 .LINK
     https://github.com/Ioan-Popovici/SCCMZone
 */
