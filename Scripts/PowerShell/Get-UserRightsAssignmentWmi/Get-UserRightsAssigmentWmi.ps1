@@ -81,7 +81,7 @@
 .COMPONENT
     User Rights Assignment
 .FUNCTIONALITY
-    Gets User Rights Assigment.
+    Gets User Rights Assignment.
 #>
 
 <#
@@ -481,7 +481,7 @@ Function ConvertTo-HashtableFromPsCustomObject {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Conversion
 .FUNCTIONALITY
@@ -1776,7 +1776,7 @@ Function New-WmiNamespace {
                 #  Initialize NamespacePathsObject
                 [PSCustomObject]$NamespacePathsObject = @()
 
-                #  Parsing path components and assemle individual paths
+                #  Parsing path components and assemble individual paths
                 For ($i = 1; $i -le $($NamespacePaths.Length - 1); $i++ ) {
                     $Path += '\' + $NamespacePaths[$i]
 
@@ -1794,7 +1794,7 @@ Function New-WmiNamespace {
                 #  Initialize NamespacePathsObject
                 [PSCustomObject]$NamespacePathsObject = @()
 
-                #  Parsing path components and assemle individual paths
+                #  Parsing path components and assemble individual paths
                 For ($i = 1; $i -le $($NamespacePaths.Length - 1); $i++ ) {
                     $Path += '\' + $NamespacePaths[$i]
 

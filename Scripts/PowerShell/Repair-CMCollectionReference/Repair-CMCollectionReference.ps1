@@ -35,7 +35,7 @@
 .LINK
     https://MEM.Zone/Repair-CMCollectionReference-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Configuration Manager
 .FUNCTIONALITY
@@ -219,7 +219,7 @@ Function Invoke-SQLCommand {
 .LINK
     https://stackoverflow.com/questions/8423541/how-do-you-run-a-sql-server-query-from-powershell
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/Install-SRSReport-GIT
 .LINK
@@ -340,7 +340,7 @@ Function Repair-CMCollectionReference {
 .LINK
     https://MEM.Zone/Repair-CMCollectionReference-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Configuration Manager
 .FUNCTIONALITY

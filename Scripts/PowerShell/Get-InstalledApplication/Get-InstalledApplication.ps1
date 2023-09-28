@@ -16,7 +16,7 @@
     2021-03-31 v1.0.0
     Credit to PSAppDeployment Toolkit
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK

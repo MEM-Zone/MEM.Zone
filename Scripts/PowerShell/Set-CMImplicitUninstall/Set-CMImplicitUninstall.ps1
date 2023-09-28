@@ -25,7 +25,7 @@
 .LINK
     https://MEM.Zone/Set-CMImplicitUninstall-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .LINK
     https://docs.microsoft.com/en-us/mem/configmgr/develop/reference/apps/sms_applicationassignment-server-wmi-class
 .COMPONENT

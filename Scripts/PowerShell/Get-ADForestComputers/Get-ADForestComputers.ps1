@@ -16,7 +16,7 @@
 .LINK
     https://MEM.Zone/Get-ADForestComputers-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 #>
 
 ## Set script requirements

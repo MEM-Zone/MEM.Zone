@@ -29,7 +29,7 @@
 .LINK
     https://MEM.Zone/Add-ADComputerToGroup/GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Active Directory
 .FUNCTIONALITY
@@ -696,7 +696,7 @@ Function Show-Progress {
 .LINK
     https://adamtheautomator.com/building-progress-bar-powershell-scripts/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -797,7 +797,7 @@ Function New-JsonConfigurationFile {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Configuration
 .FUNCTIONALITY
@@ -861,7 +861,7 @@ Function ConvertTo-HashtableFromPsCustomObject {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Conversion
 .FUNCTIONALITY
@@ -915,7 +915,7 @@ Function Set-HtmlTableAlternatingRow {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     HTML
 .FUNCTIONALITY
@@ -988,7 +988,7 @@ Function Format-HTMLReport {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     HTML
 .FUNCTIONALITY
@@ -1182,7 +1182,7 @@ Function Get-ADGroupMember {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     AD
 .FUNCTIONALITY
@@ -1275,7 +1275,7 @@ Function Add-ADDeviceToGroup {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     AD
 .FUNCTIONALITY
@@ -1444,7 +1444,7 @@ Function Remove-ADDeviceFromGroup {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     AD
 .FUNCTIONALITY

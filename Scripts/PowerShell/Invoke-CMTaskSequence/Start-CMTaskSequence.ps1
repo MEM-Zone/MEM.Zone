@@ -17,7 +17,7 @@
 .LINK
     https://www.scconfigmgr.com/2019/02/14/how-to-rerun-a-task-sequence-in-configmgr-using-powershell/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -72,7 +72,7 @@ Function Start-CMTaskSequence {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/CM-SRS-Dashboards-GIT
 .LINK

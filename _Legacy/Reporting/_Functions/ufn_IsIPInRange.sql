@@ -16,7 +16,7 @@
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

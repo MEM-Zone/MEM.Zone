@@ -10,7 +10,7 @@
 .NOTES
     Created by Ioan Popovici & Paul Vilcu
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK

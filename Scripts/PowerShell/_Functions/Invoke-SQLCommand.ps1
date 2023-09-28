@@ -37,7 +37,7 @@ Function Invoke-SQLCommand {
 .LINK
     https://stackoverflow.com/questions/8423541/how-do-you-run-a-sql-server-query-from-powershell
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/Invoke-SQLCommand-GIT
 .LINK

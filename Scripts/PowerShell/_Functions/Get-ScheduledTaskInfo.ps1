@@ -20,9 +20,9 @@ Function Get-ScheduledTaskInfo {
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Task Scheduler
 .FUNCTIONALITY

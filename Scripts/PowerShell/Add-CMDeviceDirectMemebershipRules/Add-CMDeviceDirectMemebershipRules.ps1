@@ -24,7 +24,7 @@
 .LINK
     https://MEM.Zone/Add-CMDeviceDirectMemebershipRules-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -103,7 +103,7 @@ Function Write-Log {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -219,7 +219,7 @@ Function Send-Mail {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -276,7 +276,7 @@ Function Get-DeviceDirectMembershipRules {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -321,9 +321,9 @@ Function Remove-DeviceDirectMembershipRule {
 .LINK
     Blog    : https://MEM.Zone
 .LINK
-    Github  : https://MEM.Zone/Git
+    Github  : https://MEM.Zone/GIT
 .LINK
-    Issues  : https://MEM.Zone/Issues
+    Issues  : https://MEM.Zone/ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -374,7 +374,7 @@ Function Add-DeviceDirectMembershipRule {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -422,7 +422,7 @@ Function Start-DataProcessing {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     ## Import SCCM PSH module and changing context
     Try {
@@ -547,7 +547,7 @@ Function Test-FileChangeEvent {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (

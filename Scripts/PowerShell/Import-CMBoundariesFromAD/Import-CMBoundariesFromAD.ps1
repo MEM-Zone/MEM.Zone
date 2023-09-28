@@ -24,7 +24,7 @@
 .LINK
     https://MEM.Zone/Import-CMBoundariesFromAD-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Mirosoft Configuration Manager
 .FUNCTIONALITY

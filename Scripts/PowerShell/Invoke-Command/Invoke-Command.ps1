@@ -14,7 +14,7 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK

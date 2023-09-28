@@ -4,7 +4,7 @@ Function Get-CurrentUser {
 .SYNOPSIS
     Gets the current user.
 .DESCRIPTION
-    Gets current user regardless of context by quering the session manager.
+    Gets current logged-on user regardless of context by querying the session manager.
 .EXAMPLE
     Get-CurrentUser
 .INPUTS
@@ -16,9 +16,9 @@ Function Get-CurrentUser {
 .LINK
     https://www.reddit.com/r/PowerShell/comments/7coamf/query_no_user_exists_for/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Session Manager
 .FUNCTIONALITY
@@ -35,7 +35,7 @@ Function Get-CurrentUser {
             ## Get current user
             #  Get all sessions
             $Sessions = (& query session)
-            #  Select active sessions by replacing spaces with ',', convert the result to a CSV object and the select only 'Active' connections
+            #  Select active sessions by replacing spaces with ',', convert the result to a CSV object and select only 'Active' connections
             $ActiveSessions = $Sessions -replace ('\s{2,}', ',') | ConvertFrom-Csv | Where-Object -Property 'State' -eq 'Active'
             #  Get current user
             $CurrentUser = $ActiveSessions[0]

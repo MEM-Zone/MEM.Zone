@@ -24,7 +24,7 @@ Function  Add-OMAgentManagementGroup {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Operations Manager
 .FUNCTIONALITY

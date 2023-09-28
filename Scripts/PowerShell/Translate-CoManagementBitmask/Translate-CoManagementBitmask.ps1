@@ -20,7 +20,7 @@
 .LINK
     https://MEM.Zone/GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Configuration Manager
 .FUNCTIONALITY
@@ -78,7 +78,7 @@ Function Translate-CoManagementBitmask {
 .LINK
     https://MEM.Zone/GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Configuration Manager
 .FUNCTIONALITY

@@ -79,7 +79,7 @@
     }
     Select-Certificate.ps1 @ScriptParameters
 .NOTES
-    This is an internal script function and should typically not be called directly.
+    Created by Ioan Popovici
 .LINK
     https://MEM.Zone/PSCertificateManagementToolKit-CREDIT (FTW)
 .LINK

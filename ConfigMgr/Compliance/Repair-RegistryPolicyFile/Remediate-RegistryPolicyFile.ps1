@@ -16,7 +16,7 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -74,7 +74,7 @@ Function Test-RegistryPolicyFile {
 .LINK
     https://itinlegal.wordpress.com/2017/09/09/psa-locating-badcorrupt-registry-pol-files/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK

@@ -32,7 +32,7 @@
 .LINK
     https://MEM.Zone/CCMSetupBulkRegistrationToken-CHANGELOG
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     MEMCM
 .FUNCTIONALITY

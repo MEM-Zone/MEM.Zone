@@ -29,7 +29,7 @@
 .LINK
     https://MEM.Zone/Disable-CMDeviceCollectionPush-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -241,7 +241,7 @@ Function Send-Mail {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (

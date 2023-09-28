@@ -37,7 +37,7 @@
 .LINK
     https://MEM.Zone/Get-BitlockerStatus-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     BitLocker
 .FUNCTIONALITY

@@ -69,7 +69,7 @@ Function Import-Win32IDesktopAPI {
 .LINK
     https://MEM.Zone/Import-Win32IDesktopAPI-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Win32 API
 .FUNCTIONALITY

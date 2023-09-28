@@ -20,7 +20,7 @@
 .LINK
     https://MEM.Zone/New-CMMaintenanceWindows-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -87,7 +87,7 @@ Function Write-Log {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -185,7 +185,7 @@ Function Get-PatchTuesday {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -242,7 +242,7 @@ Function Get-MaintenanceWindows {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -297,7 +297,7 @@ Function Remove-MaintenanceWindows {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -369,7 +369,7 @@ Function New-MaintenanceWindows {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -484,7 +484,7 @@ Function Send-Mail {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 .COMPONENT
     Mail
 .FUNCTIONALITY

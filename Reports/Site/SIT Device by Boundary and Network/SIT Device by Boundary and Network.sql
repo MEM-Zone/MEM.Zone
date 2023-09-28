@@ -17,7 +17,7 @@
 .LINK
     https://MEM.Zone/SIT-Devices-by-Boundary-and-Network-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 */
 
 /*##=============================================*/

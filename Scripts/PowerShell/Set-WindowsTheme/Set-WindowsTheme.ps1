@@ -103,9 +103,9 @@ Function Get-CurrentUser {
 .LINK
     https://www.reddit.com/r/PowerShell/comments/7coamf/query_no_user_exists_for/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Session Manager
 .FUNCTIONALITY
@@ -169,9 +169,9 @@ Function Get-WindowsTheme {
 .LINK
     https://www.reddit.com/r/PowerShell/comments/7coamf/query_no_user_exists_for/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Desktop
 .FUNCTIONALITY

@@ -30,7 +30,7 @@
     Created by Ioan Popovici
     You will need to customize the script variables in the ScriptParameters hashtable below.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -100,7 +100,7 @@ Function Get-RegistryItem {
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -176,7 +176,7 @@ Function Set-RegistryItem {
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -252,7 +252,7 @@ Function Remove-RegistryItem {
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -334,7 +334,7 @@ Function Invoke-ComplianceAction {
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK

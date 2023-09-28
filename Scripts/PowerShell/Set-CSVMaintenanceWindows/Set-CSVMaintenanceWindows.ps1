@@ -19,7 +19,7 @@
 .LINK
     https://MEM.Zone/Set-CSVMaintenanceWindows-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     CM
 .FUNCTIONALITY
@@ -95,7 +95,7 @@ Function Write-Log {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -199,7 +199,7 @@ Function Get-MaintenanceWindows {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -246,7 +246,7 @@ Function Remove-MaintenanceWindows {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -302,7 +302,7 @@ Function Set-MaintenanceWindows {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -404,7 +404,7 @@ Function Send-Mail {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
@@ -459,7 +459,7 @@ Function Start-DataProcessing {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     ## Import SCCM PSH module and changing context
     Try {
@@ -589,7 +589,7 @@ Function Test-FileChangeEvent {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Git
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (

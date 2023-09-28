@@ -36,7 +36,7 @@
 .LINK
     https://MEM.Zone/Start-WindowsCleanup-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Windows Cleanup
 .FUNCTIONALITY
@@ -669,7 +669,7 @@ Function Format-Bytes {
 .LINK
     https://theposhwolf.com/howtos/Format-Bytes/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK
@@ -776,7 +776,7 @@ Function Show-Progress {
 .LINK
     https://adamtheautomator.com/building-progress-bar-powershell-scripts/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK

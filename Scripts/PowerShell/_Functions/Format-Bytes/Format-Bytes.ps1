@@ -22,7 +22,7 @@ Function Format-Bytes {
 .LINK
     https://theposhwolf.com/howtos/Format-Bytes/
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/GIT
 .LINK

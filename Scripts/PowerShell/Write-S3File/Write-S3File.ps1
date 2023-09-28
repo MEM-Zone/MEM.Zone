@@ -684,13 +684,13 @@ Try {
     ## Check for AWS Module
     $IsAWSModuleInstalled = [boolean](Get-InstalledModule -Name 'AWSPowerShell' -ErrorAction 'SilentlyContinue')
 
-    ## Import AWS module
-    Import-Module -Name 'AWSPowerShell'  -ErrorAction 'Stop'
-
     If (-not $IsAWSModuleInstalled) {
         Write-Log -Message 'AWSPowerShell module is not installed. Attempting installation...' -Severity 2 -ScriptSection ${ScriptSection} -Verbose -LogDebugMessage:$true -PassThru
         Install-Module -Name 'AWSPowerShell' -Force -Confirm
     }
+
+    ## Import AWS module
+    Import-Module -Name 'AWSPowerShell'  -ErrorAction 'Stop'
 
     ## Get credentials
     Set-AWSCredentials -ProfileName $Profile -ErrorAction 'Stop'

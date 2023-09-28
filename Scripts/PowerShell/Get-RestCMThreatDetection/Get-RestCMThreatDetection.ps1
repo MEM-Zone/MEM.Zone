@@ -19,7 +19,7 @@
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Configuration Manager
 .FUNCTIONALITY
@@ -80,7 +80,7 @@ Function Get-RestCMThreatDetection {
     .LINK
         https://MEM.Zone
     .LINK
-        https://MEM.Zone/Issues
+        https://MEM.Zone/ISSUES
     .COMPONENT
         Configuration Manager
     .FUNCTIONALITY

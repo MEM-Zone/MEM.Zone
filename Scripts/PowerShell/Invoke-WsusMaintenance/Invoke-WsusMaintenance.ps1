@@ -125,7 +125,7 @@ Function Import-Resource {
 .NOTES
     This is an private function and should tipically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -190,7 +190,7 @@ Function Get-WsusIISLocalizedPath {
 .NOTES
     This is an private function and should tipically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -246,7 +246,7 @@ Function Get-WsusIISConfig {
 .NOTES
     This is an private function and should tipically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -429,7 +429,7 @@ Function Set-FilePermission {
 .NOTES
     This is an private function and should tipically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -540,7 +540,7 @@ Function Set-WsusIISConfig {
     Supports ShouldProcess.
     This is an private function and should tipically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -703,7 +703,7 @@ Function Optimize-WsusConfiguration {
     Supports ShouldProcess.
     This is an private function and should tipically not be called directly.
 .LINK
-    https://MEM.Zone/
+    https://MEM.Zone
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

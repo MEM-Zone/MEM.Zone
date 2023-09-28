@@ -42,7 +42,7 @@
 .LINK
     https://MEM.Zone/Reset-WindowsUpdate-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Windows Update
 .FUNCTIONALITY

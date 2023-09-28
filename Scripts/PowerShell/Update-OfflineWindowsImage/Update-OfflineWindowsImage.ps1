@@ -18,7 +18,7 @@
 .LINK
     https://MEM.Zone/Update-OfflineWindowsImage-GIT
 .LINK
-    https://MEM.Zone/Issues
+    https://MEM.Zone/ISSUES
 .COMPONENT
     Windows Servicing
 .FUNCTIONALITY
