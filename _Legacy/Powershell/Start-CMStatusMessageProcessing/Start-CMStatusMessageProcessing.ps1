@@ -17,7 +17,7 @@
     C:\Windows\System32\WindowsPowerShell\v1.0\PowerShell.exe -NoExit -NoProfile -File Start-CMStatusMessageProcessing.ps1 -SMDescription 'associated'
 .LINK
     https:/MEM.Zone
-    https://github.com/Ioan-Popovici/SCCMZone
+    https://MEM.Zone/GIT
 #>
 
 ##*=============================================
@@ -70,7 +70,7 @@ Function Send-Mail {
     This is an internal script function and should typically not be called directly.
 .LINK
     https:/MEM.Zone
-    https://github.com/Ioan-Popovici/SCCMZone
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (

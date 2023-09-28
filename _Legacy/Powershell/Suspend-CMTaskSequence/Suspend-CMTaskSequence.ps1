@@ -28,7 +28,7 @@
 .LINK
     https:/MEM.Zone
 .LINK
-    https://github.com/Ioan-Popovici/SCCMZone
+    https://MEM.Zone/GIT
 .COMPONENT
     SCCM
 .FUNCTIONALITY
@@ -82,7 +82,7 @@ Function Suspend-CMTaskSequence {
 .LINK
     https:/MEM.Zone
 .LINK
-    https://github.com/Ioan-Popovici/SCCMZone
+    https://MEM.Zone/GIT
 .COMPONENT
     SCCM
 .FUNCTIONALITY

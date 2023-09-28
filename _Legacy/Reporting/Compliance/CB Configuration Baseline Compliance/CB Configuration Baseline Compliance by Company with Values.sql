@@ -15,11 +15,11 @@
     This SQL Query is used to get the Compliance by Company and Actual Values of a Configuration Baseline Result.
 .NOTES
     Release notes
-        https://github.com/Ioan-Popovici/SCCMZone/blob/master/Reporting/Compliance/CB%20Configuration%20Baseline%20Compliance/CHANGELOG.md
+        https://MEM.Zone/GIT/blob/master/Reporting/Compliance/CB%20Configuration%20Baseline%20Compliance/CHANGELOG.md
     Part of a report should not be run separately.
 .LINK
     https:/MEM.Zone
-    https://github.com/Ioan-Popovici/SCCMZone
+    https://MEM.Zone/GIT
 */
 
 /*##=============================================*/

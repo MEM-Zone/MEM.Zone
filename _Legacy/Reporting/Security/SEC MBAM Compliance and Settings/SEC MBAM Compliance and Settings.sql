@@ -7,12 +7,12 @@
     Created by
         Ioan Popovici   2018-09-2018
     Release notes
-        ---https://github.com/Ioan-Popovici/SCCMZone/blob/master/Reporting/Hardware/HW%20BIOS%20by%20Company%20or%20Manufacturer/CHANGELOG.md
+        ---https://MEM.Zone/GIT/blob/master/Reporting/Hardware/HW%20BIOS%20by%20Company%20or%20Manufacturer/CHANGELOG.md
     This query is part of a report should not be run separately.
 .LINK
     https:/MEM.Zone
 .LINK
-    https://github.com/Ioan-Popovici/SCCMZone
+    https://MEM.Zone/GIT
 */
 
 /*##=============================================*/

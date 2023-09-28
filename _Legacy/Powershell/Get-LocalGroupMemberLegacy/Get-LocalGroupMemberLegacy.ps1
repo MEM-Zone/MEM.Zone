@@ -35,7 +35,7 @@ Function Get-LocalGroupMemberLegacy {
 .LINK
     https:/MEM.Zone
 .LINK
-    https://github.com/Ioan-Popovici/SCCMZone
+    https://MEM.Zone/GIT
 #>
     [CmdletBinding()]
     Param (
