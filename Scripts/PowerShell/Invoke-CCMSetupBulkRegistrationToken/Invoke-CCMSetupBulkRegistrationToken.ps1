@@ -47,11 +47,11 @@
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/CCMSetupBulkRegistrationToken
+    https://MEMZ.one/CCMSetupBulkRegistrationToken
 .LINK
-    https://MEM.Zone/CCMSetupBulkRegistrationToken-GIT
+    https://MEMZ.one/CCMSetupBulkRegistrationToken-GIT
 .LINK
-    https://MEM.Zone/CCMSetupBulkRegistrationToken-CHANGELOG
+    https://MEMZ.one/CCMSetupBulkRegistrationToken-CHANGELOG
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

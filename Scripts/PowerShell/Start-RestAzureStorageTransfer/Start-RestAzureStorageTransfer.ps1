@@ -34,11 +34,11 @@
     Created by Ioan Popovici.
     This script can be called directly.
 .LINK
-    https://MEM.Zone/Start-RestAzureStorageTransfer
+    https://MEMZ.one/Start-RestAzureStorageTransfer
 .LINK
-    https://MEM.Zone/Start-RestAzureStorageTransfer-CHANGELOG
+    https://MEMZ.one/Start-RestAzureStorageTransfer-CHANGELOG
 .LINK
-    https://MEM.Zone/Start-RestAzureStorageTransfer-GIT
+    https://MEMZ.one/Start-RestAzureStorageTransfer-GIT
 .LINK
     https://rzander.azurewebsites.net/download-files-from-azure-blob-storage-with-powershell/
 .COMPONENT

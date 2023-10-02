@@ -11,11 +11,11 @@
         CM_Tools.dbo.ufn_IsIPInRange
         CM_Tools.dbo.ufn_CIDRFromIPMask
 .LINK
-    https://MEM.Zone/SIT-Devices-by-Boundary-and-Network
+    https://MEMZ.one/SIT-Devices-by-Boundary-and-Network
 .LINK
-    https://MEM.Zone/SIT-Devices-by-Boundary-and-Network-CHANGELOG
+    https://MEMZ.one/SIT-Devices-by-Boundary-and-Network-CHANGELOG
 .LINK
-    https://MEM.Zone/SIT-Devices-by-Boundary-and-Network-GIT
+    https://MEMZ.one/SIT-Devices-by-Boundary-and-Network-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

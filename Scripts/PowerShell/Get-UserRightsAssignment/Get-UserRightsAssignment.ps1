@@ -71,11 +71,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Get-UserRightsAssignment
+    https://MEMZ.one/Get-UserRightsAssignment
 .LINK
-    https://MEM.Zone/Get-UserRightsAssignment-CHANGELOG
+    https://MEMZ.one/Get-UserRightsAssignment-CHANGELOG
 .LINK
-    https://MEM.Zone/Get-UserRightsAssignment-GIT
+    https://MEMZ.one/Get-UserRightsAssignment-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

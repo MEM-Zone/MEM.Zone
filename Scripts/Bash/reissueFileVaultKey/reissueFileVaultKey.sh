@@ -26,11 +26,11 @@
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/ReissueFileVaultKey
+#    https://MEMZ.one/ReissueFileVaultKey
 #.LINK
-#    https://MEM.Zone/ReissueFileVaultKey-CHANGELOG
+#    https://MEMZ.one/ReissueFileVaultKey-CHANGELOG
 #.LINK
-#    https://MEM.Zone/ReissueFileVaultKey-GIT
+#    https://MEMZ.one/ReissueFileVaultKey-GIT
 #.LINK
 #    https://MEM.Zone/ISSUES
 

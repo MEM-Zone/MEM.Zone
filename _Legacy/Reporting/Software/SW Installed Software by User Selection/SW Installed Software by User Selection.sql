@@ -9,11 +9,11 @@
     Requires ufn_csv_String_Parser custom function.
     Part of a report should not be run separately.
 .LINK
-    https://MEM.Zone/SW-Installed-Software-by-User-Selection
+    https://MEMZ.one/SW-Installed-Software-by-User-Selection
 .LINK
-    https://MEM.Zone/SW-Installed-Software-by-User-Selection-CHANGELOG
+    https://MEMZ.one/SW-Installed-Software-by-User-Selection-CHANGELOG
 .LINK
-    https://MEM.Zone/SW-Installed-Software-by-User-Selection-GIT
+    https://MEMZ.one/SW-Installed-Software-by-User-Selection-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

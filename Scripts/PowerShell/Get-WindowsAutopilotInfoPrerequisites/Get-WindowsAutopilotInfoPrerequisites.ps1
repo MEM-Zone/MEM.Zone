@@ -16,11 +16,11 @@
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/AutopilotPrerequisites
+    https://MEMZ.one/AutopilotPrerequisites
 .LINK
-    https://MEM.Zone/AutopilotPrerequisites-GIT
+    https://MEMZ.one/AutopilotPrerequisites-GIT
 .LINK
-    https://MEM.Zone/AutopilotPrerequisites-CHANGELOG
+    https://MEMZ.one/AutopilotPrerequisites-CHANGELOG
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

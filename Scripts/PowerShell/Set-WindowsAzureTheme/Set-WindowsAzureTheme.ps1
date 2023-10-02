@@ -28,11 +28,11 @@
     Created by Ioan Popovici
     You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme
+    https://MEMZ.one/Set-WindowsAzureTheme
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme-CHANGELOG
+    https://MEMZ.one/Set-WindowsAzureTheme-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme-GIT
+    https://MEMZ.one/Set-WindowsAzureTheme-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -612,13 +612,13 @@ Function Set-WindowsAzureTheme {
     Created by Ioan Popovici
     You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme
+    https://MEMZ.one/Set-WindowsAzureTheme
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme-CHANGELOG
+    https://MEMZ.one/Set-WindowsAzureTheme-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme-GIT
+    https://MEMZ.one/Set-WindowsAzureTheme-GIT
 .LINK
-    https://MEM.Zone/Set-WindowsAzureTheme-SQL
+    https://MEMZ.one/Set-WindowsAzureTheme-SQL
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

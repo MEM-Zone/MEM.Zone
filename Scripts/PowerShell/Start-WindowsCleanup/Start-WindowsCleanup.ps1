@@ -28,13 +28,13 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Start-WindowsCleanup-CREDIT (@mikael_nystrom [Deplyment Bunny] - Original VB Script)
+    https://MEMZ.one/Start-WindowsCleanup-CREDIT (@mikael_nystrom [Deplyment Bunny] - Original VB Script)
 .LINK
-    https://MEM.Zone/Start-WindowsCleanup
+    https://MEMZ.one/Start-WindowsCleanup
 .LINK
-    https://MEM.Zone/Start-WindowsCleanup-CHANGELOG
+    https://MEMZ.one/Start-WindowsCleanup-CHANGELOG
 .LINK
-    https://MEM.Zone/Start-WindowsCleanup-GIT
+    https://MEMZ.one/Start-WindowsCleanup-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

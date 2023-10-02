@@ -29,11 +29,11 @@
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/macOS-JAMF-Bulk-Unmanage
+#    https://MEMZ.one/macOS-JAMF-Bulk-Unmanage
 #.LINK
-#    https://MEM.Zone/macOS-JAMF-Bulk-Unmanage-CHANGELOG
+#    https://MEMZ.one/macOS-JAMF-Bulk-Unmanage-CHANGELOG
 #.LINK
-#    https://MEM.Zone/macOS-JAMF-Bulk-Unmanage-GIT
+#    https://MEMZ.one/macOS-JAMF-Bulk-Unmanage-GIT
 #.LINK
 #    https://MEM.Zone/ISSUES
 

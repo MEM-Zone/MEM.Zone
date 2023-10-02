@@ -35,7 +35,7 @@
 
 ## 1.0.2 - 2021-12-09
 
-* Fixed issues with the [Import-Win32IDesktopAPI](https://MEM.Zone/Import-Win32IDesktopAPI) function, non critical to the functionality of this script
+* Fixed issues with the [Import-Win32IDesktopAPI](https://MEMZ.one/Import-Win32IDesktopAPI) function, non critical to the functionality of this script
 
 ## 1.0.1 - 2021-04-01
 

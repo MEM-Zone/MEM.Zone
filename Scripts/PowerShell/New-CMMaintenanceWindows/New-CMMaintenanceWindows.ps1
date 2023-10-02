@@ -14,11 +14,11 @@
 .NOTES
     Created by Ioan Popovici and Octavian Cordos.
 .LINK
-    https://MEM.Zone/New-CMMaintenanceWindows
+    https://MEMZ.one/New-CMMaintenanceWindows
 .LINK
-    https://MEM.Zone/New-CMMaintenanceWindows-CHANGELOG
+    https://MEMZ.one/New-CMMaintenanceWindows-CHANGELOG
 .LINK
-    https://MEM.Zone/New-CMMaintenanceWindows-GIT
+    https://MEMZ.one/New-CMMaintenanceWindows-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

@@ -7,9 +7,9 @@
     Requires SQL 2016.
     Part of a report should not be run separately.
 .LINK
-    https://MEM.Zone/WsusMaintenance
+    https://MEMZ.one/WsusMaintenance
 .LINK
-    https://MEM.Zone/WsusMaintenance-GIT
+    https://MEMZ.one/WsusMaintenance-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

@@ -45,11 +45,11 @@ Install-Module -Name 'SqlServer'
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Invoke-WSUSMaintenance
+    https://MEMZ.one/Invoke-WSUSMaintenance
 .LINK
-    https://MEM.Zone/Invoke-WSUSMaintenance-CHANGELOG
+    https://MEMZ.one/Invoke-WSUSMaintenance-CHANGELOG
 .LINK
-    https://MEM.Zone/Invoke-WSUSMaintenance-GIT
+    https://MEMZ.one/Invoke-WSUSMaintenance-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

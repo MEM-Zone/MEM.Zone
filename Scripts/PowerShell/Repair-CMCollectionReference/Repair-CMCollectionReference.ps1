@@ -31,9 +31,9 @@
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Repair-CMCollectionReference-CHANGELOG
+    https://MEMZ.one/Repair-CMCollectionReference-CHANGELOG
 .LINK
-    https://MEM.Zone/Repair-CMCollectionReference-GIT
+    https://MEMZ.one/Repair-CMCollectionReference-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -221,9 +221,9 @@ Function Invoke-SQLCommand {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Install-SRSReport-GIT
+    https://MEMZ.one/Install-SRSReport-GIT
 .LINK
-    https://MEM.Zone/Install-SRSReport-ISSUES
+    https://MEMZ.one/Install-SRSReport-ISSUES
 .COMPONENT
     RS
 .FUNCTIONALITY
@@ -336,9 +336,9 @@ Function Repair-CMCollectionReference {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Repair-CMCollectionReference-CHANGELOG
+    https://MEMZ.one/Repair-CMCollectionReference-CHANGELOG
 .LINK
-    https://MEM.Zone/Repair-CMCollectionReference-GIT
+    https://MEMZ.one/Repair-CMCollectionReference-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

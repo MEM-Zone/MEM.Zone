@@ -53,11 +53,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Invoke-CCMCacheCleanup
+    https://MEMZ.one/Invoke-CCMCacheCleanup
 .LINK
-    https://MEM.Zone/Invoke-CCMCacheCleanup-CHANGELOG
+    https://MEMZ.one/Invoke-CCMCacheCleanup-CHANGELOG
 .LINK
-    https://MEM.Zone/Invoke-CCMCacheCleanup-GIT
+    https://MEMZ.one/Invoke-CCMCacheCleanup-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

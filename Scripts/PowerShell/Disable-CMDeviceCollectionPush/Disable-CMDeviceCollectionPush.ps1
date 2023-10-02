@@ -23,11 +23,11 @@
         This script can be run using SCCM status filter rules, on collection membership change.
         DeleteAllCollectionMembers switch does not remove collection queries.
 .LINK
-    https://MEM.Zone/Disable-CMDeviceCollectionPush
+    https://MEMZ.one/Disable-CMDeviceCollectionPush
 .LINK
-    https://MEM.Zone/Disable-CMDeviceCollectionPush-CHANGELOG
+    https://MEMZ.one/Disable-CMDeviceCollectionPush-CHANGELOG
 .LINK
-    https://MEM.Zone/Disable-CMDeviceCollectionPush-GIT
+    https://MEMZ.one/Disable-CMDeviceCollectionPush-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

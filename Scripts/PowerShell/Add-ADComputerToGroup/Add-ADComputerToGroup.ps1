@@ -23,11 +23,11 @@
         Multiple domain entries using the same group are not supported!
         If you use the same group name in multiple entries, the last entry will overwrite the previous ones.
 .LINK
-    https://MEM.Zone/Add-ADComputerToGroup
+    https://MEMZ.one/Add-ADComputerToGroup
 .LINK
-    https://MEM.Zone/Add-ADComputerToGroup/CHANGELOG
+    https://MEMZ.one/Add-ADComputerToGroup/CHANGELOG
 .LINK
-    https://MEM.Zone/Add-ADComputerToGroup/GIT
+    https://MEMZ.one/Add-ADComputerToGroup/GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

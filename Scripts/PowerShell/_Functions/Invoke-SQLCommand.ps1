@@ -39,7 +39,7 @@ Function Invoke-SQLCommand {
 .LINK
     https://MEM.Zone
 .LINK
-    https://MEM.Zone/Invoke-SQLCommand-GIT
+    https://MEMZ.one/Invoke-SQLCommand-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

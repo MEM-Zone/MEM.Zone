@@ -63,11 +63,11 @@ Function Import-Win32IDesktopAPI {
 .LINK
     https://github.com/federico-paolillo/set-wallpaper
 .LINK
-    https://MEM.Zone/Import-Win32IDesktopAPI
+    https://MEMZ.one/Import-Win32IDesktopAPI
 .LINK
-    https://MEM.Zone/Import-Win32IDesktopAPI-CHANGELOG
+    https://MEMZ.one/Import-Win32IDesktopAPI-CHANGELOG
 .LINK
-    https://MEM.Zone/Import-Win32IDesktopAPI-GIT
+    https://MEMZ.one/Import-Win32IDesktopAPI-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

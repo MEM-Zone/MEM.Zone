@@ -36,11 +36,11 @@
     Created by Ioan Popovici
     This script can be called directly.
 .LINK
-    https://MEM.Zone/Reset-WindowsUpdate
+    https://MEMZ.one/Reset-WindowsUpdate
 .LINK
-    https://MEM.Zone/Reset-WindowsUpdate-CHANGELOG
+    https://MEMZ.one/Reset-WindowsUpdate-CHANGELOG
 .LINK
-    https://MEM.Zone/Reset-WindowsUpdate-GIT
+    https://MEMZ.one/Reset-WindowsUpdate-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

@@ -37,11 +37,11 @@
 #.LINK
 #    https://MEM.Zone
 #.LINK
-#    https://MEM.Zone/macOS-Intune-Onboarding-Tool
+#    https://MEMZ.one/macOS-Intune-Onboarding-Tool
 #.LINK
-#    https://MEM.Zone/macOS-Intune-Onboarding-Tool-CHANGELOG
+#    https://MEMZ.one/macOS-Intune-Onboarding-Tool-CHANGELOG
 #.LINK
-#    https://MEM.Zone/macOS-Intune-Onboarding-Tool-GIT
+#    https://MEMZ.one/macOS-Intune-Onboarding-Tool-GIT
 #.LINK
 #    https://MEM.Zone/ISSUES
 

@@ -7,9 +7,9 @@
     Requires SQL 2016.
     Created by Microsoft
 .LINK
-    https://MEM.Zone/WsusMaintenance
+    https://MEMZ.one/WsusMaintenance
 .LINK
-    https://MEM.Zone/WsusMaintenance-GIT
+    https://MEMZ.one/WsusMaintenance-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .LINK

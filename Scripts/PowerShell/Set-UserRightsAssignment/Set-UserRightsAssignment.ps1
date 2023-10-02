@@ -69,11 +69,11 @@
     Created by Ioan Popovici
     Original script by Bill Loytty (weloytty)
 .LINK
-    https://MEM.Zone/Set-UserRightsAssignment
+    https://MEMZ.one/Set-UserRightsAssignment
 .LINK
-    https://MEM.Zone/Set-UserRightsAssignment-CHANGELOG
+    https://MEMZ.one/Set-UserRightsAssignment-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-UserRightsAssignment-GIT
+    https://MEMZ.one/Set-UserRightsAssignment-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .LINK

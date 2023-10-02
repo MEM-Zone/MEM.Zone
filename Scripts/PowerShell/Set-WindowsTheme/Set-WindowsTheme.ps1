@@ -30,11 +30,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Set-WindowsTheme
+    https://MEMZ.one/Set-WindowsTheme
 .LINK
-    https://MEM.Zone/Set-WindowsTheme-CHANGELOG
+    https://MEMZ.one/Set-WindowsTheme-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-WindowsTheme-GIT
+    https://MEMZ.one/Set-WindowsTheme-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

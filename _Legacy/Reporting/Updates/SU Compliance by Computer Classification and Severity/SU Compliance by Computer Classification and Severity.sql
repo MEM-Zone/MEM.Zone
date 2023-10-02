@@ -8,11 +8,11 @@
     Requires ufn_csv_String_Parser custom function.
     Part of a report should not be run separately.
 .LINK
-    https://MEM.Zone/SU-Compliance-Classification-Severity
+    https://MEMZ.one/SU-Compliance-Classification-Severity
 .LINK
-    https://MEM.Zone/SU-Compliance-Classification-CHANGELOG
+    https://MEMZ.one/SU-Compliance-Classification-CHANGELOG
 .LINK
-    https://MEM.Zone/SU-Compliance-Classification-GIT
+    https://MEMZ.one/SU-Compliance-Classification-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

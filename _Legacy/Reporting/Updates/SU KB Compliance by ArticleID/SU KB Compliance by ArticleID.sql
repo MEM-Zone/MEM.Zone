@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     Part of a report should not be run separately.
 .LINK
-    https://MEM.Zone/SU-KB-Compliance-by-ArticleID
+    https://MEMZ.one/SU-KB-Compliance-by-ArticleID
 .LINK
-    https://MEM.Zone/SU-KB-Compliance-by-ArticleID-CHANGELOG
+    https://MEMZ.one/SU-KB-Compliance-by-ArticleID-CHANGELOG
 .LINK
-    https://MEM.Zone/SU-KB-Compliance-by-ArticleID-GIT
+    https://MEMZ.one/SU-KB-Compliance-by-ArticleID-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

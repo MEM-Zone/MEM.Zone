@@ -10,13 +10,13 @@
     Requirements
         ADK Windows 10, Windows 8 or higher.
 .LINK
-    https://MEM.Zone/Update-OfflineWindowsImage-CREDIT
+    https://MEMZ.one/Update-OfflineWindowsImage-CREDIT
 .LINK
-    https://MEM.Zone/Update-OfflineWindowsImage
+    https://MEMZ.one/Update-OfflineWindowsImage
 .LINK
-    https://MEM.Zone/Update-OfflineWindowsImage-CHANGELOG
+    https://MEMZ.one/Update-OfflineWindowsImage-CHANGELOG
 .LINK
-    https://MEM.Zone/Update-OfflineWindowsImage-GIT
+    https://MEMZ.one/Update-OfflineWindowsImage-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

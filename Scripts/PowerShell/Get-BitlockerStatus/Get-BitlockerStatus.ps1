@@ -31,11 +31,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Get-BitlockerStatus
+    https://MEMZ.one/Get-BitlockerStatus
 .LINK
-    https://MEM.Zone/Get-BitlockerStatus-CHANGELOG
+    https://MEMZ.one/Get-BitlockerStatus-CHANGELOG
 .LINK
-    https://MEM.Zone/Get-BitlockerStatus-GIT
+    https://MEMZ.one/Get-BitlockerStatus-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

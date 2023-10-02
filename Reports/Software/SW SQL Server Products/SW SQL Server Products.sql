@@ -9,13 +9,13 @@
     Requires SQL Property and ProductID HWI extensions.
     Part of a report should not be run separately.
 .LINK
-    https://MEM.Zone/SW-SQL-Server-Products
+    https://MEMZ.one/SW-SQL-Server-Products
 .LINK
-    https://MEM.Zone/SQL-SupportFunctions
+    https://MEMZ.one/SQL-SupportFunctions
 .LINK
-    https://MEM.Zone/SW-SQL-Server-Products-CHANGELOG
+    https://MEMZ.one/SW-SQL-Server-Products-CHANGELOG
 .LINK
-    https://MEM.Zone/SW-SQL-Server-Products-GIT
+    https://MEMZ.one/SW-SQL-Server-Products-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

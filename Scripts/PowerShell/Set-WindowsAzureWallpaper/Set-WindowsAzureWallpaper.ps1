@@ -52,13 +52,13 @@
     If you have MEMCM you can run the SQL query linked below (Get-ScreenResolution-SQL) in order to get the most common resolutions used in your environment.
     You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper
+    https://MEMZ.one/Set-WindowsAzureWallpaper
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper-CHANGELOG
+    https://MEMZ.one/Set-WindowsAzureWallpaper-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper-GIT
+    https://MEMZ.one/Set-WindowsAzureWallpaper-GIT
 .LINK
-    https://MEM.Zone/Get-ScreenResolution-SQL
+    https://MEMZ.one/Get-ScreenResolution-SQL
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -693,11 +693,11 @@ Function Import-Win32IDesktopAPI {
 .LINK
     https://github.com/federico-paolillo/set-wallpaper
 .LINK
-    https://MEM.Zone/Import-Win32IDesktopAPI
+    https://MEMZ.one/Import-Win32IDesktopAPI
 .LINK
-    https://MEM.Zone/Import-Win32IDesktopAPI-CHANGELOG
+    https://MEMZ.one/Import-Win32IDesktopAPI-CHANGELOG
 .LINK
-    https://MEM.Zone/Import-Win32IDesktopAPI-GIT
+    https://MEMZ.one/Import-Win32IDesktopAPI-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -1550,13 +1550,13 @@ Function Set-WindowsAzureWallpaper {
     If you have MEMCM you can run the SQL query linked below (Set-WindowsAzureWallpaper-SQL) in order to get the most common resolutions used in your environment.
     You can use this script in a baseline as a MEMCM 'Detection' script.
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper
+    https://MEMZ.one/Set-WindowsAzureWallpaper
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper-CHANGELOG
+    https://MEMZ.one/Set-WindowsAzureWallpaper-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper-GIT
+    https://MEMZ.one/Set-WindowsAzureWallpaper-GIT
 .LINK
-    https://MEM.Zone/Set-WindowsAzureWallpaper-SQL
+    https://MEMZ.one/Set-WindowsAzureWallpaper-SQL
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

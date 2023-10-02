@@ -12,11 +12,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/RegistryWatcher
+    https://MEMZ.one/RegistryWatcher
 .LINK
-    https://MEM.Zone/RegistryWatcher-GIT
+    https://MEMZ.one/RegistryWatcher-GIT
 .LINK
-    https://MEM.Zone/RegistryWatcher-CHANGELOG
+    https://MEMZ.one/RegistryWatcher-CHANGELOG
 .LINK
     https://MEM.Zone
 .LINK
@@ -279,7 +279,7 @@ While ($true) {
 
     ## Set Registry Values if when a change is detected
     Write-Verbose -Message 'Setting Registry Values...' -Verbose
-    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation' -Value 'https://MEM.Zone/' -Force -PassThru
+    Set-ItemProperty -Path 'HKLM:\Software\Policies\Microsoft\Edge' -Name 'HomepageLocation' -Value 'https://MEMZ.one/' -Force -PassThru
 }
 
 #endregion

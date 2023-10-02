@@ -18,11 +18,11 @@
         * Remove direct membership rules using CIM.
         * Add option to add new devices without removing all direct membership rules first.
 .LINK
-    https://MEM.Zone/Add-CMDeviceDirectMemebershipRules
+    https://MEMZ.one/Add-CMDeviceDirectMemebershipRules
 .LINK
-    https://MEM.Zone/Add-CMDeviceDirectMemebershipRules-CHANGELOG
+    https://MEMZ.one/Add-CMDeviceDirectMemebershipRules-CHANGELOG
 .LINK
-    https://MEM.Zone/Add-CMDeviceDirectMemebershipRules-GIT
+    https://MEMZ.one/Add-CMDeviceDirectMemebershipRules-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

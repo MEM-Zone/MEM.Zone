@@ -20,7 +20,7 @@
 '.LINK
 '    https://MEM.Zone
 '.LINK
-'    https://MEM.Zone/SW-SQL-Server-Products
+'    https://MEMZ.one/SW-SQL-Server-Products
 '.LINK
 '    https://MEM.Zone/ISSUES
 '

@@ -7,11 +7,11 @@
     Created by Ioan Popovici
     Part of a report should not be run separately.
 .LINK
-    https://MEM.Zone/DE-Deployments-by-Device-or-User
+    https://MEMZ.one/DE-Deployments-by-Device-or-User
 .LINK
-    https://MEM.Zone/DE-Deployments-by-Device-or-User-CHANGELOG
+    https://MEMZ.one/DE-Deployments-by-Device-or-User-CHANGELOG
 .LINK
-    https://MEM.Zone/DE-Deployments-by-Device-or-User-GIT
+    https://MEMZ.one/DE-Deployments-by-Device-or-User-GIT
 .LINK
     https://MEM.Zone/ISSUES
 */

@@ -37,11 +37,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Write-S3File
+    https://MEMZ.one/Write-S3File
 .LINK
-    https://MEM.Zone/Write-S3File-CHANGELOG
+    https://MEMZ.one/Write-S3File-CHANGELOG
 .LINK
-    https://MEM.Zone/Write-S3File-GIT
+    https://MEMZ.one/Write-S3File-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

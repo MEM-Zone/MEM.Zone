@@ -10,11 +10,11 @@
 .OUTPUTS
     System.Object.
 .LINK
-    https://MEM.Zone/Get-ADForestComputers
+    https://MEMZ.one/Get-ADForestComputers
 .LINK
-    https://MEM.Zone/Get-ADForestComputers-CHANGELOG
+    https://MEMZ.one/Get-ADForestComputers-CHANGELOG
 .LINK
-    https://MEM.Zone/Get-ADForestComputers-GIT
+    https://MEMZ.one/Get-ADForestComputers-GIT
 .LINK
     https://MEM.Zone/ISSUES
 #>

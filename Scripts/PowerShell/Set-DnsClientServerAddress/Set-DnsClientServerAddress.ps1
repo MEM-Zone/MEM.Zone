@@ -22,11 +22,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Set-DnsClientServerAddress
+    https://MEMZ.one/Set-DnsClientServerAddress
 .LINK
-    https://MEM.Zone/Set-DnsClientServerAddress-CHANGELOG
+    https://MEMZ.one/Set-DnsClientServerAddress-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-DnsClientServerAddress-GIT
+    https://MEMZ.one/Set-DnsClientServerAddress-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

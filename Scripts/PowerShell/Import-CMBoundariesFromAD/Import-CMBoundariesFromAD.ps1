@@ -18,11 +18,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Import-CMBoundariesFromAD
+    https://MEMZ.one/Import-CMBoundariesFromAD
 .LINK
-    https://MEM.Zone/Import-CMBoundariesFromAD-CHANGELOG
+    https://MEMZ.one/Import-CMBoundariesFromAD-CHANGELOG
 .LINK
-    https://MEM.Zone/Import-CMBoundariesFromAD-GIT
+    https://MEMZ.one/Import-CMBoundariesFromAD-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

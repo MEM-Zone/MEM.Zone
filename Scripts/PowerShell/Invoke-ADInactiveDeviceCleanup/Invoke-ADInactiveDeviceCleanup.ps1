@@ -22,11 +22,11 @@
     Created by Ioan Popovici
     Requires: Mailkit and Mailmime (NuGet) for the email report.
 .LINK
-    https://MEM.Zone/Invoke-ADInactiveDeviceCleanup
+    https://MEMZ.one/Invoke-ADInactiveDeviceCleanup
 .LINK
-    https://MEM.Zone/Invoke-ADInactiveDeviceCleanup-CHANGELOG
+    https://MEMZ.one/Invoke-ADInactiveDeviceCleanup-CHANGELOG
 .LINK
-    https://MEM.Zone/Invoke-ADInactiveDeviceCleanup-GIT
+    https://MEMZ.one/Invoke-ADInactiveDeviceCleanup-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

@@ -13,11 +13,11 @@
     Important
         Configuration file must reside on local storage for the file watcher to work.
 .LINK
-    https://MEM.Zone/Set-CSVMaintenanceWindows
+    https://MEMZ.one/Set-CSVMaintenanceWindows
 .LINK
-    https://MEM.Zone/Set-CSVMaintenanceWindows-CHANGELOG
+    https://MEMZ.one/Set-CSVMaintenanceWindows-CHANGELOG
 .LINK
-    https://MEM.Zone/Set-CSVMaintenanceWindows-GIT
+    https://MEMZ.one/Set-CSVMaintenanceWindows-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

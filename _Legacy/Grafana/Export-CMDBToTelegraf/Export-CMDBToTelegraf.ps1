@@ -12,11 +12,11 @@
 .NOTES
     Created by Octavian Cordos & Ioan Popovici
 .LINK
-    https://MEM.Zone/Grafana-Dashboards
+    https://MEMZ.one/Grafana-Dashboards
 .LINK
-    https://MEM.Zone/Export-CMDBToTelegraf-CHANGELOG
+    https://MEMZ.one/Export-CMDBToTelegraf-CHANGELOG
 .LINK
-    https://MEM.Zone/Export-CMDBToTelegraf-GIT
+    https://MEMZ.one/Export-CMDBToTelegraf-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT

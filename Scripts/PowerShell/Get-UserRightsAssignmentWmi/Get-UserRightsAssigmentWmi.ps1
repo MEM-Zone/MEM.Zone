@@ -71,11 +71,11 @@
 .NOTES
     Created by Ioan Popovici
 .LINK
-    https://MEM.Zone/Get-UserRightsAssignmentWmi
+    https://MEMZ.one/Get-UserRightsAssignmentWmi
 .LINK
-    https://MEM.Zone/Get-UserRightsAssignmentWmi-CHANGELOG
+    https://MEMZ.one/Get-UserRightsAssignmentWmi-CHANGELOG
 .LINK
-    https://MEM.Zone/Get-UserRightsAssignmentWmi-GIT
+    https://MEMZ.one/Get-UserRightsAssignmentWmi-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -1042,11 +1042,11 @@ Function Get-WmiClass {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 .COMPONENT
     WMI
 .FUNCTIONALITY
@@ -1173,11 +1173,11 @@ Function Get-WmiProperty {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -1296,11 +1296,11 @@ Function Get-WmiNamespace {
 .NOTES
     This is a public module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 .COMPONENT
     WMI
 .FUNCTIONALITY
@@ -1432,11 +1432,11 @@ Function Get-WmiNamespaceRecursive {
 
     This is an internal module function and should not typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 .COMPONENT
     WMI
 .FUNCTIONALITY
@@ -1521,11 +1521,11 @@ Function New-WmiClass {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -1654,11 +1654,11 @@ Function New-WmiInstance {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -1737,11 +1737,11 @@ Function New-WmiNamespace {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -1898,11 +1898,11 @@ Function New-WmiProperty {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -2020,11 +2020,11 @@ Function Remove-WmiClass {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -2126,11 +2126,11 @@ Function Set-WmiClassQualifier {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (
@@ -2236,11 +2236,11 @@ Function Set-WmiPropertyQualifier {
 .NOTES
     This is a module function and can typically be called directly.
 .LINK
-    https://MEM.Zone/PsWmiToolkit
+    https://MEMZ.one/PsWmiToolkit
 .LINK
-    https://MEM.Zone/PsWmiToolkit-GIT
+    https://MEMZ.one/PsWmiToolkit-GIT
 .LINK
-    https://MEM.Zone/PsWmiToolkit-ISSUES
+    https://MEMZ.one/PsWmiToolkit-ISSUES
 #>
     [CmdletBinding()]
     Param (

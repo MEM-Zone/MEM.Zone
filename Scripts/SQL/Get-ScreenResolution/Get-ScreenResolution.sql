@@ -7,7 +7,7 @@
     Created by Ioan Popovici
     v1.0.0 - 2021-02-02
 .LINK
-    https://MEM.Zone/Get-ScreenResolution-SQL
+    https://MEMZ.one/Get-ScreenResolution-SQL
 .LINK
     https://MEM.Zone/ISSUES
 */
