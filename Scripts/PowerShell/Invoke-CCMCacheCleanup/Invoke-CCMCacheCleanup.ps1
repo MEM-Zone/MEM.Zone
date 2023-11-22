@@ -9,7 +9,7 @@
 .PARAMETER CleanupType
     Specifies Cleanup Type to clean. ('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced'). Default is: 'Automatic'.
     If 'All', 'Automatic' or 'ListOnly' is selected the other options will be ignored.
-    An 'Referenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified 'MaxCacheDuration'.
+    A 'Referenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified 'MaxCacheDuration'.
     An 'Unreferenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified in 'TombStoneDuration'.
 
     Available Cleanup Options:
@@ -19,8 +19,8 @@
             Not recommended but still safe to use, cache will be redownloaded when needed
         - 'Automatic'
             'Tombstoned' and 'Referenced' will be selected depending on 'FreeDiskSpaceThreshold' parameter.
-            If under threshold only 'Tombstoned' cache items will be deleted.
-            If over threshold, both 'Tombstoned' and 'Referenced' cache items will be deleted.
+            If under the threshold only 'Tombstoned' cache items will be deleted.
+            If over the threshold, both 'Tombstoned' and 'Referenced' cache items will be deleted.
             The 'EligibleForDeletion' convention is still respected.
         - 'Tombstoned'
             Only 'Tombstoned' cache items will be deleted.
@@ -31,9 +31,9 @@
             Not recommended but still safe to use, cache will be redownloaded when needed
 .PARAMETER FreeDiskSpaceThreshold
     Specifies the free disk space threshold percentage after which the cache is cleaned. Default is: '100'.
-    If it's set to '100' Free Space Threshold Percentage is ignored.
+    If it's set to '100', Free Space Threshold Percentage is ignored.
 .PARAMETER SkipSuperPeer
-    This switch specifies to skip cleaning if the client is a super peer (Peer Cache). Default is: $false.
+    This switch specifies to skip cleaning if the client is a super-peer (Peer Cache). Default is: $false.
 .PARAMETER DeletePinned
     This switch specifies to remove cache even if it's pinned (Applications and Packages). Default is: $false.
 .PARAMETER LoggingOptions
