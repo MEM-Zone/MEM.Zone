@@ -9,12 +9,12 @@
     Specifies the application ID.
 .PARAMETER ApplicationSecret
     Specifies the application secret.
-.PARAMETER DeviceOS
-    Specifies the device OS to be processed.
-    Valid values are: Windows, macOS, Linux, All.
+.PARAMETER DeviceName
+    Specifies the device name to be processed. Supports wildcard characters.
     Default is 'All'.
-.PARAMETER UserPrincipalName
-    Specifies the user principal name to be processed.
+.PARAMETER DeviceOS
+    Specifies the device OS to be processed
+    Valid values are: Windows, macOS, Linux, All.
     Default is 'All'.
 .PARAMETER Prefix
     Specifies the prefix to be used. Please note that it will be truncated to 6 characters and converted to UPPERCASE.
@@ -77,16 +77,18 @@ Param (
     [ValidateNotNullorEmpty()]
     [Alias('ApplicationClientSecret')]
     [string]$ClientSecret,
-    [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 3)]
-    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 3)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the device name to be processed. Supports wildcard characters. Default is: All', Position = 3)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device name to be processed. Supports wildcard characters. Default is: All', Position = 3)]
+    [SupportsWildcards()]
+    [ValidateNotNullorEmpty()]
+    [Alias('DeviceName')]
+    [string]$DeviceName = 'All',
+    [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
     [ValidateSet('Windows', 'macOS', 'Linux', 'All')]
     [string]$DeviceOS = 'All',
-    [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the user principal name to be processed. Valid values are: Not specified or a specific user principal name', Position = 4)]
-    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the user principal name to be processed. Valid values are: Not specified or a specific user principal name', Position = 4)]
-    [ValidateNotNullorEmpty()]
-    [string]$UserPrincipalName = 'All',
-    [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the prefix to be used, brackets are required for parameters like TAG and OS. Valid values are: [TAG],[OS], or a custom text value', Position = 5)]
-    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the prefix to be used, brackets are required for parameters like TAG and OS. Valid values are: [TAG],[OS], or a custom text value', Position = 5)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the prefix to be used. Default isL INTUNE', Position = 5)]
+    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the prefix to be used. Default isL INTUNE', Position = 5)]
     [ValidateNotNullorEmpty()]
     [string]$Prefix = 'INTUNE',
     [Parameter(Mandatory = $true, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the user attribute to be used queried and used as prefix. The result will be truncated to 6 characters.', Position = 5)]
@@ -114,8 +116,10 @@ $script:LogSource        = $ScriptName
 $script:LogDebugMessages = $false
 $script:LogFileDirectory = If ($LogPath) { Join-Path -Path $LogPath -ChildPath $script:LogName } Else { $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $script:LogName)) }
 
-## Initialize variables
-If ($PSBoundParameters['Prefix']) { [string]$Prefix = $($Prefix.Substring(0, 6)).ToUpper() }
+## Set script parameter values
+If ($PSBoundParameters['Prefix'])               { $Prefix     = $($Prefix.Substring(0, 6)).ToUpper() }
+If ($PSBoundParameters['DeviceOS'] -eq 'All')   { $DeviceOS   =  '*' }
+If ($PSBoundParameters['DeviceName'] -eq 'All') { $DeviceName =  '*' }
 
 #endregion
 ##*=============================================
@@ -372,7 +376,7 @@ Function Write-Log {
         [string]$Source = $script:LogSource,
         [Parameter(Mandatory = $false, Position = 3)]
         [ValidateNotNullorEmpty()]
-        [string]$ScriptSection = $script:RunPhase,
+        [string]$ScriptSection = $script:ScriptSection,
         [Parameter(Mandatory = $false, Position = 4)]
         [ValidateSet('CMTrace', 'Legacy')]
         [string]$LogType = 'CMTrace',
@@ -1083,10 +1087,10 @@ Function Invoke-MSGraphAPI {
 Try {
 
     ## Set the script section
-    [string]${ScriptSection} = 'Main'
+    $script:ScriptSection = 'Main'
 
     ## Write Start verbose message
-    Write-Log -Message 'Start' -VerboseMessage -ScriptSection ${ScriptSection}
+    Write-Log -Message 'Start' -VerboseMessage
 
     ## Get API Token
     $Token = Get-MSGraphAccessToken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction 'Stop'
@@ -1125,7 +1129,7 @@ Try {
         }
         Catch {
             [string]$Message = "Error getting user information for device '{0}' with owner '{1}'. Check if the device has a user assigned. `n{2}" -f $DeviceName, $UserPrincipalName, $($ResolveError)
-            Write-Log -Message $Message -Severity 3 -ScriptSection ${ScriptSection} -EventID 666
+            Write-Log -Message $Message -Severity 3 -EventID 666
             Continue
         }
 
@@ -1165,24 +1169,24 @@ Try {
                 }
             }
             Catch {
-                Write-Log -Message "Error renaming device '$DeviceName' to '$NewDeviceName'.`n$($ResolveError)" -Severity 3 -ScriptSection ${ScriptSection} -EventID 666
+                Write-Log -Message "Error renaming device '$DeviceName' to '$NewDeviceName'.`n$($ResolveError)" -Severity 3 -EventID 666
                 Continue
             }
             Finally {
-                Write-Log -Message $Output -ScriptSection ${ScriptSection}
+                Write-Log -Message $Output
             }
         }
         Else {
-            Write-Log -Message "Device '$DeviceName' does not have a valid serialnumber. Skipping..." -Severity 3 -ScriptSection ${ScriptSection} -EventID 666
+            Write-Log -Message "Device '$DeviceName' does not have a valid serialnumber. Skipping..." -Severity 3 -EventID 666
         }
     }
 }
 Catch {
-    Write-Log -Message "Error renaming device.`n$($ResolveError)" -Severity 3 -ScriptSection ${ScriptSection} -EventID 666
+    Write-Log -Message "Error renaming device.`n$($ResolveError)" -Severity 3 -EventID 666
 }
 Finally {
-    Write-Log -Message "Succesully renamed '$Counter' devices." -VerboseMessage -ScriptSection ${ScriptSection}
-    Write-Log -Message 'Stop' -VerboseMessage -ScriptSection ${ScriptSection}
+    Write-Log -Message "Succesully renamed '$Counter' devices." -VerboseMessage
+    Write-Log -Message 'Stop' -VerboseMessage
 }
 
 #endregion
