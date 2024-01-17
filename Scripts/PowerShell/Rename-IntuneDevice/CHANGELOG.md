@@ -1,5 +1,11 @@
 # Rename-IntuneComputer release history
 
+## 1.2.0 - 2024-01-17
+
+* Fixed string formatting bug in `Invoke-MSGraphAPI` function.
+* Fixed some descritpions in the help section.
+* Added `ShouldProcess` support.
+
 ## 1.1.0 - 2024-01-15
 
 * Fixed missing `DeviceName` parameter.

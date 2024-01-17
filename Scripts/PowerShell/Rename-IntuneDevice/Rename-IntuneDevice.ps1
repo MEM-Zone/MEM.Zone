@@ -25,11 +25,13 @@
     If no user attribute is found 'INTUNE' will be used as prefix.
     If this parameter is used, the Prefix parameter will be ignored.
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -UserPrincipalName $UserPrincipalName -Prefix '[TAG]'
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceName 'IntuneDevice001' -WhatIf -Verbose
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -Prefix '[OS]'
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -UserPrincipalName $UserPrincipalName -Prefix 'TAG'
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -WhatIf -Verbose
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -PrefixFromUserAttribute 'extension_16db5763993a4e819bc7dd1824184322_msDS_cloudExtensionAttribute5'
+.EXAMPLE
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -Confirm
 .INPUTS
     None.
 .OUTPUTS
@@ -37,6 +39,8 @@
 .NOTES
     Created by Ferry Bodijn
     v1.0.0 - 2021-09-01
+
+    Supports WhatIf and Confirm, see links below for more information.
 .LINK
     https://MEMZ.one/Rename-IntuneDevice
 .LINK
@@ -45,6 +49,8 @@
     https://MEMZ.one/Rename-IntuneDevice-GIT
 .LINK
     https://MEM.Zone/ISSUES
+.LINK
+    https://learn.microsoft.com/en-us/powershell/scripting/learn/deep-dives/everything-about-shouldprocess?view=powershell-7.3#using--whatif
 .COMPONENT
     MSGraph
 .FUNCTIONALITY
@@ -60,7 +66,7 @@
 #Requires -Version 6.0
 
 ## Get script parameters
-[CmdletBinding(DefaultParameterSetName = 'Custom')]
+[CmdletBinding(SupportsShouldProcess=$true, DefaultParameterSetName = 'Custom')]
 Param (
     [Parameter(Mandatory = $true, ParameterSetName = 'Custom', HelpMessage = 'Specify the tenant ID', Position = 0)]
     [Parameter(Mandatory = $true, ParameterSetName = 'UserAttribute', HelpMessage = 'Enter the tenant ID', Position = 0)]
@@ -1046,7 +1052,7 @@ Function Invoke-MSGraphAPI {
     Process {
         Try {
 
-            ## Get the device information
+            ## Invoke the MSGraph API
             $Output = Invoke-RestMethod @Parameters
 
             ## If there are more than 1000 devices, use paging. Only for GET method.
@@ -1061,7 +1067,7 @@ Function Invoke-MSGraphAPI {
             Write-Verbose -Message "Got $($Output.Count) Output pages."
         }
         Catch {
-            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Resource, $Method, $($ResolveError)
+            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Version, $Resource, $Method, $($ResolveError)
             Write-Log -Message $Message -Severity 3 -ScriptSection ${$CmdledName} -EventID 666
             Write-Error -Message $Message
         }
@@ -1159,8 +1165,12 @@ Try {
                         Resource = "deviceManagement/managedDevices('$DeviceID')/setDeviceName"
                         Body = @{ deviceName = $NewDeviceName } | ConvertTo-Json
                         ContentType = 'application/json'
+                        ErrorAction = 'Stop'
                     }
-                    Invoke-MSGraphAPI @Parameters -ErrorAction 'Stop'
+                    ##  Rename device with ShouldProcess support
+                    [boolean]$ShouldProcess = $PSCmdlet.ShouldProcess("$DeviceName", "Rename to $NewDeviceName")
+                    If ($ShouldProcess) { Invoke-MSGraphAPI @Parameters }
+                    #  If operation is successful, output the result
                     $Output = "Device '{0}' renamed to '{1}'." -f $DeviceName, $NewDeviceName
                     $Counter++
                 }
