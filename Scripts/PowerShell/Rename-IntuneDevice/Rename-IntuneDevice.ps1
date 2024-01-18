@@ -87,14 +87,13 @@ Param (
     [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device name to be processed. Supports wildcard characters. Default is: All', Position = 3)]
     [SupportsWildcards()]
     [ValidateNotNullorEmpty()]
-    [Alias('DeviceName')]
+    [Alias('Device')]
     [string]$DeviceName = 'All',
     [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
     [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
     [ValidateSet('Windows', 'macOS', 'Linux', 'All')]
     [string]$DeviceOS = 'All',
     [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the prefix to be used. Default isL INTUNE', Position = 5)]
-    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the prefix to be used. Default isL INTUNE', Position = 5)]
     [ValidateNotNullorEmpty()]
     [string]$Prefix = 'INTUNE',
     [Parameter(Mandatory = $true, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the user attribute to be used queried and used as prefix. The result will be truncated to 6 characters.', Position = 5)]
@@ -123,9 +122,8 @@ $script:LogDebugMessages = $false
 $script:LogFileDirectory = If ($LogPath) { Join-Path -Path $LogPath -ChildPath $script:LogName } Else { $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $script:LogName)) }
 
 ## Set script parameter values
-If ($PSBoundParameters['Prefix'])               { $Prefix     = $($Prefix.Substring(0, 6)).ToUpper() }
-If ($PSBoundParameters['DeviceOS'] -eq 'All')   { $DeviceOS   =  '*' }
-If ($PSBoundParameters['DeviceName'] -eq 'All') { $DeviceName =  '*' }
+If ($PSBoundParameters['DeviceOS'] -eq 'All')   { $DeviceOS   = '*' }
+If ($PSBoundParameters['DeviceName'] -eq 'All') { $DeviceName = '*' }
 
 #endregion
 ##*=============================================
@@ -438,18 +436,26 @@ Function Write-Log {
         If ('EventLog' -in $LoggingOptions) { $WriteEvent = $true }
         If ('None' -in $LoggingOptions) { $DisableLogging = $true }
         #  Check if the script section is defined
-        [boolean]$ScriptSectionDefined = [boolean](-not [string]::IsNullOrEmpty($ScriptSection))
+        [boolean]$ScriptSectionDefined = $(-not [string]::IsNullOrEmpty($ScriptSection))
         #  Check if the source is defined
-        [boolean]$SourceDefined = [boolean](-not [string]::IsNullOrEmpty($Source))
-        #  Check if the event log and event source exit
-        [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
-        [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
-        #  Check for overlapping log names
-        [string[]]$OverLappingLogName = Get-EventLog -List | Where-Object -Property 'Log' -Like $($LogName.Substring(0,8) + '*') | Select-Object -ExpandProperty 'Log'
-        If (-not [string]::IsNullOrEmpty($ScriptSection)) {
-            Write-Warning -Message "Overlapping log names:`n$($OverLappingLogName | Out-String)"
-            Write-Warning -Message 'Change the name of your log or use Remove-EventLog to remove the log(s) above!'
+        [boolean]$SourceDefined = $(-not [string]::IsNullOrEmpty($Source))
+        #  Check if the log name is defined
+        [boolean]$LogNameDefined = $(-not [string]::IsNullOrEmpty($LogName))
+        #  Check for overlapping log names if the log name does not exist
+        If ($SourceDefined -and $LogNameDefined) {
+            #  Check if the event log and event source exist
+            [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
+            [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
+            #  Check for overlapping log names. The first 8 characters of the log name must be unique.
+            If ($LogNameNotExists) {
+                [string[]]$OverLappingLogName = Get-EventLog -List | Where-Object -Property 'Log' -Like  $($LogName.Substring(0,8) + '*') | Select-Object -ExpandProperty 'Log'
+                If (-not [string]::IsNullOrEmpty($OverLappingLogName)) {
+                    Write-Warning -Message "Overlapping log names:`n$($OverLappingLogName | Out-String)"
+                    Write-Warning -Message 'Change the name of your log or use Remove-EventLog to remove the log(s) above!'
+                }
+            }
         }
+        Else { Write-Warning -Message 'No Source '$Source' or Log Name '$LogName' defined. Skipping event log logging...' }
 
         ## Create script block for generating CMTrace.exe compatible log entry
         [scriptblock]$CMTraceLogString = {
@@ -505,7 +511,7 @@ Function Write-Log {
 
         ## Create script block for event writing log entry
         [scriptblock]$WriteToEventLog = {
-            If ($WriteEvent) {
+            If ($WriteEvent -and $SourceDefined -and $LogNameDefined) {
                 $EventType = Switch ($Severity) {
                     3 { 'Error' }
                     2 { 'Warning' }
@@ -926,8 +932,8 @@ Function Get-MSGraphAccessToken {
             $Output = $Response.access_token
         }
         Catch {
-            [string]$Message = "Error getting MSGraph API Acces Token for TenantID '{0}' with ClientID '{1}'.`n{2}" -f $TenantID, $ClientID, $($ResolveError)
-            Write-Log -Message $Message -Severity 3 -ScriptSection ${$CmdledName} -EventID 666
+            [string]$Message = "Error getting MSGraph API Acces Token for TenantID '{0}' with ClientID '{1}'.`n{2}" -f $TenantID, $ClientID, $(Resolve-Error)
+            Write-Log -Message $Message -Severity 3 -ScriptSection ${CmdletName} -EventID 666
             Write-Error -Message $Message
         }
         Finally {
@@ -1032,7 +1038,7 @@ Function Invoke-MSGraphAPI {
 
         ## Assemble the URI for the API call
         [string]$Uri = "https://graph.microsoft.com/$Version/$Resource"
-        If ([string]::IsNullOrWhiteSpace($Parameter)) { $Uri += "`?`$$Parameter" }
+        If (-not [string]::IsNullOrWhiteSpace($Parameter)) { $Uri += "`?`$$Parameter" }
 
         ## Assembly parameters for the API call
         [hashtable]$Parameters = @{
@@ -1044,7 +1050,7 @@ Function Invoke-MSGraphAPI {
             }
             'ContentType' = $ContentType
         }
-        If ([string]::IsNullOrWhiteSpace($Body)) { $Parameters.Add('Body', $Body) }
+        If (-not [string]::IsNullOrWhiteSpace($Body)) { $Parameters.Add('Body', $Body) }
 
         ## Write Debug information
         Write-Debug -Message "Uri: $Uri"
@@ -1055,7 +1061,7 @@ Function Invoke-MSGraphAPI {
             ## Invoke the MSGraph API
             $Output = Invoke-RestMethod @Parameters
 
-            ## If there are more than 1000 devices, use paging. Only for GET method.
+            ## If there are more than 1000 rows, use paging. Only for GET method.
             If ($Output.'@odata.nextLink') {
                 $Output += Do {
                     $Parameters.Uri = $QutputPage.'@odata.nextLink'
@@ -1064,11 +1070,11 @@ Function Invoke-MSGraphAPI {
                 }
                 Until ([string]::IsNullOrEmpty($QutputPage.'@odata.nextLink'))
             }
-            Write-Verbose -Message "Got $($Output.Count) Output pages."
+            Write-Verbose -Message "Got '$($Output.Count)' Output pages."
         }
         Catch {
-            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Version, $Resource, $Method, $($ResolveError)
-            Write-Log -Message $Message -Severity 3 -ScriptSection ${$CmdledName} -EventID 666
+            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Version, $Resource, $Method, $(Resolve-Error)
+            Write-Log -Message $Message -Severity 3 -ScriptSection ${CmdletName} -EventID 666
             Write-Error -Message $Message
         }
         Finally {
@@ -1110,33 +1116,38 @@ Try {
     ForEach ($Device in $Devices) {
 
         ## Set variables
+        [int]$RenamedCounter = 0
+        [string]$Output = ''
         [string]$SerialNumber = $($Device.serialNumber).ToUpper()
         [string]$UserPrincipalName = $Device.userPrincipalName
         [string]$DeviceName = $Device.deviceName
         [string]$DeviceID = $Device.id
         [string]$OperatingSystem = $Device.operatingSystem
-        [int]$Counter = 0
-        [string]$Output = ''
+        #  Initialize the prefix variable with the script parameter value
+        [string]$Prefix = $PSBoundParameters['Prefix']
+        #  Convert to CAPS, shorten to 6 characters and clean Prefix by removing any non-alphanumeric characters
+        If (-not [string]::IsNullOrWhiteSpace($Prefix)) { $Prefix = $($Prefix.Substring(0, 6)).ToUpper() -replace ('[\W | /_]', '') }
 
         ## Show progress bar
         Show-Progress -Status "Processing Devices for Rename --> [$DeviceName]" -Steps $Devices.Count
 
-        ## Get device assigned user information
-        Try {
-            $UserInfo = Invoke-MSGraphAPI -Token $Token -Resource 'users' -Parameter "filter=userPrincipalName eq '$UserPrincipalName'" -ErrorAction 'Stop'
-            #  Get the user attribute and set the prefix if specified
-            If ($PSCmdlet.ParameterSetName -eq 'UserAttribute') {
-                [string]$UserAttribute = $UserInfo.$UserAttribute
-                #  Convert to CAPS, shorten to 6 characters and clean UserAttribute by removing any non-alphanumeric characters
-                $UserAttribute = $($UserAttribute.Substring(0, 6)).ToUpper() -replace ('[\W | /_]', '')
-                #  Set the prefix if the user attribute is not empty
-                If ([string]::IsNullOrEmpty($UserAttribute)) { $Prefix = '$UserAttribute' }
+        ## Get device assigned user attribute information and set the Prefix if specified
+        If ($PSCmdlet.ParameterSetName -eq 'UserAttribute') {
+            Try {
+                $UserInfo = Invoke-MSGraphAPI -Token $Token -Resource 'users' -Parameter "filter=userPrincipalName eq '$UserPrincipalName'" -ErrorAction 'Stop'
+                    #  Get the user attribute
+                    [string]$UserAttribute = $UserInfo.$UserAttribute
+                    #  Convert to CAPS, shorten to 6 characters and clean UserAttribute by removing any non-alphanumeric characters
+                    $UserAttribute = $($UserAttribute.Substring(0, 6)).ToUpper() -replace ('[\W | /_]', '')
+                    #  Set the prefix if the user attribute is not empty
+                    If (-not [string]::IsNullOrEmpty($UserAttribute)) { $Prefix = $UserAttribute } Else { Throw 'User attribute is empty!' }
             }
-        }
-        Catch {
-            [string]$Message = "Error getting user information for device '{0}' with owner '{1}'. Check if the device has a user assigned. `n{2}" -f $DeviceName, $UserPrincipalName, $($ResolveError)
-            Write-Log -Message $Message -Severity 3 -EventID 666
-            Continue
+            Catch {
+                [string]$Message = "Error getting user information for device '{0}' with owner '{1}', check if the device has a user assigned. Skipping...`n{2}" -f $DeviceName, $UserPrincipalName, $(Resolve-Error)
+                Write-Log -Message $Message -Severity 3 -EventID 666
+                #  Skip to next device in the loop
+                Continue
+            }
         }
 
         ## Check if the device has a serialnumber and that it's valid
@@ -1150,7 +1161,7 @@ Try {
             If ($OperatingSystem -eq 'windows') {
                 $NewDeviceName = -join ($Prefix,'-',$SerialNumber)
                 $MaxSerialNumberLength = 15 - $Prefix.Length -1
-                $SerialNumber = $SerialNumber.subString(0, [System.Math]::Min($MaxSerialNumberLength , $Name.Length))
+                $SerialNumber = $SerialNumber.subString(0, [System.Math]::Min($MaxSerialNumberLength , $NewDeviceName.Length))
             }
 
             ## Assemble the new device name
@@ -1179,7 +1190,7 @@ Try {
                 }
             }
             Catch {
-                Write-Log -Message "Error renaming device '$DeviceName' to '$NewDeviceName'.`n$($ResolveError)" -Severity 3 -EventID 666
+                Write-Log -Message "Error renaming device '$DeviceName' to '$NewDeviceName'.`n$(Resolve-Error)" -Severity 3 -EventID 666
                 Continue
             }
             Finally {
@@ -1192,10 +1203,10 @@ Try {
     }
 }
 Catch {
-    Write-Log -Message "Error renaming device.`n$($ResolveError)" -Severity 3 -EventID 666
+    Write-Log -Message "Error renaming device.`n$(Resolve-Error)" -Severity 3 -EventID 666
 }
 Finally {
-    Write-Log -Message "Succesully renamed '$Counter' devices." -VerboseMessage
+    Write-Log -Message "Succesully renamed '$RenamedCounter' devices." -VerboseMessage
     Write-Log -Message 'Stop' -VerboseMessage
 }
 
