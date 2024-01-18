@@ -63,7 +63,7 @@ Function Write-Log {
         [string]$Source = $script:LogSource,
         [Parameter(Mandatory = $false, Position = 3)]
         [ValidateNotNullorEmpty()]
-        [string]$ScriptSection = $script:RunPhase,
+        [string]$ScriptSection = $script:ScriptSection,
         [Parameter(Mandatory = $false, Position = 4)]
         [ValidateSet('CMTrace', 'Legacy')]
         [string]$LogType = 'CMTrace',
@@ -119,18 +119,26 @@ Function Write-Log {
         If ('EventLog' -in $LoggingOptions) { $WriteEvent = $true }
         If ('None' -in $LoggingOptions) { $DisableLogging = $true }
         #  Check if the script section is defined
-        [boolean]$ScriptSectionDefined = [boolean](-not [string]::IsNullOrEmpty($ScriptSection))
+        [boolean]$ScriptSectionDefined = $(-not [string]::IsNullOrEmpty($ScriptSection))
         #  Check if the source is defined
-        [boolean]$SourceDefined = [boolean](-not [string]::IsNullOrEmpty($Source))
-        #  Check if the event log and event source exit
-        [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
-        [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
-        #  Check for overlapping log names
-        [string[]]$OverLappingLogName = Get-EventLog -List | Where-Object -Property 'Log' -Like $($LogName.Substring(0,8) + '*') | Select-Object -ExpandProperty 'Log'
-        If (-not [string]::IsNullOrEmpty($ScriptSection)) {
-            Write-Warning -Message "Overlapping log names:`n$($OverLappingLogName | Out-String)"
-            Write-Warning -Message 'Change the name of your log or use Remove-EventLog to remove the log(s) above!'
+        [boolean]$SourceDefined = $(-not [string]::IsNullOrEmpty($Source))
+        #  Check if the log name is defined
+        [boolean]$LogNameDefined = $(-not [string]::IsNullOrEmpty($LogName))
+        #  Check for overlapping log names if the log name does not exist
+        If ($SourceDefined -and $LogNameDefined) {
+            #  Check if the event log and event source exist
+            [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
+            [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
+            #  Check for overlapping log names. The first 8 characters of the log name must be unique.
+            If ($LogNameNotExists) {
+                [string[]]$OverLappingLogName = Get-EventLog -List | Where-Object -Property 'Log' -Like  $($LogName.Substring(0,8) + '*') | Select-Object -ExpandProperty 'Log'
+                If (-not [string]::IsNullOrEmpty($OverLappingLogName)) {
+                    Write-Warning -Message "Overlapping log names:`n$($OverLappingLogName | Out-String)"
+                    Write-Warning -Message 'Change the name of your log or use Remove-EventLog to remove the log(s) above!'
+                }
+            }
         }
+        Else { Write-Warning -Message 'No Source '$Source' or Log Name '$LogName' defined. Skipping event log logging...' }
 
         ## Create script block for generating CMTrace.exe compatible log entry
         [scriptblock]$CMTraceLogString = {
@@ -186,7 +194,7 @@ Function Write-Log {
 
         ## Create script block for event writing log entry
         [scriptblock]$WriteToEventLog = {
-            If ($WriteEvent) {
+            If ($WriteEvent -and $SourceDefined -and $LogNameDefined) {
                 $EventType = Switch ($Severity) {
                     3 { 'Error' }
                     2 { 'Warning' }
