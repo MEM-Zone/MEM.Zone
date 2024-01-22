@@ -13,7 +13,7 @@ Function Write-Log {
 .PARAMETER Source
     The source of the message being logged. Also used as the event log source.
 .PARAMETER ScriptSection
-    The heading for the portion of the script that is being executed. Default is: $script:installPhase.
+    The heading for the portion of the script that is being executed. Default is: $script:scriptSection.
 .PARAMETER LogType
     Choose whether to write a CMTrace.exe compatible log file or a Legacy text log file.
 .PARAMETER LoggingOptions
@@ -72,13 +72,13 @@ Function Write-Log {
         [string[]]$LoggingOptions = $script:LoggingOptions,
         [Parameter(Mandatory = $false, Position = 6)]
         [ValidateNotNullorEmpty()]
-        [string]$LogFileDirectory = $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $script:LogName)),
+        [string]$LogFileDirectory = $script:LogFileDirectory,
         [Parameter(Mandatory = $false, Position = 7)]
         [ValidateNotNullorEmpty()]
         [string]$LogFileName = $($script:LogSource + '.log'),
         [Parameter(Mandatory = $false, Position = 8)]
         [ValidateNotNullorEmpty()]
-        [int]$MaxLogFileSizeMB = '4',
+        [int]$MaxLogFileSizeMB = 5,
         [Parameter(Mandatory = $false, Position = 9)]
         [ValidateNotNullorEmpty()]
         [string]$LogName = $script:LogName,
@@ -114,7 +114,7 @@ Function Write-Log {
         [boolean]$WriteEvent = $false
         [boolean]$DisableLogging = $false
         [boolean]$ExitLoggingFunction = $false
-        If (('Host' -in $LoggingOptions) -and (-not ($VerboseMessage -or $DebugMessage))) { $WriteHost = $true }
+        If ('Host' -in $LoggingOptions -and -not ($VerboseMessage -or $DebugMessage)) { $WriteHost = $true }
         If ('File' -in $LoggingOptions) { $WriteFile = $true }
         If ('EventLog' -in $LoggingOptions) { $WriteEvent = $true }
         If ('None' -in $LoggingOptions) { $DisableLogging = $true }
@@ -126,10 +126,10 @@ Function Write-Log {
         [boolean]$LogNameDefined = $(-not [string]::IsNullOrEmpty($LogName))
         #  Check for overlapping log names if the log name does not exist
         If ($SourceDefined -and $LogNameDefined) {
-            #  Check if the event log and event source exist
-            [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
-            [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
-            #  Check for overlapping log names. The first 8 characters of the log name must be unique.
+        #  Check if the event log and event source exist
+        [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
+        [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
+        #  Check for overlapping log names. The first 8 characters of the log name must be unique.
             If ($LogNameNotExists) {
                 [string[]]$OverLappingLogName = Get-EventLog -List | Where-Object -Property 'Log' -Like  $($LogName.Substring(0,8) + '*') | Select-Object -ExpandProperty 'Log'
                 If (-not [string]::IsNullOrEmpty($OverLappingLogName)) {
@@ -230,7 +230,7 @@ Function Write-Log {
                 }
                 Try {
                     #  Write to event log
-                    Write-EventLog -LogName $LogName -Source $Source -EventId $EventID -EntryType $EventType -Category '0' -Message $ConsoleLogLine -ErrorAction 'Stop'
+                    Write-EventLog -LogName $LogName -Source $Source -EventId $EventID -EntryType $EventType -Category '0' -Message $EventLogLine -ErrorAction 'Stop'
                 }
                 Catch {
                     [boolean]$ExitLoggingFunction = $true
@@ -252,7 +252,7 @@ Function Write-Log {
         ## Create the directory where the log file will be saved
         If (-not (Test-Path -LiteralPath $LogFileDirectory -PathType 'Container')) {
             Try {
-                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop'
+                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop' -WhatIf:$false
             }
             Catch {
                 [boolean]$ExitLoggingFunction = $true
@@ -273,6 +273,7 @@ Function Write-Log {
             ## If the message is not $null or empty, create the log entry for the different logging methods
             [string]$CMTraceMsg = ''
             [string]$ConsoleLogLine = ''
+            [string]$EventLogLine = ''
             [string]$LegacyTextLogLine = ''
             If ($Msg) {
                 #  Create the CMTrace log message
@@ -282,6 +283,7 @@ Function Write-Log {
                 [string]$LegacyMsg = "[$LogDate $LogTime]"
                 If ($ScriptSectionDefined) { [string]$LegacyMsg += " [$ScriptSection]" }
                 If ($Source) {
+                    [string]$EventLogLine = $Msg
                     [string]$ConsoleLogLine = "$LegacyMsg [$Source] :: $Msg"
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [$Source] [Error] :: $Msg" }
@@ -291,6 +293,7 @@ Function Write-Log {
                 }
                 Else {
                     [string]$ConsoleLogLine = "$LegacyMsg :: $Msg"
+                    [string]$EventLogLine = $Msg
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [Error] :: $Msg" }
                         2 { [string]$LegacyTextLogLine = "$LegacyMsg [Warning] :: $Msg" }
@@ -317,11 +320,11 @@ Function Write-Log {
             }
 
             ## Write the log entry to the log file and event log if logging is not currently disabled
-            If (-not $DisableLogging) {
+            If ((-not $ExitLoggingFunction) -and (-not $DisableLogging)) {
                 If ($WriteFile) {
                     ## Write to file log
                     Try {
-                        $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop'
+                        $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop' -WhatIf:$false
                     }
                     Catch {
                         If (-not $ContinueOnError) {
@@ -355,18 +358,18 @@ Function Write-Log {
                 If (($LogFileSizeMB -gt $MaxLogFileSizeMB) -and ($MaxLogFileSizeMB -gt 0)) {
                     ## Change the file extension to "lo_"
                     [string]$ArchivedOutLogFile = [IO.Path]::ChangeExtension($LogFilePath, 'lo_')
-                    [hashtable]$ArchiveLogParams = @{ ScriptSection = $ScriptSection; Source = ${CmdletName}; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; WriteHost = $WriteHost; ContinueOnError = $ContinueOnError; PassThru = $false }
+                    [hashtable]$ArchiveLogParams = @{ ScriptSection = ${CmdletName}; Source = $Source; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; ContinueOnError = $ContinueOnError; PassThru = $false }
 
                     ## Log message about archiving the log file
                     $ArchiveLogMessage = "Maximum log file size [$MaxLogFileSizeMB MB] reached. Rename log file to [$ArchivedOutLogFile]."
-                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams
 
                     ## Archive existing log file from <filename>.log to <filename>.lo_. Overwrites any existing <filename>.lo_ file. This is the same method SCCM uses for log files.
-                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop'
+                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop' -WhatIf:$false
 
                     ## Start new log file and Log message about archiving the old log file
                     $NewLogMessage = "Previous log file was renamed to [$ArchivedOutLogFile] because maximum log file size of [$MaxLogFileSizeMB MB] was reached."
-                    Write-Log -Message $NewLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $NewLogMessage @ArchiveLogParams
                 }
             }
         }
