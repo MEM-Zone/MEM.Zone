@@ -1,5 +1,10 @@
 # Invoke-ADInactiveDeviceCleanup release history
 
+## 3.0.1 - 2024-01-22
+
+* Fixed `Write-Log` Overlapping Logs warning and functionality
+* Fixed incorrect `ScriptSection` variable for archive log file.
+
 ## 3.0.0 - 2022-07-20
 
 * Moved parameters to `JSON` configuration file
