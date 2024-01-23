@@ -1,5 +1,18 @@
 # Rename-IntuneComputer release history
 
+## 2.0.1 - 2024-01-22
+
+* Fixed `Write-Log` Overlapping Logs warning and functionality
+* Fixed `Write-Log` incorrect `ScriptSection` variable for archive log file.
+* Fixed `Write-Log` EventLog message.
+* Fixed `Write-Log` respecting `WhatIf` and not logging anything.
+* Fixed main script `Parameter` filter value.
+* Fixed `Invoke-MSGraphAPI` function paging.
+* Fixed `SerialNumber` parameter case change error.
+* Fixed `Prefix` parameter shortening logic.
+* Fixed `UserAttribute` parameter shortening logic.
+* Removed Wildcard parameters.
+
 ## 2.0.0 - 2024-01-18
 
 * Fixed `DeviceName` parameter alias.

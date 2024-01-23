@@ -10,16 +10,16 @@
 .PARAMETER ApplicationSecret
     Specifies the application secret.
 .PARAMETER DeviceName
-    Specifies the device name to be processed. Supports wildcard characters.
-    Default is 'All'.
+    Specifies the device name to be processed.
+    Default is: All.
 .PARAMETER DeviceOS
     Specifies the device OS to be processed
-    Valid values are: Windows, macOS, Linux, All.
-    Default is 'All'.
+    Valid values are: Windows, macOS or Linux.
+    Default is: All.
 .PARAMETER Prefix
     Specifies the prefix to be used. Please note that it will be truncated to 6 characters and converted to UPPERCASE.
     If this parameter is used, the PrefixFromUserAttribute parameter will be ignored.
-    Default is 'INTUNE'.
+    Default is: 'INTUNE'.
 .PARAMETER PrefixFromUserAttribute
     Specifies the user attribute to be used queried and used as prefix. The result will be truncated to 6 characters.
     If no user attribute is found 'INTUNE' will be used as prefix.
@@ -29,7 +29,7 @@
 .EXAMPLE
     Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -UserPrincipalName $UserPrincipalName -Prefix 'TAG'
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -PrefixFromUserAttribute 'extension_16db5763993a4e819bc7dd1824184322_msDS_cloudExtensionAttribute5'
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -PrefixFromUserAttribute 'extension_11db5763783a4e822bd6dsd1826184312_msDS_cloudExtensionAttribute66'
 .EXAMPLE
     Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -Confirm
 .INPUTS
@@ -38,6 +38,7 @@
     None.
 .NOTES
     Created by Ferry Bodijn
+    Rewritten by Ioan Popovici to add parameters, improve logging and simplify the script. All other functionality remains the same.
     v1.0.0 - 2021-09-01
 
     Supports WhatIf and Confirm, see links below for more information.
@@ -85,13 +86,12 @@ Param (
     [string]$ClientSecret,
     [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the device name to be processed. Supports wildcard characters. Default is: All', Position = 3)]
     [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device name to be processed. Supports wildcard characters. Default is: All', Position = 3)]
-    [SupportsWildcards()]
     [ValidateNotNullorEmpty()]
     [Alias('Device')]
     [string]$DeviceName = 'All',
     [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
     [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
-    [ValidateSet('Windows', 'macOS', 'Linux', 'All')]
+    [ValidateSet('Windows', 'macOS', 'Linux')]
     [string]$DeviceOS = 'All',
     [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the prefix to be used. Default isL INTUNE', Position = 5)]
     [ValidateNotNullorEmpty()]
@@ -111,19 +111,18 @@ $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Cont
 $ForEachSteps  = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $_.Type -eq 'Keyword' -and $_.Content -eq 'ForEach' }).Count)
 
 ## Set Show-Progress steps
-$Script:Steps = $ProgressSteps - $ForEachSteps
-$Script:Step  = 1
+$script:Steps = $ProgressSteps - $ForEachSteps
+$script:Step  = 1
 
 ## Set script global variables
-$script:LoggingOptions   = @('EventLog', 'File')
+$script:LoggingOptions   = @('EventLog', 'File', 'Host')
 $script:LogName          = 'Endpoint Management'
 $script:LogSource        = $ScriptName
 $script:LogDebugMessages = $false
 $script:LogFileDirectory = If ($LogPath) { Join-Path -Path $LogPath -ChildPath $script:LogName } Else { $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $script:LogName)) }
 
-## Set script parameter values
-If ($PSBoundParameters['DeviceOS'] -eq 'All')   { $DeviceOS   = '*' }
-If ($PSBoundParameters['DeviceName'] -eq 'All') { $DeviceName = '*' }
+## Initialize script variables
+If (-not $PSBoundParameters['DeviceName']) { $DeviceName = 'All' }
 
 #endregion
 ##*=============================================
@@ -330,7 +329,7 @@ Function Write-Log {
 .PARAMETER Source
     The source of the message being logged. Also used as the event log source.
 .PARAMETER ScriptSection
-    The heading for the portion of the script that is being executed. Default is: $script:installPhase.
+    The heading for the portion of the script that is being executed. Default is: $script:scriptSection.
 .PARAMETER LogType
     Choose whether to write a CMTrace.exe compatible log file or a Legacy text log file.
 .PARAMETER LoggingOptions
@@ -389,13 +388,13 @@ Function Write-Log {
         [string[]]$LoggingOptions = $script:LoggingOptions,
         [Parameter(Mandatory = $false, Position = 6)]
         [ValidateNotNullorEmpty()]
-        [string]$LogFileDirectory = $(Join-Path -Path $Env:WinDir -ChildPath $('\Logs\' + $script:LogName)),
+        [string]$LogFileDirectory = $script:LogFileDirectory,
         [Parameter(Mandatory = $false, Position = 7)]
         [ValidateNotNullorEmpty()]
         [string]$LogFileName = $($script:LogSource + '.log'),
         [Parameter(Mandatory = $false, Position = 8)]
         [ValidateNotNullorEmpty()]
-        [int]$MaxLogFileSizeMB = '4',
+        [int]$MaxLogFileSizeMB = 5,
         [Parameter(Mandatory = $false, Position = 9)]
         [ValidateNotNullorEmpty()]
         [string]$LogName = $script:LogName,
@@ -431,7 +430,7 @@ Function Write-Log {
         [boolean]$WriteEvent = $false
         [boolean]$DisableLogging = $false
         [boolean]$ExitLoggingFunction = $false
-        If (('Host' -in $LoggingOptions) -and (-not ($VerboseMessage -or $DebugMessage))) { $WriteHost = $true }
+        If ('Host' -in $LoggingOptions -and -not ($VerboseMessage -or $DebugMessage)) { $WriteHost = $true }
         If ('File' -in $LoggingOptions) { $WriteFile = $true }
         If ('EventLog' -in $LoggingOptions) { $WriteEvent = $true }
         If ('None' -in $LoggingOptions) { $DisableLogging = $true }
@@ -443,10 +442,10 @@ Function Write-Log {
         [boolean]$LogNameDefined = $(-not [string]::IsNullOrEmpty($LogName))
         #  Check for overlapping log names if the log name does not exist
         If ($SourceDefined -and $LogNameDefined) {
-            #  Check if the event log and event source exist
-            [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
-            [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
-            #  Check for overlapping log names. The first 8 characters of the log name must be unique.
+        #  Check if the event log and event source exist
+        [boolean]$LogNameNotExists = (-not [System.Diagnostics.EventLog]::Exists($LogName))
+        [boolean]$LogSourceNotExists = (-not [System.Diagnostics.EventLog]::SourceExists($Source))
+        #  Check for overlapping log names. The first 8 characters of the log name must be unique.
             If ($LogNameNotExists) {
                 [string[]]$OverLappingLogName = Get-EventLog -List | Where-Object -Property 'Log' -Like  $($LogName.Substring(0,8) + '*') | Select-Object -ExpandProperty 'Log'
                 If (-not [string]::IsNullOrEmpty($OverLappingLogName)) {
@@ -547,7 +546,7 @@ Function Write-Log {
                 }
                 Try {
                     #  Write to event log
-                    Write-EventLog -LogName $LogName -Source $Source -EventId $EventID -EntryType $EventType -Category '0' -Message $ConsoleLogLine -ErrorAction 'Stop'
+                    Write-EventLog -LogName $LogName -Source $Source -EventId $EventID -EntryType $EventType -Category '0' -Message $EventLogLine -ErrorAction 'Stop'
                 }
                 Catch {
                     [boolean]$ExitLoggingFunction = $true
@@ -569,7 +568,7 @@ Function Write-Log {
         ## Create the directory where the log file will be saved
         If (-not (Test-Path -LiteralPath $LogFileDirectory -PathType 'Container')) {
             Try {
-                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop'
+                $null = New-Item -Path $LogFileDirectory -Type 'Directory' -Force -ErrorAction 'Stop' -WhatIf:$false
             }
             Catch {
                 [boolean]$ExitLoggingFunction = $true
@@ -590,6 +589,7 @@ Function Write-Log {
             ## If the message is not $null or empty, create the log entry for the different logging methods
             [string]$CMTraceMsg = ''
             [string]$ConsoleLogLine = ''
+            [string]$EventLogLine = ''
             [string]$LegacyTextLogLine = ''
             If ($Msg) {
                 #  Create the CMTrace log message
@@ -599,6 +599,7 @@ Function Write-Log {
                 [string]$LegacyMsg = "[$LogDate $LogTime]"
                 If ($ScriptSectionDefined) { [string]$LegacyMsg += " [$ScriptSection]" }
                 If ($Source) {
+                    [string]$EventLogLine = $Msg
                     [string]$ConsoleLogLine = "$LegacyMsg [$Source] :: $Msg"
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [$Source] [Error] :: $Msg" }
@@ -608,6 +609,7 @@ Function Write-Log {
                 }
                 Else {
                     [string]$ConsoleLogLine = "$LegacyMsg :: $Msg"
+                    [string]$EventLogLine = $Msg
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [Error] :: $Msg" }
                         2 { [string]$LegacyTextLogLine = "$LegacyMsg [Warning] :: $Msg" }
@@ -634,11 +636,11 @@ Function Write-Log {
             }
 
             ## Write the log entry to the log file and event log if logging is not currently disabled
-            If (-not $DisableLogging) {
+            If ((-not $ExitLoggingFunction) -and (-not $DisableLogging)) {
                 If ($WriteFile) {
                     ## Write to file log
                     Try {
-                        $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop'
+                        $LogLine | Out-File -FilePath $LogFilePath -Append -NoClobber -Force -Encoding 'UTF8' -ErrorAction 'Stop' -WhatIf:$false
                     }
                     Catch {
                         If (-not $ContinueOnError) {
@@ -672,18 +674,18 @@ Function Write-Log {
                 If (($LogFileSizeMB -gt $MaxLogFileSizeMB) -and ($MaxLogFileSizeMB -gt 0)) {
                     ## Change the file extension to "lo_"
                     [string]$ArchivedOutLogFile = [IO.Path]::ChangeExtension($LogFilePath, 'lo_')
-                    [hashtable]$ArchiveLogParams = @{ ScriptSection = $ScriptSection; Source = ${CmdletName}; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; WriteHost = $WriteHost; ContinueOnError = $ContinueOnError; PassThru = $false }
+                    [hashtable]$ArchiveLogParams = @{ ScriptSection = ${CmdletName}; Source = $Source; Severity = 2; LogFileDirectory = $LogFileDirectory; LogFileName = $LogFileName; LogType = $LogType; MaxLogFileSizeMB = 0; ContinueOnError = $ContinueOnError; PassThru = $false }
 
                     ## Log message about archiving the log file
                     $ArchiveLogMessage = "Maximum log file size [$MaxLogFileSizeMB MB] reached. Rename log file to [$ArchivedOutLogFile]."
-                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $ArchiveLogMessage @ArchiveLogParams
 
                     ## Archive existing log file from <filename>.log to <filename>.lo_. Overwrites any existing <filename>.lo_ file. This is the same method SCCM uses for log files.
-                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop'
+                    Move-Item -LiteralPath $LogFilePath -Destination $ArchivedOutLogFile -Force -ErrorAction 'Stop' -WhatIf:$false
 
                     ## Start new log file and Log message about archiving the old log file
                     $NewLogMessage = "Previous log file was renamed to [$ArchivedOutLogFile] because maximum log file size of [$MaxLogFileSizeMB MB] was reached."
-                    Write-Log -Message $NewLogMessage @ArchiveLogParams -ScriptSection ${CmdletName}
+                    Write-Log -Message $NewLogMessage @ArchiveLogParams
                 }
             }
         }
@@ -711,9 +713,9 @@ Function Show-Progress {
 .PARAMETER CurrentOperation
     Specifies the current operation.
 .PARAMETER Step
-    Specifies the progress step. Default: $Script:Step ++.
+    Specifies the progress step. Default: $script:Step ++.
 .PARAMETER Steps
-    Specifies the progress steps. Default: $Script:Steps ++.
+    Specifies the progress steps. Default: $script:Steps ++.
 .PARAMETER ID
     Specifies the progress bar id.
 .PARAMETER Delay
@@ -744,8 +746,8 @@ Function Show-Progress {
     $ProgressSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Command' -and $PSItem.Content -eq 'Show-Progress' }).Count)
     $ForEachSteps = $(([System.Management.Automation.PsParser]::Tokenize($(Get-Content -Path $ScriptFullName), [ref]$null) | Where-Object { $PSItem.Type -eq 'Keyword' -and $PSItem.Content -eq 'ForEach' }).Count)
     #  Set progress steps
-    $Script:Steps = $ProgressSteps - $ForEachSteps
-    $Script:Step = 0
+    $script:Steps = $ProgressSteps - $ForEachSteps
+    $script:Step = 0
 .LINK
     https://adamtheautomator.com/building-progress-bar-powershell-scripts/
 .LINK
@@ -780,11 +782,11 @@ Function Show-Progress {
         [Parameter(Mandatory=$false,Position=4)]
         [ValidateNotNullorEmpty()]
         [Alias('ste')]
-        [int]$Step = $Script:Step ++,
+        [int]$Step = $script:Step ++,
         [Parameter(Mandatory=$false,Position=5)]
         [ValidateNotNullorEmpty()]
         [Alias('sts')]
-        [int]$Steps = $Script:Steps,
+        [int]$Steps = $script:Steps,
         [Parameter(Mandatory=$false,Position=6)]
         [ValidateNotNullorEmpty()]
         [Alias('del')]
@@ -802,13 +804,13 @@ Function Show-Progress {
         Try {
             If ($Step -eq 0) {
                 $Step ++
-                $Script:Step ++
+                $script:Step ++
                 $Steps ++
-                $Script:Steps ++
+                $script:Steps ++
             }
             If ($Steps -eq 0) {
                 $Steps ++
-                $Script:Steps ++
+                $script:Steps ++
             }
 
             [boolean]$Completed = $false
@@ -817,9 +819,9 @@ Function Show-Progress {
             If ($PercentComplete -ge 100)  {
                 $PercentComplete = 100
                 $Completed = $true
-                $Script:CurrentStep ++
-                $Script:Step = $Script:CurrentStep
-                $Script:Steps = $Script:DefaultSteps
+                $script:CurrentStep ++
+                $script:Step = $script:CurrentStep
+                $script:Steps = $script:DefaultSteps
             }
 
             ## Debug information
@@ -1017,7 +1019,6 @@ Function Invoke-MSGraphAPI {
         [Alias('APIResource')]
         [string]$Resource,
         [Parameter(Mandatory = $false, HelpMessage = 'Specify the parameters to use.', Position = 4)]
-        [SupportsWildcards()]
         [ValidateNotNullorEmpty()]
         [Alias('QueryParameter')]
         [string]$Parameter,
@@ -1063,10 +1064,11 @@ Function Invoke-MSGraphAPI {
 
             ## If there are more than 1000 rows, use paging. Only for GET method.
             If ($Output.'@odata.nextLink') {
+                $OutputPage = $Output.'@odata.nextLink'
                 $Output += Do {
-                    $Parameters.Uri = $QutputPage.'@odata.nextLink'
+                    $Parameters.Uri = $OutputPage.'@odata.nextLink'
                     $QutputPage = Invoke-RestMethod @Parameters
-                    $QutputPage.value
+                    $QutputPage
                 }
                 Until ([string]::IsNullOrEmpty($QutputPage.'@odata.nextLink'))
             }
@@ -1078,6 +1080,7 @@ Function Invoke-MSGraphAPI {
             Write-Error -Message $Message
         }
         Finally {
+            $Output = $Output.value
             Write-Output -InputObject $Output
         }
     }
@@ -1109,7 +1112,22 @@ Try {
 
     ## Get the device information
     Write-Verbose -Message "Getting device information, this might take a while..." -Verbose
-    $Devices = Invoke-MSGraphAPI -Token $Token -Resource 'deviceManagement/managedDevices' -Parameter "filter=operatingSystem like '$DeviceOS' and deviceName like '$DeviceName'"
+
+    #  Assemble the Parameter filter value
+    $Parameter = If ($DeviceOS -ne 'All') { "filter=operatingSystem eq '$DeviceOS'" }
+    $Parameter += If ($DeviceName -ne 'All') {
+        If ($DeviceOS -eq 'All') { "filter=deviceName eq '$DeviceName'" } Else { " and deviceName eq '$DeviceName'" }
+    }
+
+    #  Set the parameters for the API call and add the Parameter parameter as a filter if it is not empty
+    $Parameters = @{
+        Token = $Token
+        Resource = 'deviceManagement/managedDevices'
+    }
+    If (-not [string]::IsNullOrWhiteSpace($Parameter)) { $Parameters.Add('Parameter', $Parameter) }
+
+    #  Get the device information from the MSGraph API
+    $Devices = Invoke-MSGraphAPI @Parameters -ErrorAction 'Stop'
     Write-Verbose -Message "Retrieved $($Devices.Count) devices."
 
     ## Process devices
@@ -1118,15 +1136,15 @@ Try {
         ## Set variables
         [int]$RenamedCounter = 0
         [string]$Output = ''
-        [string]$SerialNumber = $($Device.serialNumber).ToUpper()
+        [string]$SerialNumber = $Device.serialNumber
         [string]$UserPrincipalName = $Device.userPrincipalName
         [string]$DeviceName = $Device.deviceName
         [string]$DeviceID = $Device.id
         [string]$OperatingSystem = $Device.operatingSystem
         #  Initialize the prefix variable with the script parameter value
         [string]$Prefix = $PSBoundParameters['Prefix']
-        #  Convert to CAPS, shorten to 6 characters and clean Prefix by removing any non-alphanumeric characters
-        If (-not [string]::IsNullOrWhiteSpace($Prefix)) { $Prefix = $($Prefix.Substring(0, 6)).ToUpper() -replace ('[\W | /_]', '') }
+        #  Convert to CAPS, shorten to 6 characters, convert to upper case and clean Prefix by removing any non-alphanumeric characters
+        If (-not [string]::IsNullOrWhiteSpace($Prefix)) { $Prefix = $($Prefix.Substring(0, [System.Math]::Min(6, $Prefix.Length))).ToUpper() -replace ('[\W | /_]', '') }
 
         ## Show progress bar
         Show-Progress -Status "Processing Devices for Rename --> [$DeviceName]" -Steps $Devices.Count
@@ -1136,9 +1154,9 @@ Try {
             Try {
                 $UserInfo = Invoke-MSGraphAPI -Token $Token -Resource 'users' -Parameter "filter=userPrincipalName eq '$UserPrincipalName'" -ErrorAction 'Stop'
                     #  Get the user attribute
-                    [string]$UserAttribute = $UserInfo.$UserAttribute
-                    #  Convert to CAPS, shorten to 6 characters and clean UserAttribute by removing any non-alphanumeric characters
-                    $UserAttribute = $($UserAttribute.Substring(0, 6)).ToUpper() -replace ('[\W | /_]', '')
+                    [string]$UserAttribute = $UserInfo.$PrefixFromUserAttribute
+                    #  Convert to CAPS, shorten to 6 characters, convert to upper case and clean UserAttribute by removing any non-alphanumeric characters
+                    $UserAttribute = $($UserAttribute.Substring(0, [System.Math]::Min(6, $UserAttribute.Length))).ToUpper() -replace ('[\W | /_]', '')
                     #  Set the prefix if the user attribute is not empty
                     If (-not [string]::IsNullOrEmpty($UserAttribute)) { $Prefix = $UserAttribute } Else { Throw 'User attribute is empty!' }
             }
@@ -1155,7 +1173,7 @@ Try {
 
         ## Clean serialnumber by removing any non-alphanumeric characters
         If ($IsValidSerialNumber) {
-            $SerialNumber = $SerialNumber -replace ('[\W | /_]', '')
+            $SerialNumber = ($SerialNumber -replace ('[\W | /_]', '')).ToUpper()
 
             ## Trim serial number to 15 characters for windows devices
             If ($OperatingSystem -eq 'windows') {
@@ -1206,7 +1224,7 @@ Catch {
     Write-Log -Message "Error renaming device.`n$(Resolve-Error)" -Severity 3 -EventID 666
 }
 Finally {
-    Write-Log -Message "Succesully renamed '$RenamedCounter' devices." -VerboseMessage
+    Write-Log -Message "Succesully renamed '$RenamedCounter' devices." -EventID 2
     Write-Log -Message 'Stop' -VerboseMessage
 }
 
