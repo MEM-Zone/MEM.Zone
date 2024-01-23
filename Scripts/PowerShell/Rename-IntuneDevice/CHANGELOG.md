@@ -1,5 +1,11 @@
 # Rename-IntuneComputer release history
 
+## 2.0.2 - 2024-01-23
+
+* Fixed `RenameCounter` value.
+* Changed required powershell version to 5.1 due to `Write-EventLog` deprecation. Will fix this in the future.
+* Corrected some descriptions in the help section.
+
 ## 2.0.1 - 2024-01-22
 
 * Fixed `Write-Log` Overlapping Logs warning and functionality

@@ -22,12 +22,11 @@
     Default is: 'INTUNE'.
 .PARAMETER PrefixFromUserAttribute
     Specifies the user attribute to be used queried and used as prefix. The result will be truncated to 6 characters.
-    If no user attribute is found 'INTUNE' will be used as prefix.
     If this parameter is used, the Prefix parameter will be ignored.
 .EXAMPLE
     Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceName 'IntuneDevice001' -WhatIf -Verbose
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -UserPrincipalName $UserPrincipalName -Prefix 'TAG'
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -Prefix 'TAG'
 .EXAMPLE
     Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -PrefixFromUserAttribute 'extension_11db5763783a4e822bd6dsd1826184312_msDS_cloudExtensionAttribute66'
 .EXAMPLE
@@ -64,7 +63,7 @@
 #region VariableDeclaration
 
 ## Set script requirements
-#Requires -Version 6.0
+#Requires -Version 5.0
 
 ## Get script parameters
 [CmdletBinding(SupportsShouldProcess=$true, DefaultParameterSetName = 'Custom')]
@@ -1201,7 +1200,7 @@ Try {
                     If ($ShouldProcess) { Invoke-MSGraphAPI @Parameters }
                     #  If operation is successful, output the result
                     $Output = "Device '{0}' renamed to '{1}'." -f $DeviceName, $NewDeviceName
-                    $Counter++
+                    $RenamedCounter++
                 }
                 Else {
                     $Output = "Device '{0}' is already named '{1}'." -f $DeviceName, $NewDeviceName
