@@ -11,11 +11,11 @@
     Specifies the application secret.
 .PARAMETER DeviceName
     Specifies the device name to be processed.
-    Default is: All.
+    Default is: 'All'.
 .PARAMETER DeviceOS
     Specifies the device OS to be processed
     Valid values are: Windows, macOS or Linux.
-    Default is: All.
+    Default is: 'All'.
 .PARAMETER Prefix
     Specifies the prefix to be used. Please note that it will be truncated to 6 characters and converted to UPPERCASE.
     If this parameter is used, the PrefixFromUserAttribute parameter will be ignored.
@@ -855,10 +855,10 @@ Function Get-MSGraphAccessToken {
     Specify the Application Client Secret to use.
 .PARAMETER Scope
     Specify the scope to use.
-    Default is 'https://graph.microsoft.com/.default'.
+    Default is: 'https://graph.microsoft.com/.default'.
 .PARAMETER GrantType
     Specify the grant type to use.
-    Default is 'client_credentials'.
+    Default is: 'client_credentials'.
 .EXAMPLE
     Get-MSGraphAccessToken -TenantID $TenantID -ClientID $ClientID -Secret $Secret
 .INPUTS
@@ -956,25 +956,25 @@ Function Invoke-MSGraphAPI {
 .PARAMETER Method
     Specify the method to use.
     Available options are 'GET', 'POST', 'PATCH', 'PUT' and 'DELETE'.
-    Default is 'GET'.
+    Default is: 'GET'.
 .PARAMETER Token
     Specify the access token to use.
 .PARAMETER Version
     Specify the version of the Microsoft Graph API to use.
     Available options are 'Beta' and 'v1.0'.
-    Default is 'Beta'.
+    Default is: 'Beta'.
 .PARAMETER Resource
     Specify the resource to query.
-    Default is 'deviceManagement/managedDevices'.
+    Default is: 'deviceManagement/managedDevices'.
 .PARAMETER Parameter
     Specify the parameter to use. Make sure to use the correct syntax and escape special characters with a backtick.
-    Default is $null.
+    Default is: $null.
 .PARAMETER Body
     Specify the request body to use.
-    Default is $null.
+    Default is: $null.
 .PARAMETER ContentType
     Specify the content type to use.
-    Default is 'application/json'.
+    Default is: 'application/json'.
 .EXAMPLE
     Invoke-MSGraphAPI -Method 'GET' -Token $Token -Version 'Beta' -Resource 'deviceManagement/managedDevices' -Parameter "filter=operatingSystem like 'Windows' and deviceName like 'MEM-Zone-PC'"
 .EXAMPLE
@@ -1063,13 +1063,12 @@ Function Invoke-MSGraphAPI {
 
             ## If there are more than 1000 rows, use paging. Only for GET method.
             If ($Output.'@odata.nextLink') {
-                $OutputPage = $Output.'@odata.nextLink'
                 $Output += Do {
                     $Parameters.Uri = $OutputPage.'@odata.nextLink'
-                    $QutputPage = Invoke-RestMethod @Parameters
-                    $QutputPage
+                    $OutputPage = Invoke-RestMethod @Parameters
+                    $OutputPage
                 }
-                Until ([string]::IsNullOrEmpty($QutputPage.'@odata.nextLink'))
+                Until ([string]::IsNullOrEmpty($OutputPage.'@odata.nextLink'))
             }
             Write-Verbose -Message "Got '$($Output.Count)' Output pages."
         }

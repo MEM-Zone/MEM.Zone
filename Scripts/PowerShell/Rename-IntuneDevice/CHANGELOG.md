@@ -1,5 +1,9 @@
 # Rename-IntuneComputer release history
 
+## 2.0.3 - 2024-01-25
+
+* Fixed `OutputPage` variable name in `Invoke-MSGraphAPI` function. Paging should work now.
+
 ## 2.0.2 - 2024-01-23
 
 * Fixed `RenameCounter` value.
