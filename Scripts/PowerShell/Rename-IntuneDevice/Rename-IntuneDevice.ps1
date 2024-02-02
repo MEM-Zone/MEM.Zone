@@ -14,7 +14,7 @@
     Default is: 'All'.
 .PARAMETER DeviceOS
     Specifies the device OS to be processed
-    Valid values are: Windows, macOS or Linux.
+    Valid values are: 'Windows', 'macOS', 'iOS/iPadOS', 'Linux', 'Android', 'All',  .
     Default is: 'All'.
 .PARAMETER Prefix
     Specifies the prefix to be used. Please note that it will be truncated to 6 characters and converted to UPPERCASE.
@@ -26,11 +26,11 @@
 .EXAMPLE
     Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceName 'IntuneDevice001' -WhatIf -Verbose
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -Prefix 'TAG'
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS 'macOS' -Prefix 'TAG'
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -PrefixFromUserAttribute 'extension_11db5763783a4e822bd6dsd1826184312_msDS_cloudExtensionAttribute66'
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS 'Windows' -PrefixFromUserAttribute 'extension_11db5763783a4e822bd6dsd1826184312_msDS_cloudExtensionAttribute66'
 .EXAMPLE
-    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS $DeviceOS -Confirm
+    Rename-IntuneDevice.ps1 -TenantID $TenantID -ApplicationID $ApplicationID -ApplicationSecret $ApplicationSecret -DeviceOS 'Android' -Confirm
 .INPUTS
     None.
 .OUTPUTS
@@ -89,8 +89,8 @@ Param (
     [Alias('Device')]
     [string]$DeviceName = 'All',
     [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
-    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, All', Position = 4)]
-    [ValidateSet('Windows', 'macOS', 'Linux')]
+    [Parameter(Mandatory = $false, ParameterSetName = 'UserAttribute', HelpMessage = 'Specify the device OS to be processed. Valid values are: Windows, macOS, Linux, Android, iOS/iPadOS, All', Position = 4)]
+    [ValidateSet('Windows', 'macOS', 'Linux', 'Android', 'iOS/iPadOS', 'All')]
     [string]$DeviceOS = 'All',
     [Parameter(Mandatory = $false, ParameterSetName = 'Custom', HelpMessage = 'Specify the prefix to be used. Default isL INTUNE', Position = 5)]
     [ValidateNotNullorEmpty()]
@@ -122,6 +122,8 @@ $script:LogFileDirectory = If ($LogPath) { Join-Path -Path $LogPath -ChildPath $
 
 ## Initialize script variables
 If (-not $PSBoundParameters['DeviceName']) { $DeviceName = 'All' }
+#  Build supported operating systems array
+[string[]]$SupportedOperatingSystems = @('Windows', 'macOS', 'iOS/iPadOS', 'Linux', 'Android (Corporate-owned work profile)', 'Android (fully managed)', 'Android (dedicated)')
 
 #endregion
 ##*=============================================
@@ -1111,8 +1113,8 @@ Try {
     ## Get the device information
     Write-Verbose -Message "Getting device information, this might take a while..." -Verbose
 
-    #  Assemble the Parameter filter value
-    $Parameter = If ($DeviceOS -ne 'All') { "filter=operatingSystem eq '$DeviceOS'" }
+    #  Assemble the Parameter filter value depending if the DeviceOS and DeviceName parameters are specified
+    $Parameter = If ($DeviceOS -ne 'All') { "filter=startswith(operatingSystem, '$DeviceOS')" }
     $Parameter += If ($DeviceName -ne 'All') {
         If ($DeviceOS -eq 'All') { "filter=deviceName eq '$DeviceName'" } Else { " and deviceName eq '$DeviceName'" }
     }
@@ -1139,6 +1141,8 @@ Try {
         [string]$DeviceName = $Device.deviceName
         [string]$DeviceID = $Device.id
         [string]$OperatingSystem = $Device.operatingSystem
+        [int]$DeviceOwnerType = $Device.managedDeviceOwnerType
+        [boolean]$isSupervised = $Device.isSupervised
         #  Initialize the prefix variable with the script parameter value
         [string]$Prefix = $PSBoundParameters['Prefix']
         #  Convert to CAPS, shorten to 6 characters, convert to upper case and clean Prefix by removing any non-alphanumeric characters
@@ -1146,6 +1150,23 @@ Try {
 
         ## Show progress bar
         Show-Progress -Status "Processing Devices for Rename --> [$DeviceName]" -Steps $Devices.Count
+
+        ## Check for supported device operating system and corporate owned device (0 - Unknown, 1 - Owned by company, 2 - Owned by person)
+        If ($OperatingSystem -notin $SupportedOperatingSystems -or $DeviceOwnerType -ne 1) {
+            [string]$Message = "Device '$DeviceName' with operating system '$OperatingSystem' and ownership type '$DeviceOwnerType' is not supported. Skipping..."
+            Write-Warning -Message $Message -Verbose
+            Write-Log -Message $Message -Severity 3 -EventID 666
+            #  Skip to next device in the loop
+            Continue
+        }
+        ## Check for supervised iOS/iPadOS device
+        If ($OperatingSystem -eq 'iOS/iPadOS' -and -not $isSupervised) {
+            [string]$Message = "Device '$DeviceName' with operating system '$OperatingSystem' is not supervised. Skipping..."
+            Write-Warning -Message $Message -Verbose
+            Write-Log -Message $Message -Severity 3 -EventID 666
+            #  Skip to next device in the loop
+            Continue
+        }
 
         ## Get device assigned user attribute information and set the Prefix if specified
         If ($PSCmdlet.ParameterSetName -eq 'UserAttribute') {
@@ -1160,6 +1181,7 @@ Try {
             }
             Catch {
                 [string]$Message = "Error getting user information for device '{0}' with owner '{1}', check if the device has a user assigned. Skipping...`n{2}" -f $DeviceName, $UserPrincipalName, $(Resolve-Error)
+                Write-Warning -Message $Message -Verbose
                 Write-Log -Message $Message -Severity 3 -EventID 666
                 #  Skip to next device in the loop
                 Continue
@@ -1170,51 +1192,54 @@ Try {
         [boolean]$IsValidSerialNumber = If (-not [string]::IsNullOrEmpty($SerialNumber) -and ($SerialNumber -ne 'SystemSerialNumber')) { $true } Else { $false }
 
         ## Clean serialnumber by removing any non-alphanumeric characters
-        If ($IsValidSerialNumber) {
-            $SerialNumber = ($SerialNumber -replace ('[\W | /_]', '')).ToUpper()
+        If (-not $IsValidSerialNumber) {
+            [string]$Message = "Device '$DeviceName' does not have a valid serialnumber. Skipping..."
+            Write-Warning -Message $Message -Verbose
+            Write-Log -Message $Message -Severity 3 -EventID 666
+            Continue
+        }
 
-            ## Trim serial number to 15 characters for windows devices
-            If ($OperatingSystem -eq 'windows') {
-                $NewDeviceName = -join ($Prefix,'-',$SerialNumber)
-                $MaxSerialNumberLength = 15 - $Prefix.Length -1
-                $SerialNumber = $SerialNumber.subString(0, [System.Math]::Min($MaxSerialNumberLength , $NewDeviceName.Length))
-            }
+        ## Remove any non-alphanumeric characters from the serial number and convert to upper case
+        $SerialNumber = ($SerialNumber -replace ('[\W | /_]', '')).ToUpper()
 
-            ## Assemble the new device name
+        ## Trim serial number to 15 characters for windows devices
+        If ($OperatingSystem -eq 'windows') {
             $NewDeviceName = -join ($Prefix,'-',$SerialNumber)
+            $MaxSerialNumberLength = 15 - $Prefix.Length -1
+            $SerialNumber = $SerialNumber.subString(0, [System.Math]::Min($MaxSerialNumberLength , $NewDeviceName.Length))
+        }
 
-            ## Rename device if needed
-            Try {
-                If ($DeviceName -ne $NewDeviceName) {
-                    $Parameters = @{
-                        Method = 'POST'
-                        Token = $Token
-                        Resource = "deviceManagement/managedDevices('$DeviceID')/setDeviceName"
-                        Body = @{ deviceName = $NewDeviceName } | ConvertTo-Json
-                        ContentType = 'application/json'
-                        ErrorAction = 'Stop'
-                    }
-                    ##  Rename device with ShouldProcess support
-                    [boolean]$ShouldProcess = $PSCmdlet.ShouldProcess("$DeviceName", "Rename to $NewDeviceName")
-                    If ($ShouldProcess) { Invoke-MSGraphAPI @Parameters }
-                    #  If operation is successful, output the result
-                    $Output = "Device '{0}' renamed to '{1}'." -f $DeviceName, $NewDeviceName
-                    $RenamedCounter++
+        ## Assemble the new device name
+        $NewDeviceName = -join ($Prefix,'-',$SerialNumber)
+
+        ## Rename device if it has not been alreadu renamed
+        Try {
+            If ($DeviceName -ne $NewDeviceName) {
+                $Parameters = @{
+                    Method = 'POST'
+                    Token = $Token
+                    Resource = "deviceManagement/managedDevices('$DeviceID')/setDeviceName"
+                    Body = @{ deviceName = $NewDeviceName } | ConvertTo-Json
+                    ContentType = 'application/json'
+                    ErrorAction = 'Stop'
                 }
-                Else {
-                    $Output = "Device '{0}' is already named '{1}'." -f $DeviceName, $NewDeviceName
-                }
+                ##  Rename device with ShouldProcess support
+                [boolean]$ShouldProcess = $PSCmdlet.ShouldProcess("$DeviceName", "Rename to $NewDeviceName")
+                If ($ShouldProcess) { Invoke-MSGraphAPI @Parameters }
+                #  If operation is successful, output the result
+                $Output = "Device '{0}' renamed to '{1}'." -f $DeviceName, $NewDeviceName
+                $RenamedCounter++
             }
-            Catch {
-                Write-Log -Message "Error renaming device '$DeviceName' to '$NewDeviceName'.`n$(Resolve-Error)" -Severity 3 -EventID 666
-                Continue
-            }
-            Finally {
-                Write-Log -Message $Output
+            Else {
+                $Output = "Device '{0}' is already named '{1}'." -f $DeviceName, $NewDeviceName
             }
         }
-        Else {
-            Write-Log -Message "Device '$DeviceName' does not have a valid serialnumber. Skipping..." -Severity 3 -EventID 666
+        Catch {
+            Write-Log -Message "Error renaming device '$DeviceName' to '$NewDeviceName'.`n$(Resolve-Error)" -Severity 3 -EventID 666
+            Continue
+        }
+        Finally {
+            Write-Log -Message $Output
         }
     }
 }

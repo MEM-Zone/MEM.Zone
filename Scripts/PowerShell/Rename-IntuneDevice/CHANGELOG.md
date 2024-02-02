@@ -1,5 +1,13 @@
 # Rename-IntuneComputer release history
 
+## 2.1.0b - 2024-02-02
+
+* Added support for `Android` and `iOS/macOS` devices (Issue #19).
+* Added supported devices check.
+* Added `iOS/macOS` supervision check.
+* Added `Warning` when a device is skipped.
+* Simplified the `ForEach` loop.
+
 ## 2.0.3 - 2024-01-25
 
 * Fixed `OutputPage` variable name in `Invoke-MSGraphAPI` function. Paging should work now.
