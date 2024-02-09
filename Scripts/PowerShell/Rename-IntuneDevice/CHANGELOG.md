@@ -1,5 +1,9 @@
 # Rename-IntuneComputer release history
 
+## 2.1.1 - 2024-02-09
+
+* Fixed `managedDeviceOwnerType` check, which would cause the script to skip all devices.
+
 ## 2.1.0b - 2024-02-02
 
 * Added support for `Android` and `iOS/macOS` devices (Issue #19).

@@ -1151,8 +1151,8 @@ Try {
         ## Show progress bar
         Show-Progress -Status "Processing Devices for Rename --> [$DeviceName]" -Steps $Devices.Count
 
-        ## Check for supported device operating system and corporate owned device (0 - Unknown, 1 - Owned by company, 2 - Owned by person)
-        If ($OperatingSystem -notin $SupportedOperatingSystems -or $DeviceOwnerType -ne 1) {
+        ## Check for supported device operating system and corporate owned device
+        If ($OperatingSystem -notin $SupportedOperatingSystems -or $DeviceOwnerType -ne 'company') {
             [string]$Message = "Device '$DeviceName' with operating system '$OperatingSystem' and ownership type '$DeviceOwnerType' is not supported. Skipping..."
             Write-Warning -Message $Message -Verbose
             Write-Log -Message $Message -Severity 3 -EventID 666
