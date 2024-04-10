@@ -278,12 +278,13 @@ Function Write-Log {
             If ($Msg) {
                 #  Create the CMTrace log message
                 If ($ScriptSectionDefined) { [string]$CMTraceMsg = "[$ScriptSection] :: $Msg" }
+                #  Create Event log message and shorten it to the maximum 32766 characters supported by the event log
+                [string]$EventLogLine = [System.Math]::Max(32763, $Msg.Length) + '...'
 
                 #  Create a Console and Legacy "text" log entry
                 [string]$LegacyMsg = "[$LogDate $LogTime]"
                 If ($ScriptSectionDefined) { [string]$LegacyMsg += " [$ScriptSection]" }
                 If ($Source) {
-                    [string]$EventLogLine = $Msg
                     [string]$ConsoleLogLine = "$LegacyMsg [$Source] :: $Msg"
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [$Source] [Error] :: $Msg" }
@@ -293,7 +294,6 @@ Function Write-Log {
                 }
                 Else {
                     [string]$ConsoleLogLine = "$LegacyMsg :: $Msg"
-                    [string]$EventLogLine = $Msg
                     Switch ($Severity) {
                         3 { [string]$LegacyTextLogLine = "$LegacyMsg [Error] :: $Msg" }
                         2 { [string]$LegacyTextLogLine = "$LegacyMsg [Warning] :: $Msg" }

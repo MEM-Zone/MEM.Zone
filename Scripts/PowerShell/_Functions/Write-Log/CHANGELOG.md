@@ -1,5 +1,9 @@
 # Write-Log release history
 
+## 1.0.1 - 2024-03-19
+
+* Fixed maximum event log message length by truncating it to `31836` characters.
+
 ## 1.0.0 - 2024-01-22
 
 ### First version
