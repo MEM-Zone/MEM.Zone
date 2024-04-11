@@ -9,7 +9,8 @@
 #.EXAMPLE
 #    start-intune-onboarding.sh
 #.NOTES
-#    Created by Ioan Popovici
+#    Created by David Natal
+#    Revised by Ioan Popovici
 #    Company Portal needs to be installed as a pre-requisite.
 #    Return Codes:
 #    0   - Success
