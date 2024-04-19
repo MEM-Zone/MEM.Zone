@@ -23,10 +23,13 @@
 .PARAMETER SoftwareUpdateReleasedOrRevisedAfter
     Specifies the date after which the software update was released or revised.
     Default is: Get-PatchTuesday.
+.PARAMETER IsSuperseded
+    Specifies whether the software update is superseded.
+    Default is: $false.
 .EXAMPLE
     Invoke-UpdateCMSoftwareUpdateGroup -SoftwareUpdateGroupName 'Software Update Group' -SoftwareUpdateCategoryName 'Security Updates' -SoftwareUpdateCategoryNameMatch 'Windows 10|Windows 11|Office 2016|Office 2019|Office 2021|Visual Studio|ASP.NET' -SoftwareUpdateNameNotMatch 'Server' -SoftwareUpdatesRequiredMinimum 1
 .EXAMPLE
-    Invoke-UpdateCMSoftwareUpdateGroup -SoftwareUpdateGroupName 'Software Update Group' -SoftwareUpdateCategoryName 'Security Updates' -SoftwareUpdateCategoryNameMatch 'Windows 10|Windows 11|Office 2016|Office 2019|Office 2021|Visual Studio|ASP.NET' -SoftwareUpdateNameNotMatch 'Server' -SoftwareUpdatesRequiredMinimum 1 -SoftwareUpdateReleasedOrRevisedAfter '2024-01-01'
+    Invoke-UpdateCMSoftwareUpdateGroup -SoftwareUpdateGroupName 'Software Update Group' -SoftwareUpdateCategoryName 'Security Updates' -SoftwareUpdateCategoryNameMatch 'Windows 10|Windows 11|Office 2016|Office 2019|Office 2021|Visual Studio|ASP.NET' -SoftwareUpdateNameNotMatch 'Server' -SoftwareUpdatesRequiredMinimum 1 -SoftwareUpdateReleasedOrRevisedAfter '2024-01-01' -IsSuperseded $true
 .INPUTS
     None.
 .OUTPUTS
@@ -79,7 +82,10 @@ Param (
     [datetime]$SoftwareUpdateReleasedOrRevisedBefore = (Get-Date),
     [Parameter(Mandatory = $false, Position = 6)]
     [ValidateNotNullorEmpty()]
-    [datetime]$SoftwareUpdateReleasedOrRevisedAfter = '01-01-1980 00:00:00'
+    [datetime]$SoftwareUpdateReleasedOrRevisedAfter = '01-01-1980 00:00:00',
+    [Parameter(Mandatory = $false, Position = 7)]
+    [ValidateNotNullorEmpty()]
+    [boolean]$IsSuperseded = $false
 )
 
 ## Get script path and name
@@ -581,7 +587,7 @@ Function Write-Log {
                 #  Create the CMTrace log message
                 If ($ScriptSectionDefined) { [string]$CMTraceMsg = "[$ScriptSection] :: $Msg" }
                 #  Create Event log message and shorten it to the maximum 32766 characters supported by the event log
-                [string]$EventLogLine = [System.Math]::Max(32763, $Msg.Length) + '...'
+                [string]$EventLogLine = [string]([System.Math]::Max(32763, $Msg.Length)) + '...'
 
                 #  Create a Console and Legacy "text" log entry
                 [string]$LegacyMsg = "[$LogDate $LogTime]"
@@ -924,7 +930,7 @@ Try {
 
     ## Get all updates
     Write-Verbose -Message "Getting all matching updates from the Configuration Manager site server. This might take a while..." -Verbose
-    $AllSoftwareUpdates = Get-CMSoftwareUpdate -IsContentProvisioned $True -IsExpired $False -IsSuperseded $False -DatePostedMin $DatePostedMin -DateRevisedMin $DateRevisedMin -DatePostedMax $DatePostedMax -DateRevisedMax $DateRevisedMax -Fast -ErrorAction 'Stop' -Verbose:$false
+    $AllSoftwareUpdates = Get-CMSoftwareUpdate -IsContentProvisioned $True -IsExpired $False -IsSuperseded $IsSuperseded -DatePostedMin $DatePostedMin -DateRevisedMin $DateRevisedMin -DatePostedMax $DatePostedMax -DateRevisedMax $DateRevisedMax -Fast -ErrorAction 'Stop' -Verbose:$false
     Write-Log -Message $("Found '{0}' Updates matching specified parameters.`n{1}" -f $AllSoftwareUpdates.Count, $($AllSoftwareUpdates.LocalizedDisplayName | Out-String)) -VerboseMessage -ScriptSection ${ScriptSection}
 }
 Catch {
@@ -963,6 +969,7 @@ Try {
     ## Process Software Updates
     [int]$Steps = $SoftwareUpdates.Count
     [int]$Step = 1
+    Write-Verbose -Message "Processing Software Updates '$Steps'..." -Verbose
 
     $Output = ForEach ($SoftwareUpdate in $SoftwareUpdates) {
         $Status = 'N/A'
@@ -1017,6 +1024,7 @@ Finally {
 
     ## Write Stop verbose message
     Write-Log -Message 'Stop' -VerboseMessage -ScriptSection ${ScriptSection}
+    Write-Verbose -Message "Processing Done!" -Verbose
 
     ## Return to the previous location
     Pop-Location
