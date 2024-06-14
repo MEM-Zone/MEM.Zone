@@ -1,17 +1,17 @@
 <#
 .SYNOPSIS
-    Repairs the MEMCM Collection references.
+    Repairs the Configuration Manager Collection references.
 .DESCRIPTION
-    Repairs the MEMCM Collection Collection references, by querying the membership rules and limiting collections by name and then updating the membership rules and limiting collection.
+    Repairs the Configuration Manager Collection Collection references, by querying the membership rules and limiting collections by name and then updating the membership rules and limiting collection.
 .PARAMETER Name
     Specifies the name of the collection to repair. Supports wildcards. Default is: '*'.
 .PARAMETER RepairOptions
     Specifies repair options.
     Availabe options are:
-    - 'DirectMembershipRules': Repairs the MEMCM Collection Direct Membership references.
-    - 'IncludeMembershipRules': Repairs the MEMCM Collection Include Membership references.
-    - 'ExcludeMembershipRules': Repairs the MEMCM Collection Exclude Membership references.
-    - 'LimitingCollection': Repairs the MEMCM Collection Limiting Collection references.
+    - 'DirectMembershipRules': Repairs the Configuration Manager Collection Direct Membership references.
+    - 'IncludeMembershipRules': Repairs the Configuration Manager Collection Include Membership references.
+    - 'ExcludeMembershipRules': Repairs the Configuration Manager Collection Exclude Membership references.
+    - 'LimitingCollection': Repairs the Configuration Manager Collection Limiting Collection references.
     If you specify this parameter 'OldSiteFQDN' also needs to be specified!
     Default is: 'DirectMembershipRules'.
 .PARAMETER OldSiteFQDN
@@ -307,18 +307,18 @@ Function Invoke-SQLCommand {
 Function Repair-CMCollectionReference {
 <#
 .SYNOPSIS
-    Repairs the MEMCM Collection references.
+    Repairs the Configuration Manager Collection references.
 .DESCRIPTION
-    Repairs the MEMCM Collection Collection references, by querying the membership rules and limiting collections by name and then updating the membership rules and limiting collection.
+    Repairs the Configuration Manager Collection Collection references, by querying the membership rules and limiting collections by name and then updating the membership rules and limiting collection.
 .PARAMETER Name
     Specifies the name of the collection to repair. Supports wildcards. Default is: '*'.
 .PARAMETER RepairOptions
     Specifies repair options.
     Availabe options are:
-    - 'DirectMembershipRules': Repairs the MEMCM Collection Direct Membership references.
-    - 'IncludeMembershipRules': Repairs the MEMCM Collection Include Membership references.
-    - 'ExcludeMembershipRules': Repairs the MEMCM Collection Exclude Membership references.
-    - 'LimitingCollection': Repairs the MEMCM Collection Limiting Collection references.
+    - 'DirectMembershipRules': Repairs the Configuration Manager Collection Direct Membership references.
+    - 'IncludeMembershipRules': Repairs the Configuration Manager Collection Include Membership references.
+    - 'ExcludeMembershipRules': Repairs the Configuration Manager Collection Exclude Membership references.
+    - 'LimitingCollection': Repairs the Configuration Manager Collection Limiting Collection references.
     If you specify 'LimitingCollection', 'OldSiteFQDN' also needs to be specified!
     Default is: 'DirectMembershipRules'.
 .PARAMETER OldSiteFQDN

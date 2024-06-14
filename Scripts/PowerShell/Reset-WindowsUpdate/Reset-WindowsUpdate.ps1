@@ -25,7 +25,7 @@
 .PARAMETER LimitDays
     Specifies the number of days from the current date to limit the search to. Default is: 3.
 .PARAMETER Threshold
-    Specifed the numbers of events after which this functions returns $true. Default is: 3.
+    Specified the numbers of events after which this functions returns $true. Default is: 3.
 .EXAMPLE
     Reset-WindowsUpdate.ps1 -Action 'Detect' -LogName 'Application' -Source 'ESENT' -EventID '623' -EntryType 'Error' -LimitDays 3 -Threshold 3
 .INPUTS
@@ -99,7 +99,7 @@ Function Test-EventLogCompliance {
 .SYNOPSIS
     Tests the EventLog compliance for specific events.
 .DESCRIPTION
-    Tests the EventLog compliance by getting events and returing a Non-Compliant statement after a specified treshold is reached.
+    Tests the EventLog compliance by getting events and returning a Non-Compliant statement after a specified threshold is reached.
 .PARAMETER LogName
     Specifies the LogName to search.
 .PARAMETER Source
@@ -154,10 +154,10 @@ Function Test-EventLogCompliance {
 
     Try {
 
-        ## Set day limit by substracting number of days from the current date
+        ## Set day limit by subtracting number of days from the current date
         $After = $((Get-Date).AddDays( - $LimitDays ))
 
-        ## Get events and test treshold
+        ## Get events and test threshold
         $Events = Get-EventLog -ComputerName $env:COMPUTERNAME -LogName $LogName -Source $Source -EntryType $EntryType -After $After -ErrorAction 'Stop' | Where-Object { $_.EventID -eq $EventID }
 
         If ($Events.Count -ge $Threshold) {
@@ -199,7 +199,7 @@ Function Backup-EventLog {
 .PARAMETER BackupName
     Specifies the Backup name. Default is: 'yyyy-MM-dd_HH-mm-ss_$env:ComputerName_$LogName'.
 .EXAMPLE
-    Backup-EventLog -LogName 'Application' -BackupPath 'C:\SCCMZone' -BackupName '1980-09-09_10-10-00_SCCMZoneBlog_Application'
+    Backup-EventLog -LogName 'Application' -BackupPath 'C:\MEMZone' -BackupName '1980-09-09_10-10-00_MEMZoneBlog_Application'
 .INPUTS
     System.String.
 .OUTPUTS
@@ -256,7 +256,7 @@ Function Backup-EventLog {
                 ## Backup event log
                 $BackUp = $EventLog | Invoke-WmiMethod -Name 'BackupEventLog' -ArgumentList $BackupArguments -ErrorAction 'SilentlyContinue'
 
-                If ($BackUp.ReturnValue -ne 0) { Throw "Backup retuned error [$($BackUp.ReturnValue)]." }
+                If ($BackUp.ReturnValue -ne 0) { Throw "Backup returned error [$($BackUp.ReturnValue)]." }
             }
             ElseIf ($PowerShellVersion -ge 3) {
 
@@ -268,7 +268,7 @@ Function Backup-EventLog {
                 ## Backup event log
                 $BackUp = $EventLog | Invoke-CimMethod -Name 'BackupEventLog' -Arguments $BackupArguments -ErrorAction 'SilentlyContinue'
 
-                If ($BackUp.ReturnValue -ne 0) { Throw "Backup retuned error [$($BackUp.ReturnValue)]." }
+                If ($BackUp.ReturnValue -ne 0) { Throw "Backup returned error [$($BackUp.ReturnValue)]." }
             }
             Else {
                 Throw "PowerShell version [$PowerShellVersion] not supported."
@@ -405,7 +405,7 @@ Function Reset-WindowsUpdate {
         ## Start services
         Start-Service -Name 'wuauserv', 'BITS', 'cryptsvc' -ErrorAction 'SilentlyContinue'
 
-        ## Start MEMCM Client software update scan
+        ## Start ConfigMgr Client software update scan
         $null = Invoke-CimMethod -Namespace 'Root\ccm' -ClassName 'SMS_CLIENT' -MethodName 'TriggerSchedule' -Arguments @{SScheduleID = '{00000000-0000-0000-0000-000000000108}'} -ErrorAction 'SilentlyContinue'
 
         ## Set result to 'Reset'
@@ -449,7 +449,7 @@ Switch ($Action) {
                 #  Clear EventLog
                 $null = Clear-EventLog -LogName $LogName -ErrorAction 'Stop'
 
-                #  Reset Windows update component if clear eventlog is succesful
+                #  Reset Windows update component if clear eventlog is successful
                 Reset-WindowsUpdate
             }
             Catch {
@@ -476,7 +476,7 @@ Switch ($Action) {
             ## Clear EventLog
             $null = Clear-EventLog -LogName $LogName -ErrorAction 'Stop'
 
-            ##  Reset windows update component if clear eventlog is succesful
+            ##  Reset windows update component if clear eventlog is successful
             Reset-WindowsUpdate
         }
         Catch {

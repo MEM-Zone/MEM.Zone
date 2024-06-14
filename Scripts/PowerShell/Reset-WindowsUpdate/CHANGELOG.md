@@ -3,7 +3,7 @@
 ## 3.0.1 - 2022-01-05
 
 * Fixed the `ResetStandalone` parameter, now it actually does something
-* Added MEMCM `Run-Script` support by changing single quotes to double quotes for the default parameters
+* Added ConfigMgr `Run-Script` support by changing single quotes to double quotes for the default parameters
 
 ## 3.0.0 - 2020-12-04
 
@@ -26,6 +26,6 @@
 * Detects and repairs a corrupted WU DataStore.
 * Detection is done by testing the eventlog with the specified parameters.
 * Repairs are performed by removing and reinitializing the corrupted DataStore.
-* The specified eventlog is backed up and cleared in order not to triger the detection again before the repair step.
+* The specified eventlog is backed up and cleared in order not to trigger the detection again before the repair step.
 * The backup of the specified eventlog is stored in 'SystemRoot\Temp' folder.
 * Defaults are configured for the ESENT '623' error.
