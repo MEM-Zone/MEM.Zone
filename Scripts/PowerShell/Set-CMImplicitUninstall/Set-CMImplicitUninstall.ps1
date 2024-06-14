@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-    Sets the MEMCM Implicit Uninstall flag on a application deployment.
+    Sets the Configuration Manager Implicit Uninstall flag on a application deployment.
 .DESCRIPTION
-    Sets the MEMCM Implicit Uninstall flag on a required application deployment.
+    Sets the Configuration Manager Implicit Uninstall flag on a required application deployment.
 .PARAMETER ApplicationName
     Specifies the application name. Supports wildcards. Default is all applications.
 .PARAMETER FlagValue
     Specifies the Implicit Uninstall flag value. Default is true.
-    Avaliable values are:
+    Available values are:
         True
         False
 .EXAMPLE
@@ -71,7 +71,7 @@ Param (
 }
 
 ## Set the default xml for the ImplicitUninstallEnabled flag
-[xml]$AdditonalPopertiesDefaultXML =
+[xml]$AdditionalPropertiesDefaultXML =
 @'
 <?xml version="1.0" encoding="utf-16"?>
 <Properties>
@@ -91,12 +91,12 @@ Param (
 ##*=============================================
 #region ScriptBody
 
-## Import MEMCM Powershell module and changing context
+## Import ConfigMgr Powershell module and changing context
 Try {
     Import-Module $env:SMS_ADMIN_UI_PATH.Replace('\bin\i386','\bin\configurationmanager.psd1') -ErrorAction 'Stop'
 }
 Catch {
-    Throw "Importing MEMCM Powershell module - Failed!`n$PsItem"
+    Throw "Importing ConfigMgr Powershell module - Failed!`n$PsItem"
 }
 
 ## Get the CMSITE SiteCode and change the connection context
@@ -111,52 +111,52 @@ Catch {
 ## Process applications
 Try {
 
-    ## Get all required application assigments
-    $ApplicationAssigments = Get-CMApplicationDeployment -Name $ApplicationName | Where-Object -Property 'OfferTypeID' -eq 0
+    ## Get all required application Assignments
+    $ApplicationAssignments = Get-CMApplicationDeployment -Name $ApplicationName | Where-Object -Property 'OfferTypeID' -eq 0
 
     ## Set progress variables
-    [int]$ProgressTotal = $ApplicationAssigments.Count
+    [int]$ProgressTotal = $ApplicationAssignments.Count
 
     ## Process each application deployment
-    ForEach ($ApplicationAssigment in $ApplicationAssigments) {
+    ForEach ($ApplicationAssignment in $ApplicationAssignments) {
 
         ## Show progress status
         $ProgressStep ++
-        [int]$AssignmentID = $ApplicationAssigment.AssignmentID
+        [int]$AssignmentID = $ApplicationAssignment.AssignmentID
         [int16]$PercentComplete = ($ProgressStep / $ProgressTotal) * 100
-        [string]$ApplicationName = $ApplicationAssigment.ApplicationName
+        [string]$ApplicationName = $ApplicationAssignment.ApplicationName
         Write-Progress -Activity 'Processing Applications... ' -CurrentOperation "$ApplicationName --> $AssignmentID" -PercentComplete $PercentComplete
         Write-Verbose -Message "ApplicationName: $ApplicationName --> AssignmentID: $AssignmentID" -Verbose
 
-        ## Get the application assigment info
+        ## Get the application Assignment info
         $AssignmentInfo = Get-CimInstance -Namespace "ROOT\SMS\site_$SiteCode" -ClassName 'SMS_ApplicationAssignment' -Filter "AssignmentID = $AssignmentID"
-        #  Get assigment OfferFlag bitmask
+        #  Get Assignment OfferFlag bitmask
         [OfferFlagsBitmask]$OfferFlags = $AssignmentInfo.OfferFlags
         Write-Verbose -Message "OfferFlags: $OfferFlags" -Verbose
         #  Get the additional properties xml
-        [xml]$AdditonalPoperties = $AssignmentInfo.AdditionalProperties
-        Write-Verbose -Message "AdditonalPoperties: $($AdditonalPoperties.Properties)" -Verbose
+        [xml]$AdditionalProperties = $AssignmentInfo.AdditionalProperties
+        Write-Verbose -Message "AdditionalProperties: $($AdditionalProperties.Properties)" -Verbose
 
 
         ## Set the ImplicitUninstallEnabled flag properties
         #  If there are no additional properties, set the default properties xml
-        If (-not $AdditonalPoperties) { $AdditonalPoperties = $AdditonalPopertiesDefaultXML; [boolean]$ShouldProcess = $true }
+        If (-not $AdditionalProperties) { $AdditionalProperties = $AdditionalPropertiesDefaultXML; [boolean]$ShouldProcess = $true }
         #  If the ImplicitUninstallEnabled property is not present add it to the xml
-        If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled) { $AdditonalPoperties.Properties.SetAttribute('ImplicitUninstallEnabled', 'true'); [boolean]$ShouldProcess = $true }
+        If (-not $AdditionalProperties.Properties.ImplicitUninstallEnabled) { $AdditionalProperties.Properties.SetAttribute('ImplicitUninstallEnabled', 'true'); [boolean]$ShouldProcess = $true }
         #  If the ImplicitUninstallEnabled property value is not 'true' set it to 'true'
-        If (-not $AdditonalPoperties.Properties.ImplicitUninstallEnabled -ne 'true') { $AdditonalPoperties.Properties.ImplicitUninstallEnabled = 'true'; [boolean]$ShouldProcess = $true }
+        If (-not $AdditionalProperties.Properties.ImplicitUninstallEnabled -ne 'true') { $AdditionalProperties.Properties.ImplicitUninstallEnabled = 'true'; [boolean]$ShouldProcess = $true }
         #  If the OfferFlags bitmask does not contain the ImplicitUninstallEnabled flag, add it. (64 is the bitmask value for the ImplicitUninstallEnabled flag, you won't find this value in the documentation)
         If (-not $OfferFlags.HasFlag([OfferFlagsBitmask]::ImplicitUninstallEnabled)) { [int]$OfferFlagsValue = $OfferFlags.GetHashCode() + 64; ; [boolean]$ShouldProcess = $true }
 
-        ## Update the application assigment if needed
+        ## Update the application Assignment if needed
         If ($ShouldProcess) {
-            $AssignmentInfo | Set-CimInstance -Property @{ AdditionalProperties = ($AdditonalPoperties.OuterXml); OfferFlags = $OfferFlagsValue } -ErrorAction 'Stop'
-            Write-Verbose -Message  "Succesfully updated $ApplicationName --> $AssignmentID!" -Verbose
+            $AssignmentInfo | Set-CimInstance -Property @{ AdditionalProperties = ($AdditionalProperties.OuterXml); OfferFlags = $OfferFlagsValue } -ErrorAction 'Stop'
+            Write-Verbose -Message  "Successfully updated $ApplicationName --> $AssignmentID!" -Verbose
         }
         Else { Write-Verbose -Message  "Nothing to update for $ApplicationName --> $AssignmentID!" -Verbose }
     }
 
-    ## Ouput success
+    ## Output success
     [string]$Output = 'Successfully processed the ImplicitUninstallEnabled flag on all required application deployments!'
     }
     Catch {
@@ -169,7 +169,7 @@ Try {
     ## Return to Script Path
     Pop-Location
 
-    ## Remove SCCM PSH Module
+    ## Remove ConfigMgr PSH Module
     Remove-Module 'ConfigurationManager' -Force -ErrorAction 'SilentlyContinue'
 
 #endregion
