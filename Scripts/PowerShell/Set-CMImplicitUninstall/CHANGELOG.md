@@ -1,5 +1,9 @@
 # Set-CMImplicitUninstall release history
 
+## 1.2.0 - 2024-06-14
+
+* Added `WhatIf` support to the script.
+
 ## 1.1.4 - 2024-06-14
 
 * Fixed a ton of spelling mistakes in the script.
