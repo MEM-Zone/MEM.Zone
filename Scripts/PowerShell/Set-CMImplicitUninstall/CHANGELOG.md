@@ -1,5 +1,9 @@
 # Set-CMImplicitUninstall release history
 
+## 1.1.4 - 2024-06-14
+
+* Fixed a ton of spelling mistakes in the script.
+
 ## 1.1.3 - 2022-04-22
 
 * Fixed the progress indicator.
@@ -21,4 +25,4 @@
 
 ### First version
 
-* Sets the MEMCM `ImplicitUninstallEnabled` flag on a required application deployment.
+* Sets the Configuration Manager `ImplicitUninstallEnabled` flag on a required application deployment.
