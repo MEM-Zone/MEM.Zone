@@ -11,7 +11,11 @@
         True
         False
 .EXAMPLE
+    Set-CMImplicitUninstall.ps1 -ApplicationName '*Zip -FlagValue 'True'
+.EXAMPLE
     Set-CMImplicitUninstall.ps1 -ApplicationName '*' -FlagValue 'False'
+.EXAMPLE
+    Set-CMImplicitUninstall.ps1 -ApplicationName '*' -FlagValue 'True' -WhatIf
 .INPUTS
     None.
 .OUTPUTS
@@ -43,6 +47,7 @@
 #region VariableDeclaration
 
 ## Get script parameters
+[CmdletBinding(SupportsShouldProcess=$true)]
 Param (
     [Parameter(Mandatory=$false,HelpMessage='Enter application name',Position=0)]
     [ValidateNotNullorEmpty()]
@@ -56,7 +61,6 @@ Param (
 )
 
 ## Set variables
-[boolean]$ShouldProcess = $false
 [int16]$ProgressStep = 0
 
 ## Set the bitmask table for the OfferFlags bitmask
@@ -140,15 +144,16 @@ Try {
 
         ## Set the ImplicitUninstallEnabled flag properties
         #  If there are no additional properties, set the default properties xml
-        If (-not $AdditionalProperties) { $AdditionalProperties = $AdditionalPropertiesDefaultXML; [boolean]$ShouldProcess = $true }
+        If (-not $AdditionalProperties) { $AdditionalProperties = $AdditionalPropertiesDefaultXML }
         #  If the ImplicitUninstallEnabled property is not present add it to the xml
-        If (-not $AdditionalProperties.Properties.ImplicitUninstallEnabled) { $AdditionalProperties.Properties.SetAttribute('ImplicitUninstallEnabled', 'true'); [boolean]$ShouldProcess = $true }
+        If (-not $AdditionalProperties.Properties.ImplicitUninstallEnabled) { $AdditionalProperties.Properties.SetAttribute('ImplicitUninstallEnabled', 'true') }
         #  If the ImplicitUninstallEnabled property value is not 'true' set it to 'true'
-        If (-not $AdditionalProperties.Properties.ImplicitUninstallEnabled -ne 'true') { $AdditionalProperties.Properties.ImplicitUninstallEnabled = 'true'; [boolean]$ShouldProcess = $true }
+        If (-not $AdditionalProperties.Properties.ImplicitUninstallEnabled -ne 'true') { $AdditionalProperties.Properties.ImplicitUninstallEnabled = 'true' }
         #  If the OfferFlags bitmask does not contain the ImplicitUninstallEnabled flag, add it. (64 is the bitmask value for the ImplicitUninstallEnabled flag, you won't find this value in the documentation)
-        If (-not $OfferFlags.HasFlag([OfferFlagsBitmask]::ImplicitUninstallEnabled)) { [int]$OfferFlagsValue = $OfferFlags.GetHashCode() + 64; ; [boolean]$ShouldProcess = $true }
+        If (-not $OfferFlags.HasFlag([OfferFlagsBitmask]::ImplicitUninstallEnabled)) { [int]$OfferFlagsValue = $OfferFlags.GetHashCode() + 64 }
 
         ## Update the application Assignment if needed
+        [boolean]$ShouldProcess = $PSCmdlet.ShouldProcess("$ApplicationName --> $AssignmentID", "Set Implicit Uninstall Flag to '$FlagValue'")
         If ($ShouldProcess) {
             $AssignmentInfo | Set-CimInstance -Property @{ AdditionalProperties = ($AdditionalProperties.OuterXml); OfferFlags = $OfferFlagsValue } -ErrorAction 'Stop'
             Write-Verbose -Message  "Successfully updated $ApplicationName --> $AssignmentID!" -Verbose
