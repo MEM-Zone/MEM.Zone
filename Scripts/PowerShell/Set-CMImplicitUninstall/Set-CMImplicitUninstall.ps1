@@ -11,7 +11,7 @@
         True
         False
 .EXAMPLE
-    Set-CMImplicitUninstall.ps1 -ApplicationName "*" -FlagValue 'False'
+    Set-CMImplicitUninstall.ps1 -ApplicationName '*' -FlagValue 'False'
 .INPUTS
     None.
 .OUTPUTS
