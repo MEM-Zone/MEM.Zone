@@ -1,6 +1,12 @@
 # Rename-IntuneComputer release history
 
-## 2.1.1 - 2024-02-09
+## 2.2.0 - 2024-06-19
+
+* Fixed `Invoke-MSGraphAPI` function output when `content` is empty.
+* Fixed spelling in multiple areas of the script.
+* Added `Get-MSGraphAccessToken` token expiration info.
+
+## 2.2.1 - 2024-02-09
 
 * Fixed `managedDeviceOwnerType` check, which would cause the script to skip all devices.
 

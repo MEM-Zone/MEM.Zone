@@ -733,11 +733,11 @@ Function Show-Progress {
     Created by Ioan Popovici.
     v2.0.0 - 2021-01-01
 
-    This is an private function should tipically not be called directly.
+    This is an private function should typically not be called directly.
     Credit to Adam Bertram.
 
     ## !! IMPORTANT !! ##
-    #  You need to tokenize the scripts steps at the begining of the script in order for Show-Progress to work:
+    #  You need to tokenize the scripts steps at the beginning of the script in order for Show-Progress to work:
 
     ## Get script path and name
     [string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
@@ -871,7 +871,7 @@ Function Get-MSGraphAccessToken {
     Created by Ioan Popovici
     v1.0.0 - 2024-01-11
 
-    This is an private function should tipically not be called directly.
+    This is an private function should typically not be called directly.
 .LINK
     https://MEM.Zone
 .LINK
@@ -921,7 +921,7 @@ Function Get-MSGraphAccessToken {
         }
 
         ## Assembly the URI for the API call
-        [string]$Uri = "https://login.microsoftonline.com/$TenantID/oauth2/v2.0/token"
+        [string]$Uri = -join ('https://login.microsoftonline.com/', $TenantID, '/oauth2/v2.0/token')
 
         ## Write Debug information
         Write-Debug -Message "Uri: $Uri"
@@ -932,10 +932,16 @@ Function Get-MSGraphAccessToken {
 
             ## Get the access token
             $Response = Invoke-RestMethod -Method 'POST' -Uri $Uri -ContentType 'application/x-www-form-urlencoded' -Body $Body -UseBasicParsing
-            $Output = $Response.access_token
+
+            ## Assemble output object
+            $Output = [pscustomobject]@{
+                access_token = $Response.access_token
+                expires_in   = $Response.expires_in
+                granted_on   = $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+            }
         }
         Catch {
-            [string]$Message = "Error getting MSGraph API Acces Token for TenantID '{0}' with ClientID '{1}'.`n{2}" -f $TenantID, $ClientID, $(Resolve-Error)
+            [string]$Message = "Error getting MSGraph API Access Token for TenantID '{0}' with ClientID '{1}'.`n{2}" -f $TenantID, $ClientID, $(Resolve-Error)
             Write-Log -Message $Message -Severity 3 -ScriptSection ${CmdletName} -EventID 666
             Write-Error -Message $Message
         }
@@ -989,7 +995,7 @@ Function Invoke-MSGraphAPI {
     Created by Ioan Popovici
     v1.0.0 - 2024-01-11
 
-    This is an private function should tipically not be called directly.
+    This is an private function should typically not be called directly.
 .LINK
     https://MEM.Zone
 .LINK
@@ -1080,7 +1086,7 @@ Function Invoke-MSGraphAPI {
             Write-Error -Message $Message
         }
         Finally {
-            $Output = $Output.value
+            $Output = If ($Output.value) { $Output.value } Else { $Output }
             Write-Output -InputObject $Output
         }
     }
@@ -1108,7 +1114,7 @@ Try {
     Write-Log -Message 'Start' -VerboseMessage
 
     ## Get API Token
-    $Token = Get-MSGraphAccessToken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction 'Stop'
+    $Token = (Get-MSGraphAccessToken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction 'Stop').access_token
 
     ## Get the device information
     Write-Verbose -Message "Getting device information, this might take a while..." -Verbose
@@ -1212,7 +1218,7 @@ Try {
         ## Assemble the new device name
         $NewDeviceName = -join ($Prefix,'-',$SerialNumber)
 
-        ## Rename device if it has not been alreadu renamed
+        ## Rename device if it has not been already renamed
         Try {
             If ($DeviceName -ne $NewDeviceName) {
                 $Parameters = @{
@@ -1247,7 +1253,7 @@ Catch {
     Write-Log -Message "Error renaming device.`n$(Resolve-Error)" -Severity 3 -EventID 666
 }
 Finally {
-    Write-Log -Message "Succesully renamed '$RenamedCounter' devices." -EventID 2
+    Write-Log -Message "Successfully renamed '$RenamedCounter' devices." -EventID 2
     Write-Log -Message 'Stop' -VerboseMessage
 }
 
