@@ -4,7 +4,7 @@
 .DESCRIPTION
     Sets the Configuration Manager Implicit Uninstall flag on a required application deployment.
 .PARAMETER ApplicationName
-    Specifies the application name. Supports wildcards. Default is all applications.
+    Specifies the application name. Supports wildcards.
 .PARAMETER FlagValue
     Specifies the Implicit Uninstall flag value. Default is true.
     Available values are:
@@ -49,10 +49,10 @@
 ## Get script parameters
 [CmdletBinding(SupportsShouldProcess=$true)]
 Param (
-    [Parameter(Mandatory=$false,HelpMessage='Enter application name',Position=0)]
+    [Parameter(Mandatory=$true,HelpMessage='Enter application name',Position=0)]
     [ValidateNotNullorEmpty()]
     [Alias('Name')]
-    [string]$ApplicationName = '*',
+    [string]$ApplicationName,
     [Parameter(Mandatory=$false,HelpMessage="Valid options are: 'true' or 'false'",Position=1)]
     [ValidateNotNullorEmpty()]
     [ValidateSet('true','false')]

@@ -1,5 +1,9 @@
 # Set-CMImplicitUninstall release history
 
+## 1.3.0 - 2024-06-21
+
+* Removed `ApplicationName` default parameter to lower the risk of processing all applications by mistake.
+
 ## 1.2.0 - 2024-06-14
 
 * Added `WhatIf` support to the script.
