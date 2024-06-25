@@ -139,7 +139,7 @@ function startLogging() {
 #.SYNOPSIS
 #    Starts logging.
 #.DESCRIPTION
-#    Starts loggign to to log file and STDOUT.
+#    Starts logging to to log file and STDOUT.
 #.PARAMETER logName
 #    Specifies the name of the log file.
 #.PARAMETER logDir
@@ -195,12 +195,12 @@ function displayNotification() {
 #.PARAMETER messageTitle
 #    Specifies the title of the notification. Defaults to $MESSAGE_TITLE.
 #.PARAMETER messageSubtitle
-#    Specifies the subtitle of the notification. Defaults to $$MESSAGE_SUBTITLE.
+#    Specifies the subtitle of the notification. Defaults to $MESSAGE_SUBTITLE.
 #.PARAMETER notificationDelay
 #    Specifies the minimum delay between the notifications in seconds. Defaults to 2.
-#.PARAMETER supressNotification
+#.PARAMETER suppressNotification
 #    Suppresses the notification. Defaults to false.
-#.PARAMETER supressTerminal
+#.PARAMETER suppressTerminal
 #    Suppresses the notification in the terminal. Defaults to false.
 #.EXAMPLE
 #    displayNotification 'message' 'title' 'subtitle' 'duration'
@@ -222,8 +222,8 @@ function displayNotification() {
     local messageTitle
     local messageSubtitle
     local notificationDelay
-    local supressTerminal
-    local supressNotification
+    local suppressTerminal
+    local suppressNotification
     local executionStatus=0
     #  Message
     messageText="${1}"
@@ -242,29 +242,29 @@ function displayNotification() {
         notificationDelay=2
     else notificationDelay="${4}"
     fi
-    #  Supress notification
+    #  Suppress notification
     if [[ -z "${5}" ]]; then
-        supressNotification='false'
-    else supressNotification="${5}"
+        suppressNotification='false'
+    else suppressNotification="${5}"
     fi
-    #  Supress terminal
+    #  Suppress terminal
     if [[ -z "${6}" ]]; then
-        supressTerminal='false'
-    else supressTerminal="${6}"
+        suppressTerminal='false'
+    else suppressTerminal="${6}"
     fi
 
     ## Debug variables
-    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; notificationDelay: $notificationDelay ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
+    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; notificationDelay: $notificationDelay ; suppressNotification: $suppressNotification ; suppressTerminal: $suppressTerminal"
 
     ## Display notification
-    if [[ "$supressNotification" = 'false' ]]; then
+    if [[ "$suppressNotification" = 'false' ]]; then
         osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
         executionStatus=$?
         sleep "$notificationDelay"
     fi
 
     ## Display notification in terminal
-    if [[ "$supressTerminal" = 'false' ]]; then echo "$(date) | $messageText" ; fi
+    if [[ "$suppressTerminal" = 'false' ]]; then echo "$(date) | $messageText" ; fi
 
     ## Return execution status
     if [[ "$executionStatus" -ne 0 ]]; then
@@ -286,7 +286,7 @@ function displayDialog() {
 #.PARAMETER messageText
 #    Specifies the message of the dialog.
 #.PARAMETER messageSubtitle
-#    Specifies the subtitle of the notification. Defaults to $MESAGE_SUBTITLE.
+#    Specifies the subtitle of the notification. Defaults to $MESSAGE_SUBTITLE.
 #.PARAMETER buttonNames
 #    Specifies the names of the buttons. Defaults to '{Cancel, Ok}'.
 #.PARAMETER defaultButton
@@ -302,7 +302,7 @@ function displayDialog() {
 #   Defaults to ''.
 #.PARAMETER promptType
 #    Specifies the type of prompt.
-#    Avaliable options:
+#    Available options:
 #        'buttonPrompt'   - Button prompt.
 #        'textPrompt'     - Text prompt.
 #        'passwordPrompt' - Password prompt.
@@ -453,7 +453,7 @@ function displayAlert() {
 #    Specifies the message text.
 #.PARAMETER alertCriticality
 #    Specifies the alert criticality.
-#    Avaliable options:
+#    Available options:
 #        'informational' - Informational alert.
 #        'critical'      - Critical alert.
 #        'warning'       - Warning alert.
@@ -755,7 +755,7 @@ function invokeFileVaultAction() {
             fi
             ((loopCounter++))
         else
-            displayNotification "Sucessfully performed FileVault action '$actionTitle'!"
+            displayNotification "Successfully performed FileVault action '$actionTitle'!"
             return 0
         fi
     done

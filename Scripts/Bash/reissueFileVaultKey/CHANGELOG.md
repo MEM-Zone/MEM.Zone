@@ -1,5 +1,9 @@
 # Reissue FileVault Key release history
 
+## 3.0.1 - 2024-06-24
+
+* Spellcheck.
+
 ## 3.0.0 - 2023-02-23
 
 * Changed `LAST_SUPPORTED_OS_VERSION` to `SUPPORTED_OS_MAJOR_VERSION` [`Breaking`].

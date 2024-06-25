@@ -103,7 +103,7 @@ function startLogging() {
 #.SYNOPSIS
 #    Starts logging.
 #.DESCRIPTION
-#    Starts loggign to to log file and STDOUT.
+#    Starts logging to to log file and STDOUT.
 #.PARAMETER logName
 #    Specifies the name of the log file.
 #.PARAMETER logDir

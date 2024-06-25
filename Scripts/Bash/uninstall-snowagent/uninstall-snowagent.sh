@@ -4,7 +4,7 @@
 #.SYNOPSIS
 #    Uninstalls snow agent.
 #.DESCRIPTION
-#    Uninstalls snow agent by running a specific uninstal procedure.
+#    Uninstalls snow agent by running a specific uninstall procedure.
 #.EXAMPLE
 #    uninstall-snowagent.sh
 #.INPUTS
@@ -93,7 +93,7 @@ function startLogging() {
 #.SYNOPSIS
 #    Starts logging.
 #.DESCRIPTION
-#    Starts loggign to to log file and STDOUT.
+#    Starts logging to to log file and STDOUT.
 #.PARAMETER logName
 #    Specifies the name of the log file.
 #.PARAMETER logDir
@@ -156,9 +156,9 @@ function displayNotification() {
 #    Specifies the subtitle of the notification. Defaults to $messageSubtitle.
 #.PARAMETER messageDuration
 #    Specifies the minimum duration of the notification in seconds. Defaults to 2.
-#.PARAMETER supressNotification
+#.PARAMETER suppressNotification
 #    Suppresses the notification. Defaults to false.
-#.PARAMETER supressTerminal
+#.PARAMETER suppressTerminal
 #    Suppresses the notification in the terminal. Defaults to false.
 #.EXAMPLE
 #    displayNotification 'message' 'title' 'subtitle' 'duration'
@@ -184,8 +184,8 @@ function displayNotification() {
     local messageTitle
     local messageSubtitle
     local messageDuration
-    local supressTerminal
-    local supressNotification
+    local suppressTerminal
+    local suppressNotification
     #  Message
     messageText="${1}"
     #  Title
@@ -203,29 +203,29 @@ function displayNotification() {
         messageDuration=2
     else messageDuration="${4}"
     fi
-    #  Supress notification
+    #  Suppress notification
     if [[ -z "${5}" ]]; then
-        supressNotification='false'
-    else supressNotification="${5}"
+        suppressNotification='false'
+    else suppressNotification="${5}"
     fi
-    #  Supress terminal
+    #  Suppress terminal
     if [[ -z "${6}" ]]; then
-        supressTerminal='false'
-    else supressTerminal="${6}"
+        suppressTerminal='false'
+    else suppressTerminal="${6}"
     fi
 
 
     ## Debug variables
-    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration ; supressNotification: $supressNotification ; supressTerminal: $supressTerminal"
+    #echo "messageText: $messageText; messageTitle: $messageTitle; messageSubtitle: $messageSubtitle; messageDuration: $messageDuration ; suppressNotification: $suppressNotification ; suppressTerminal: $suppressTerminal"
 
     ## Display notification
-    if [[ "$supressNotification" == 'false' ]]; then
+    if [[ "$suppressNotification" == 'false' ]]; then
         osascript -e "display notification \"${messageText}\" with title \"${messageTitle}\" subtitle \"${messageSubtitle}\""
         sleep "$messageDuration"
     fi
 
     ## Display notification in terminal
-    if [[ "$supressTerminal" == 'false' ]]; then echo "$(date) | $messageText" ; fi
+    if [[ "$suppressTerminal" == 'false' ]]; then echo "$(date) | $messageText" ; fi
 }
 #endregion
 
