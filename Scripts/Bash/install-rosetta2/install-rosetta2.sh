@@ -92,7 +92,7 @@ function startLogging() {
 #.SYNOPSIS
 #    Starts logging.
 #.DESCRIPTION
-#    Starts loggign to to log file and STDOUT.
+#    Starts logging to to log file and STDOUT.
 #.PARAMETER logName
 #    Specifies the name of the log file.
 #.PARAMETER logDir
@@ -155,7 +155,7 @@ function displayNotification() {
 #    Specifies the subtitle of the notification. Defaults to $messageSubtitle.
 #.PARAMETER messageDuration
 #    Specifies the minimum duration of the notification in seconds. Defaults to 2.
-#.PARAMETER supressTerminal
+#.PARAMETER suppressTerminal
 #    Suppresses the notification in the terminal. Defaults to false.
 #.EXAMPLE
 #    displayNotification "message" "title" "subtitle" "duration"
@@ -196,10 +196,10 @@ function displayNotification() {
         messageDuration=2
     else messageDuration="${4}"
     fi
-    #  Supress terminal
+    #  Suppress terminal
     if [[ -z "${5}" ]]; then
-        supressTerminal='false'
-    else supressTerminal="${5}"
+        suppressTerminal='false'
+    else suppressTerminal="${5}"
     fi
 
     ## Debug variables
@@ -210,7 +210,7 @@ function displayNotification() {
     sleep "$messageDuration"
 
     ## Display notification in terminal
-    if [[ "$supressTerminal" == 'false' ]]; then echo "$messageText" ; fi
+    if [[ "$suppressTerminal" == 'false' ]]; then echo "$messageText" ; fi
 }
 #endregion
 
@@ -225,7 +225,7 @@ function waitForProcess() {
 #.PARAMETER fixedDelay
 #    Specifies the detection delay. If it's not specified a random amount of time between 10 and 60 seconds will be used.
 #.PARAMETER terminate
-#    Specify to wait for the process to finish or to terminate it imediately. Defaults to false.
+#    Specify to wait for the process to finish or to terminate it immediately. Defaults to false.
 #.EXAMPLE
 #    waitForProcess '/usr/sbin/softwareupdate'
 #.INPUTS
