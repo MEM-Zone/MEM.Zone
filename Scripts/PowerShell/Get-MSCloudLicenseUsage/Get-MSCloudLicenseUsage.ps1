@@ -16,7 +16,7 @@
 .PARAMETER SlackWebhookURI
     On what slack channel must the message be posted on.
 .EXAMPLE
-    Check-License.ps1 -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -skuIds $skuIds -minAmount $minAmount -slackWebhookURI $slackWebhookURI
+    Get-MSCloudLicenseUsage.ps1 -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -skuIds $skuIds -minAmount $minAmount -slackWebhookURI $slackWebhookURI
 .INPUTS
     None.
 .OUTPUTS
@@ -369,10 +369,17 @@ Function Invoke-MSGraphAPI {
             $Output = Invoke-RestMethod @Parameters
 
             ## If there are more than 1000 rows, use paging. Only for GET method.
-            If ($Output.'@odata.nextLink') {
-                $Output += Do {
-                    $Parameters.Uri = $OutputPage.'@odata.nextLink'
+            If (-not [string]::IsNullOrEmpty($Output.'@odata.nextLink')) {
+                #  Assign the nextLink to the Uri
+                $Parameters.Uri = $Output.'@odata.nextLink'
+                [array]$Output += Do {
+                    #  Invoke the MSGraph API
                     $OutputPage = Invoke-RestMethod @Parameters
+                    #  Assign the nextLink to the Uri
+                    $Parameters.Uri = $OutputPage.'@odata.nextLink'
+                    #  Write Debug information
+                    Write-Debug -Message "Parameters:`n$($Parameters | Out-String)"
+                    #  Return the OutputPage
                     $OutputPage
                 }
                 Until ([string]::IsNullOrEmpty($OutputPage.'@odata.nextLink'))
@@ -380,7 +387,7 @@ Function Invoke-MSGraphAPI {
             Write-Verbose -Message "Got '$($Output.Count)' Output pages."
         }
         Catch {
-            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Version, $Resource, $Method
+            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Version, $Resource, $Method, $PSItem.Exception
             Write-Log -Message $Message -Severity 3
             Write-Error -Message $Message
         }
