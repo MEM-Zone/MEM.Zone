@@ -1,5 +1,11 @@
 # Rename-IntuneComputer release history
 
+## 2.3.0 - 2024-07-10
+
+* Renamed `Get-MsGraphAccessToken` to `Get-MsGraphAPIAccessToken` to better reflect the function's purpose.
+* Fixed a bug with the `Invoke-MSGraphAPI` pagination handling. The script now correctly handles the `@odata.nextLink` property and fetches all pages of the response.
+* Fixed the `Error Message` in the `Invoke-MSGraphAPI` function to correctly display the error message from the response body.
+
 ## 2.2.0 - 2024-06-19
 
 * Fixed `Invoke-MSGraphAPI` function output when `content` is empty.

@@ -147,37 +147,48 @@ Function Write-Log {
 }
 #endregion Function Write-Log
 
-#region Function Get-MSGraphAPItoken
-Function Get-MSGraphAPItoken {
+#region Function Get-MSGraphAPIAccessToken
+Function Get-MSGraphAPIAccessToken {
 <#
 .SYNOPSIS
-    Gets a Microsoft Graph API Token.
+    Gets a Microsoft Graph API access token.
 .DESCRIPTION
-    Gets a Microsoft Graph API Token, expiresInSec and retrieveTimeUtc, using a TenantID, AppID and AppSecret
-.PARAMETER tenantID
-    Specifies the Azure Tenant ID.
-.PARAMETER applicationID
-    Specifies the Azure Application ID.
-.PARAMETER applicationSecret
-    Specifies the Azure Application Secret.
+    Gets a Microsoft Graph API access token, by using an application registered in EntraID.
+.PARAMETER TenantID
+    Specifies the tenant ID.
+.PARAMETER ClientID
+    Specify the Application Client ID to use.
+.PARAMETER Secret
+    Specify the Application Client Secret to use.
+.PARAMETER Scope
+    Specify the scope to use.
+    Default is: 'https://graph.microsoft.com/.default'.
+.PARAMETER GrantType
+    Specify the grant type to use.
+    Default is: 'client_credentials'.
 .EXAMPLE
-    Get-MSGraphAPItoken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret
+    Get-MSGraphAPIAccessToken -TenantID $TenantID -ClientID $ClientID -Secret $Secret -Scope 'https://graph.microsoft.com/.default' -GrantType 'client_credentials'
+.EXAMPLE
+    Get-MSGraphAPIAccessToken -TenantID $TenantID -ClientID $ClientID -Secret $Secret
 .INPUTS
     None.
 .OUTPUTS
-    System.String.
+    System.String
 .NOTES
-    This is an internal script function and should typically not be called directly.
+    Created by Ioan Popovici
+    v1.0.0 - 2024-01-11
 .LINK
-    https://MEM.Zone
+    https://MEMZ.one/Invoke-MSGraphAPI
 .LINK
-    https://MEM.Zone/GIT
+    https://MEMZ.one/Invoke-MSGraphAPI-CHANGELOG
+.LINK
+    https://MEMZ.one/Invoke-MSGraphAPI-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
     MSGraph
 .FUNCTIONALITY
-    Invokes the Microsoft Graph API.
+    Gets a Microsoft Graph API Access Token.
 #>
 [CmdletBinding()]
     Param (
@@ -230,17 +241,17 @@ Function Get-MSGraphAPItoken {
             $Output = [pscustomobject]@{
                 access_token = $Response.access_token
                 expires_in   = $Response.expires_in
-                granted_on = $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+                granted_on   = $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
             }
         }
         Catch {
 
             ## Write exception to log.
             #  Note that value__ is not a typo.
-            [string]$StatusCode = $_.Exception.Response.StatusCode.value__
-            [string]$StatusDescription = $_.Exception.Response.StatusDescription
+            [string]$StatusCode = $PsItem.Exception.Response.StatusCode.value__
+            [string]$StatusDescription = $PSItem.Exception.Response.StatusDescription
             #  Assemble the error message
-            [string]$Message = "Error getting MSGraph API Access Token for TenantID '{0}' with ClientID '{1}'.`n Status code {'2'}, Description {'3'}.`n{4}" -f $TenantID, $ClientID, $StatusCode, $StatusDescription, $_.Exception.Message
+            [string]$Message = "Error getting MSGraph API Access Token for TenantID '{0}' with ClientID '{1}'.`n Status code {'2'}, Description {'3'}.`n{4}" -f $TenantID, $ClientID, $StatusCode, $StatusDescription, $PSItem.Exception.Message
             Write-Log -Message $Message -Severity 3
         }
         Finally {
@@ -250,7 +261,7 @@ Function Get-MSGraphAPItoken {
     End {
     }
 }
-#endregion Function Get-GraphApiToken
+#endregion
 
 #region Function Invoke-MSGraphAPI
 Function Invoke-MSGraphAPI {
@@ -292,16 +303,12 @@ Function Invoke-MSGraphAPI {
 .NOTES
     Created by Ioan Popovici
     v1.0.0 - 2024-01-11
-    Changes made by Ferry Bodijn
-    v1.0.1 - 2024-03-07 Made some changes to make the function work properly
-    v1.0.2 - 2024-04-22 Sometimes there is no output.value. The correct data is already returned. Fixed this.
-    v1.0.3 - 2024-06-19 - Review Paging and overall functionality
-
-    This is an private function should typically not be called directly.
 .LINK
-    https://MEM.Zone
+    https://MEMZ.one/Invoke-MSGraphAPI
 .LINK
-    https://MEM.Zone/GIT
+    https://MEMZ.one/Invoke-MSGraphAPI-CHANGELOG
+.LINK
+    https://MEMZ.one/Invoke-MSGraphAPI-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -387,7 +394,7 @@ Function Invoke-MSGraphAPI {
             Write-Verbose -Message "Got '$($Output.Count)' Output pages."
         }
         Catch {
-            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Version, $Resource, $Method, $PSItem.Exception
+            [string]$Message = "Error invoking MSGraph API version '{0}' for resource '{1}' using '{2}' method.`n{3}" -f $Version, $Resource, $Method, $Error[0].Exception.Message
             Write-Log -Message $Message -Severity 3
             Write-Error -Message $Message
         }
@@ -505,7 +512,7 @@ If (Test-Path "$ScriptPath\$ScriptName.txt" -PathType 'Leaf') { Remove-Item -Pat
 Write-Log -Message "Start '$ScriptName'" -Severity 1
 
 ## Get API Token
-$AccessToken = Get-MSGraphApiToken -TenantID $TenantID ClientID $ClientID ClientSecret $ClientSecret -ErrorAction 'Stop'
+$AccessToken = Get-MSGraphAPIAccessToken -TenantID $TenantID ClientID $ClientID ClientSecret $ClientSecret -ErrorAction 'Stop'
 $Token = $AccessToken.access_token
 
 
@@ -541,7 +548,7 @@ Foreach ($SkuID in $SkuIDs) {
     If ($TokenExpiryTime.AddMinutes(-5) -lt [DateTime]::UtcNow) {
 
         ## Regenerate token
-        $AccessToken = Get-MSGraphApiToken -TenantID $TenantID ClientID $ClientID ClientSecret $ClientSecret -ErrorAction 'Stop'
+        $AccessToken = Get-MSGraphAPIAccessToken -TenantID $TenantID ClientID $ClientID ClientSecret $ClientSecret -ErrorAction 'Stop'
         $Token = $AccessToken.access_token
     }
 
