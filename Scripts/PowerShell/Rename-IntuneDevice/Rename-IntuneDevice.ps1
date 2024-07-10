@@ -842,13 +842,13 @@ Function Show-Progress {
 }
 #endregion
 
-#region Function Get-MSGraphAccessToken
-Function Get-MSGraphAccessToken {
+#region Function Get-MSGraphAPIAccessToken
+Function Get-MSGraphAPIAccessToken {
 <#
 .SYNOPSIS
     Gets a Microsoft Graph API access token.
 .DESCRIPTION
-    Gets a Microsoft Graph API access token,by using an application registered in EntraID.
+    Gets a Microsoft Graph API access token, by using an application registered in EntraID.
 .PARAMETER TenantID
     Specifies the tenant ID.
 .PARAMETER ClientID
@@ -862,7 +862,9 @@ Function Get-MSGraphAccessToken {
     Specify the grant type to use.
     Default is: 'client_credentials'.
 .EXAMPLE
-    Get-MSGraphAccessToken -TenantID $TenantID -ClientID $ClientID -Secret $Secret
+    Get-MSGraphAPIAccessToken -TenantID $TenantID -ClientID $ClientID -Secret $Secret -Scope 'https://graph.microsoft.com/.default' -GrantType 'client_credentials'
+.EXAMPLE
+    Get-MSGraphAPIAccessToken -TenantID $TenantID -ClientID $ClientID -Secret $Secret
 .INPUTS
     None.
 .OUTPUTS
@@ -870,18 +872,18 @@ Function Get-MSGraphAccessToken {
 .NOTES
     Created by Ioan Popovici
     v1.0.0 - 2024-01-11
-
-    This is an private function should typically not be called directly.
 .LINK
-    https://MEM.Zone
+    https://MEMZ.one/Invoke-MSGraphAPI
 .LINK
-    https://MEM.Zone/GIT
+    https://MEMZ.one/Invoke-MSGraphAPI-CHANGELOG
+.LINK
+    https://MEMZ.one/Invoke-MSGraphAPI-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
     MSGraph
 .FUNCTIONALITY
-    Invokes the Microsoft Graph API.
+    Gets a Microsoft Graph API Access Token.
 #>
     [CmdletBinding()]
     Param (
@@ -994,12 +996,12 @@ Function Invoke-MSGraphAPI {
 .NOTES
     Created by Ioan Popovici
     v1.0.0 - 2024-01-11
-
-    This is an private function should typically not be called directly.
 .LINK
-    https://MEM.Zone
+    https://MEMZ.one/Invoke-MSGraphAPI
 .LINK
-    https://MEM.Zone/GIT
+    https://MEMZ.one/Invoke-MSGraphAPI-CHANGELOG
+.LINK
+    https://MEMZ.one/Invoke-MSGraphAPI-GIT
 .LINK
     https://MEM.Zone/ISSUES
 .COMPONENT
@@ -1045,7 +1047,7 @@ Function Invoke-MSGraphAPI {
         [string]${CmdletName} = $PSCmdlet.MyInvocation.MyCommand.Name
 
         ## Assemble the URI for the API call
-        [string]$Uri = "https://graph.microsoft.com/$Version/$Resource"
+        [string]$Uri = -join ("https://graph.microsoft.com/", $Version, "/", $Resource)
         If (-not [string]::IsNullOrWhiteSpace($Parameter)) { $Uri += "`?`$$Parameter" }
 
         ## Assembly parameters for the API call
@@ -1070,10 +1072,17 @@ Function Invoke-MSGraphAPI {
             $Output = Invoke-RestMethod @Parameters
 
             ## If there are more than 1000 rows, use paging. Only for GET method.
-            If ($Output.'@odata.nextLink') {
-                $Output += Do {
-                    $Parameters.Uri = $OutputPage.'@odata.nextLink'
+            If (-not [string]::IsNullOrEmpty($Output.'@odata.nextLink')) {
+                #  Assign the nextLink to the Uri
+                $Parameters.Uri = $Output.'@odata.nextLink'
+                [array]$Output += Do {
+                    #  Invoke the MSGraph API
                     $OutputPage = Invoke-RestMethod @Parameters
+                    #  Assign the nextLink to the Uri
+                    $Parameters.Uri = $OutputPage.'@odata.nextLink'
+                    #  Write Debug information
+                    Write-Debug -Message "Parameters:`n$($Parameters | Out-String)"
+                    #  Return the OutputPage
                     $OutputPage
                 }
                 Until ([string]::IsNullOrEmpty($OutputPage.'@odata.nextLink'))
@@ -1114,7 +1123,7 @@ Try {
     Write-Log -Message 'Start' -VerboseMessage
 
     ## Get API Token
-    $Token = (Get-MSGraphAccessToken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction 'Stop').access_token
+    $Token = (Get-MSGraphAPIAccessToken -TenantID $TenantID -ClientID $ClientID -ClientSecret $ClientSecret -ErrorAction 'Stop').access_token
 
     ## Get the device information
     Write-Verbose -Message "Getting device information, this might take a while..." -Verbose
