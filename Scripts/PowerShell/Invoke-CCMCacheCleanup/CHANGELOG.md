@@ -1,5 +1,9 @@
 # Invoke-CCMCacheCleanup release history
 
+## 6.0.3 - 2024-08-19
+
+* Fixed one instance of `ScriptSection` parameter being passed to `Write-Log` as `{CmdletName}` instead of `{ScriptSection}`
+
 ## 6.0.2 - 2023-08-01
 
 * Fixed `FreeDiskSpaceThreshold` terminating the script if `Automatic` cleanup type is not selected and free disk space is over threshold.
