@@ -1753,7 +1753,7 @@ Try {
     }
     Else {
         Write-Log -Message 'Should Run test failed.' -Severity '3' -ScriptSection ${ScriptSection}
-        Write-Log -Message "FreeSpace/Threshold [$DriveFreeSpacePercentage`/$LowDiskSpaceThreshold] | IsSuperPeer/SkipSuperPeer [$CanBeSuperPeer`/$SkipSuperPeer]" -DebugMessage -ScriptSection ${CmdletName}
+        Write-Log -Message "FreeSpace/Threshold [$DriveFreeSpacePercentage`/$LowDiskSpaceThreshold] | IsSuperPeer/SkipSuperPeer [$CanBeSuperPeer`/$SkipSuperPeer]" -DebugMessage -ScriptSection ${ScriptSection}
         Write-Log -Message 'Stop' -VerboseMessage -ScriptSection ${ScriptSection}
 
         ## Stop execution
