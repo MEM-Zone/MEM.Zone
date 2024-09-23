@@ -1,5 +1,9 @@
 # Invoke-CCMCacheCleanup release history
 
+## 6.0.4 - 2024-09-23
+
+* Added warning on incorrect `CacheType = 'Orphaned'`  in conjunction with `CleanupType = 'Tombstoned'` parameter usage (Issue #20) @mbradley73.
+
 ## 6.0.3 - 2024-08-19
 
 * Fixed one instance of `ScriptSection` parameter being passed to `Write-Log` as `{CmdletName}` instead of `{ScriptSection}`
