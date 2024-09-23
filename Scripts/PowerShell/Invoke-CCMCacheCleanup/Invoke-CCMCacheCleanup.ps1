@@ -16,7 +16,7 @@
         - 'All'
             Tombstoned and Referenced cache will be deleted, 'SkipSuperPeer' and 'DeletePinned' switches will still be respected.
             The 'EligibleForDeletion' convention is NOT respected.
-            Not recommended but still safe to use, cache will be redownloaded when needed
+            Not recommended but still safe to use, cache will be re-downloaded when needed
         - 'Automatic'
             'Tombstoned' and 'Referenced' will be selected depending on 'FreeDiskSpaceThreshold' parameter.
             If under the threshold only 'Tombstoned' cache items will be deleted.
@@ -28,7 +28,7 @@
         - 'Referenced'
             Only 'Referenced' cache items will be deleted.
             The 'EligibleForDeletion' convention is still respected.
-            Not recommended but still safe to use, cache will be redownloaded when needed
+            Not recommended but still safe to use, cache will be re-downloaded when needed
 .PARAMETER FreeDiskSpaceThreshold
     Specifies the free disk space threshold percentage after which the cache is cleaned. Default is: '100'.
     If it's set to '100', Free Space Threshold Percentage is ignored.
@@ -1040,7 +1040,7 @@ Function Get-CCMOrphanedCache {
 .SYNOPSIS
     Lists ccm orphaned cache items.
 .DESCRIPTION
-    Lists configuration manager client disk cache items that are not found in WMI and viceversa.
+    Lists configuration manager client disk cache items that are not found in WMI and vice versa.
 .EXAMPLE
     Get-CCMOrphanedCache
 .INPUTS
@@ -1772,6 +1772,13 @@ Try {
 
     ## Write debug action
     Write-Log -Message "Cleanup Actions [$CleanupType] on [$CacheType]" -DebugMessage -ScriptSection ${ScriptSection}
+
+    ## Check for incorrect parameter usage
+    If ($CacheType -contains 'Orphaned' -and $CleanupType -contains 'Tombstoned') {
+        [string]$Message = "'Tombstoned' information is not available for 'Orphaned' cache items. Please use 'All' or 'Automatic' cleanup types."
+        Write-Log -Message $Message -Severity '2' -ScriptSection ${ScriptSection}
+        Write-Warning -Message $Message
+    }
 
     $Output = Invoke-CCMCacheCleanup -CacheType $CacheType -CleanupType $CleanupType -DeletePinned:$DeletePinned
 }
