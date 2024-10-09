@@ -4,7 +4,7 @@
 
 * [Reverted] - Added warning on incorrect `CacheType = 'Orphaned'`  in conjunction with `CleanupType = 'Tombstoned'` parameter usage.
 * [Breaking] - Removed the multiple value usage in `CleanupType` parameter. Only one value can be used at a time. (Issue #20) @mbradley73.
-* Fixed `Automatic` cleanup exit condition. (Issue #20) @mbradley73.
+* Fixed `Automatic` cleanup exit condition. (Issue #20, Issue #21) @mbradley73 and @Life-of-Roy.
 * Added `Total Found` and `Total Deleted` counters.
 * Added more explicit self-help comments.
 * Fixed a bunch of typos and grammar issues.
