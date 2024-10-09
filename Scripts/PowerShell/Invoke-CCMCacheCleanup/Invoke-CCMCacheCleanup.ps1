@@ -4,19 +4,20 @@
 .DESCRIPTION
     Cleans the configuration manager client cache of all unneeded with the option to delete pinned content.
 .PARAMETER CacheType
-    Specifies Cache Type to clean. ('All', 'Application', 'Package', 'Update', 'Orphaned'). Default is: 'All'.
-    If it's set to 'All' all cache will be processed.
+    Specifies Cache Type to clean. ('All', 'Application', 'Package', 'Update', 'Orphaned').
+    Supports multiple values. Default is: 'All'.
+    If it's set to 'All' all cache will be processed and other specified types will be ignored.
 .PARAMETER CleanupType
-    Specifies Cleanup Type to clean. ('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced'). Default is: 'Automatic'.
-    If 'All', 'Automatic' or 'ListOnly' is selected the other options will be ignored.
+    Specifies Cleanup Type to clean. ('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced').
+    Supports only one value. Default is: 'Automatic'.
     A 'Referenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified 'MaxCacheDuration'.
-    An 'Unreferenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified in 'TombStoneDuration'.
+    A 'Unreferenced' item is eligible for deletion if the time specified in its 'LastReferenceTime' property is longer than the time specified in 'TombStoneDuration'.
 
     Available Cleanup Options:
         - 'All'
-            Tombstoned and Referenced cache will be deleted, 'SkipSuperPeer' and 'DeletePinned' switches will still be respected.
+            Tombstoned and Referenced cache will be deleted.
             The 'EligibleForDeletion' convention is NOT respected.
-            Not recommended but still safe to use, cache will be re-downloaded when needed
+            Not recommended but still safe to use, cache will be re-downloaded when needed.
         - 'Automatic'
             'Tombstoned' and 'Referenced' will be selected depending on 'FreeDiskSpaceThreshold' parameter.
             If under the threshold only 'Tombstoned' cache items will be deleted.
@@ -28,7 +29,8 @@
         - 'Referenced'
             Only 'Referenced' cache items will be deleted.
             The 'EligibleForDeletion' convention is still respected.
-            Not recommended but still safe to use, cache will be re-downloaded when needed
+            Not recommended but still safe to use, cache will be re-downloaded when needed.
+    Note that 'SkipSuperPeer' and 'DeletePinned' switches are always respected in all cleanup types.
 .PARAMETER FreeDiskSpaceThreshold
     Specifies the free disk space threshold percentage after which the cache is cleaned. Default is: '100'.
     If it's set to '100', Free Space Threshold Percentage is ignored.
@@ -45,7 +47,11 @@
 .PARAMETER LogDebugMessages
     This switch specifies to log debug messages. Default is: $false.
 .EXAMPLE
-    Invoke-CCMCacheCleanup -CacheType "Application, Package, Update, Orphaned" -CleanupType "Tombstoned, Referenced" -FreeDiskSpaceThreshold '100' -SkipSuperPeer -DeletePinned
+    Invoke-CCMCacheCleanup -CacheType 'All' -CleanupType 'Automatic' -DeletePinned
+    .EXAMPLE
+    Invoke-CCMCacheCleanup -CacheType 'Orphaned' -CleanupType 'ListOnly' -DeletePinned
+.EXAMPLE
+    Invoke-CCMCacheCleanup -CacheType "Application, Package, Update, Orphaned" -CleanupType 'Tombstoned' -FreeDiskSpaceThreshold '100' -SkipSuperPeer -DeletePinned
 .INPUTS
     None.
 .OUTPUTS
@@ -84,7 +90,7 @@ Param (
     [Parameter(Mandatory = $false, Position = 1)]
     [ValidateSet('All', 'Automatic', 'ListOnly', 'Tombstoned', 'Referenced')]
     [Alias('Action')]
-    [string[]]$CleanupType = 'Automatic',
+    [string]$CleanupType = 'Automatic',
     [Parameter(Mandatory = $false, Position = 2)]
     [ValidateNotNullorEmpty()]
     [Alias('FreeSpace')]
@@ -696,7 +702,7 @@ Function Show-Progress {
     Displays progress info.
 .DESCRIPTION
     Displays progress info and maximizes code reuse by automatically calculating the progress steps.
-.PARAMETER Actity
+.PARAMETER Activity
     Specifies the progress activity. Default: 'Cleaning Up Configuration Manager Client Cache, Please Wait...'.
 .PARAMETER Status
     Specifies the progress status.
@@ -722,11 +728,11 @@ Function Show-Progress {
     Created by Ioan Popovici.
     v2.0.0 - 2021-01-01
 
-    This is an private function should tipically not be called directly.
+    This is an private function should typically not be called directly.
     Credit to Adam Bertram.
 
     ## !! IMPORTANT !! ##
-    #  You need to tokenize the scripts steps at the begining of the script in order for Show-Progress to work:
+    #  You need to tokenize the scripts steps at the beginning of the script in order for Show-Progress to work:
 
     ## Get script path and name
     [string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
@@ -835,9 +841,9 @@ Function Show-Progress {
 Function Format-Bytes {
 <#
 .SYNOPSIS
-    Formats a number of bytes in the coresponding sizes.
+    Formats a number of bytes in the corresponding sizes.
 .DESCRIPTION
-    Formats a number of bytes bytes in the coresponding sizes depending or the size ('KB','MB','GB','TB','PB').
+    Formats a number of bytes bytes in the corresponding sizes depending or the size ('KB','MB','GB','TB','PB').
 .PARAMETER Bytes
     Specifies bytes to format.
 .EXAMPLE
@@ -850,7 +856,7 @@ Function Format-Bytes {
     Created by Ioan Popovici.
     v1.0.0 - 2021-09-01
 
-    This is an private function should tipically not be called directly.
+    This is an private function should typically not be called directly.
     Credit to Anthony Howell.
 .LINK
     https://theposhwolf.com/howtos/Format-Bytes/
@@ -1478,7 +1484,7 @@ Function Remove-CCMCacheElement {
                 $null = $CCMComObject.GetCacheInfo().DeleteCacheElementEx([string]$($CacheElement.CacheElementID), [bool]$DeletePinned)
                 $CacheElement.Status = 'Deleted'
 
-                ## This is a hack making the script slower to check if the cache elment is pinned.
+                ## This is a hack making the script slower to check if the cache element is pinned.
                 #  'PersistInCache' value is no longer in use and there is no documentation about the 'DeploymentFlags'
                 If ($CacheElement.CacheType -in @('Application', 'Package')) {
 
@@ -1662,11 +1668,13 @@ Function Invoke-CCMCacheCleanup {
                             If ($CacheElement.TombStoned) {
                                 $CleanupCacheSB.Invoke()
                             }
+                            Break
                         }
                         'Referenced' {
                             If ($CacheElement.ReferenceCount -gt 0) {
                                 $CleanupCacheSB.Invoke()
                             }
+                            Break
                         }
                         Default {
 
@@ -1687,7 +1695,7 @@ Function Invoke-CCMCacheCleanup {
         Catch {
 
             ## Return custom error
-            $Message       = [string]"Error proccessing cache for removal '{0}'`n{1}" -f $($CacheElement.CacheElementID), $(Resolve-Error)
+            $Message       = [string]"Error processing cache for removal '{0}'`n{1}" -f $($CacheElement.CacheElementID), $(Resolve-Error)
             $Exception     = [Exception]::new($Message)
             $ExceptionType = [Management.Automation.ErrorCategory]::OperationStopped
             $ErrorRecord   = [System.Management.Automation.ErrorRecord]::new($Exception, $PSItem.FullyQualifiedErrorId, $ExceptionType, $CacheElement)
@@ -1744,16 +1752,20 @@ Try {
     ## Get super peer status
     $CanBeSuperPeer = [boolean]$(Get-CimInstance -Namespace 'root\ccm\Policy\Machine\ActualConfig' -ClassName 'CCM_SuperPeerClientConfig' -Verbose:$false -ErrorAction 'SilentlyContinue').CanBeSuperPeer
 
-    ## Set run condition. If disk free space is above the specified threshold or CanBeSuperPeer is true and SkipSuperPeer is not specified, the script will not run.
-    If (($DriveFreeSpacePercentage -gt $FreeDiskSpaceThreshold -or $CleanupType -notcontains 'Automatic') -or ($CanBeSuperPeer -eq $true -and $SkipSuperPeer)) { $ShouldRun = $false }
+    ## Set run condition.
+    #  The script will exit if:
+    #      * Disk free space greater than 'FreeDiskSpaceThreshold' and 'CleanupTpe' is not 'Automatic'.
+    #      * CanBeSuperPeer is true and 'SkipSuperPeer' is not specified.
+    #  Note that 'Automatic' cleanup will be allowed even the first condition is not met as it's using a different logic depending on the 'FreeDiskSpaceThreshold' parameter.
+    If (($DriveFreeSpacePercentage -gt $FreeDiskSpaceThreshold -and $CleanupType -ne 'Automatic') -or ($CanBeSuperPeer -eq $true -and $SkipSuperPeer)) { $ShouldRun = $false }
 
     ## Check run condition and stop execution if $ShouldRun is not $true
     If ($ShouldRun) {
         Write-Log -Message 'Should Run test passed' -VerboseMessage -ScriptSection ${ScriptSection}
     }
     Else {
-        Write-Log -Message 'Should Run test failed.' -Severity '3' -ScriptSection ${ScriptSection}
-        Write-Log -Message "FreeSpace/Threshold [$DriveFreeSpacePercentage`/$LowDiskSpaceThreshold] | IsSuperPeer/SkipSuperPeer [$CanBeSuperPeer`/$SkipSuperPeer]" -DebugMessage -ScriptSection ${ScriptSection}
+        Write-Log -Message "Should Run test failed. Check 'FreeDiskSpaceThreshold' and 'SkipSuperPeer' parameters." -Severity '3' -ScriptSection ${ScriptSection}
+        Write-Log -Message "FreeSpace/Threshold [$DriveFreeSpacePercentage`/$FreeDiskSpaceThreshold] | IsSuperPeer/SkipSuperPeer [$CanBeSuperPeer`/$SkipSuperPeer]" -VerboseMessage -ScriptSection ${ScriptSection}
         Write-Log -Message 'Stop' -VerboseMessage -ScriptSection ${ScriptSection}
 
         ## Stop execution
@@ -1773,13 +1785,7 @@ Try {
     ## Write debug action
     Write-Log -Message "Cleanup Actions [$CleanupType] on [$CacheType]" -DebugMessage -ScriptSection ${ScriptSection}
 
-    ## Check for incorrect parameter usage
-    If ($CacheType -contains 'Orphaned' -and $CleanupType -contains 'Tombstoned') {
-        [string]$Message = "'Tombstoned' information is not available for 'Orphaned' cache items. Please use 'All' or 'Automatic' cleanup types."
-        Write-Log -Message $Message -Severity '2' -ScriptSection ${ScriptSection}
-        Write-Warning -Message $Message
-    }
-
+    ## Perform cleanup action
     $Output = Invoke-CCMCacheCleanup -CacheType $CacheType -CleanupType $CleanupType -DeletePinned:$DeletePinned
 }
 Catch {
@@ -1792,11 +1798,12 @@ Finally {
     [string]${ScriptSection} = 'Main:Output'
 
     ## Calculate total deleted size
+    [int16]$TotalDeleted = $($Output | Where-Object { $PSItem.Status -eq 'Deleted' }).Count
     $TotalDeletedSize = ($Output | Where-Object { $PSItem.Status -eq 'Deleted' } | Measure-Object -Property 'ContentSize' -Sum | Select-Object -ExpandProperty 'Sum') * 1000 | Format-Bytes
     If (-not $TotalDeletedSize) { $TotalDeletedSize = 0 }
 
     ## Assemble output output
-    $Output = $($Output | Format-List -Property 'CacheType', 'Name', 'Location', 'ContentSize', 'CacheElementID', 'Status' | Out-String) + "Total Deleted: " + $TotalDeletedSize
+    $Output = $($Output | Format-List -Property 'CacheType', 'Name', 'Location', 'ContentSize', 'CacheElementID', 'Status' | Out-String) + "Total Found  : $($Output.Count) `nTotal Deleted: $TotalDeleted [$TotalDeletedSize]"
 
     ## Write output to log, event log and console and status
     Write-Log -Message $Output -ScriptSection ${ScriptSection} -PassThru

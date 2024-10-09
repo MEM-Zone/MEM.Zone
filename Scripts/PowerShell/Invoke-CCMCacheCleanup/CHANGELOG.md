@@ -1,5 +1,14 @@
 # Invoke-CCMCacheCleanup release history
 
+## 7.0.0 - 2024-10-09
+
+* [Reverted] - Added warning on incorrect `CacheType = 'Orphaned'`  in conjunction with `CleanupType = 'Tombstoned'` parameter usage.
+* [Breaking] - Removed the multiple value usage in `CleanupType` parameter. Only one value can be used at a time. (Issue #20) @mbradley73.
+* Fixed `Automatic` cleanup exit condition. (Issue #20) @mbradley73.
+* Added `Total Found` and `Total Deleted` counters.
+* Added more explicit self-help comments.
+* Fixed a bunch of typos and grammar issues.
+
 ## 6.0.4 - 2024-09-23
 
 * Added warning on incorrect `CacheType = 'Orphaned'`  in conjunction with `CleanupType = 'Tombstoned'` parameter usage (Issue #20) @mbradley73.
