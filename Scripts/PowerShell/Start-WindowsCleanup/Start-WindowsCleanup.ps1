@@ -731,7 +731,7 @@ Function Show-Progress {
     Displays progress info.
 .DESCRIPTION
     Displays progress info and maximizes code reuse by automatically calculating the progress steps.
-.PARAMETER Actity
+.PARAMETER Activity
     Specifies the progress activity. Default: 'Running Cleanup Please Wait...'.
 .PARAMETER Status
     Specifies the progress status.
@@ -1085,7 +1085,7 @@ Function Start-WindowsCleanup {
                     ReclaimedSpace
 
                 ## Warn that a reboot might be needed
-                Write-Warning -Message "SxS processing only occurs on system startup. Negative 'Reclaimed' values on repeaded runs are normal, you need to reboot." -Verbose
+                Write-Warning -Message "SxS processing only occurs on system startup. Negative 'Reclaimed' values on repeated runs are normal, you need to reboot." -Verbose
 
                 ## Write to the event log
                 [string]$EventLogEntry = "Cleanup Completed for $env:COMPUTERNAME ($MachineOS)!`n$($Output | Out-String)"
