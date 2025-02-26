@@ -1,5 +1,9 @@
 # Start-WindowsCleanup release history
 
+## 4.0.2 - 2025-02-06
+
+* Fixed spelling mistakes in descriptions
+
 ## 4.0.1 - 2023-08-11
 
 * Fixed spelling mistakes in descriptions
@@ -59,7 +63,7 @@
 ## 2.6.0 - 2018-10-03
 
 * Fixed parameter bug
-* Minor formating changes
+* Minor formatting changes
 
 ## 2.5.0 - 2018-10-01
 
