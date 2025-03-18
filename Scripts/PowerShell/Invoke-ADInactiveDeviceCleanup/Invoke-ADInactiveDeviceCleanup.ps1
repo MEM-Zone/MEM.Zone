@@ -4,14 +4,14 @@
 .DESCRIPTION
     Cleans Active Directory devices that have passed the specified inactive threshold by disabling them and optionally moving them to a specified OU.
 .PARAMETER ConfigFilePath
-    Optionally specifies the json configuration file. This is needed for generating the HTML and email the report.
-    When this parameter is not specified, all other parameters are ignored.
+    Optionally specifies the json configuration file path.
+    Default is [ScriptPath]\[ScriptName].json
 .PARAMETER NewConfigFile
     Specifies to create a new json configuration file. This switch must be used in conjunction with the 'ConfigFilePath' parameter.
 .EXAMPLE
-    Invoke-ADInactiveDeviceCleanup.ps1 -Server 'somedomain.com' -SearchBase 'CN=Computers,DC=somedomain,DC=com' -DaysInactive 365 -Destination 'CN=DisabledObjects,DC=somedomain,DC=com'
-.EXAMPLE
     Invoke-ADInactiveDeviceCleanup.ps1 -ConfigFilePath 'C:\Invoke-ADInactiveDeviceCleanup.json'
+.EXAMPLE
+    Invoke-ADInactiveDeviceCleanup.ps1 -ConfigFilePath 'C:\Invoke-ADInactiveDeviceCleanup.json' -NewConfigFile
 .INPUTS
     None.
     System.IO
@@ -35,7 +35,7 @@
     Cleans AD Inactive Devices
 #>
 
-## Set script requirements
+## Set script requirements for Mailkit and Mailmime
 #Requires -Version 7.0
 
 ##*=============================================
@@ -85,7 +85,7 @@ $Script:LogDebugMessages = $false
 $Script:LogFileDirectory = Split-Path -Path $ScriptFullName -Parent
 $Script:LogFilePath      = [IO.Path]::ChangeExtension($ScriptFullName, 'log')
 
-## Initialize ordered hashtables
+## Initialize ordered hash tables
 [System.Collections.Specialized.OrderedDictionary]$HTMLReportConfig = @{}
 [System.Collections.Specialized.OrderedDictionary]$SendMailConfig   = @{}
 [System.Collections.Specialized.OrderedDictionary]$NewTableHeaders  = @{}
@@ -672,7 +672,7 @@ Function Show-Progress {
     Displays progress info.
 .DESCRIPTION
     Displays progress info and maximizes code reuse by automatically calculating the progress steps.
-.PARAMETER Actity
+.PARAMETER Activity
     Specifies the progress activity. Default: 'Running Cleanup Please Wait...'.
 .PARAMETER Status
     Specifies the progress status.
@@ -700,11 +700,11 @@ Function Show-Progress {
     Created by Ioan Popovici.
     v1.0.0 - 2021-01-01
 
-    This is an private function should tipically not be called directly.
+    This is an private function should typically not be called directly.
     Credit to Adam Bertram.
 
     ## !! IMPORTANT !! ##
-    #  You need to tokenize the scripts steps at the begining of the script in order for Show-Progress to work:
+    #  You need to tokenize the scripts steps at the beginning of the script in order for Show-Progress to work:
 
     ## Get script path and name
     [string]$ScriptPath = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Definition)
@@ -889,6 +889,7 @@ Function ConvertTo-HashtableFromPsCustomObject {
     System.Object
 .OUTPUTS
     System.Object
+    Null
 .NOTES
     Created Ioan Popovici
 .LINK
@@ -902,7 +903,7 @@ Function ConvertTo-HashtableFromPsCustomObject {
 #>
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true,ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
+        [Parameter(ValueFromPipeline=$true,ValueFromPipelineByPropertyName=$true,Position=0)]
         [pscustomobject]$PsCustomObject
     )
     Begin {
@@ -915,6 +916,12 @@ Function ConvertTo-HashtableFromPsCustomObject {
         ## The '.PsObject.Members' method preservers the order of the members, Get-Member does not.
         [object]$ObjectProperties = $PsCustomObject.PsObject.Members | Where-Object -Property 'MemberType' -eq 'NoteProperty'
         ForEach ($Property in $ObjectProperties) { $Output.Add($Property.Name, $PsCustomObject.$($Property.Name)) }
+
+        ## Output the hashtable or null if empty
+        If ($Output.Count -eq 0) {
+            $Output = $null
+            Write-Warning -Message 'JSON Configuration Property is Empty!'
+        }
         Write-Output -InputObject $Output
     }
 }
@@ -986,7 +993,7 @@ Function Format-HTMLReport {
 .SYNOPSIS
     Formats a provided object to an HTML report.
 .DESCRIPTION
-    Formats a provided object to an HTML report, by formating table headers, html head and body.
+    Formats a provided object to an HTML report, by formatting table headers, html head and body.
 .PARAMETER ReportContent
     Specifies the report content object to format. Supports pipeline input.
     Default value is an empty string.
@@ -1204,7 +1211,7 @@ Function Send-MailkitMessage {
 .PARAMETER Subject
     Specifies the E-Mail subject.
 .PARAMETER Body
-    Speicfies the E-Mail body.
+    Specifies the E-Mail body.
 .PARAMETER Attachments
     Specifies E-Mail attachments.
 .PARAMETER SMTPServer
@@ -1323,7 +1330,7 @@ Function Get-ADInactiveDevice {
 .SYNOPSIS
     Gets Active Directory inactive devices.
 .DESCRIPTION
-    Gets Active Directory devices that have passed the specified inactive threshhold. Default is '365'.
+    Gets Active Directory devices that have passed the specified inactive threshold. Default is '365'.
 .PARAMETER Server
     Specifies the domain or server to query.
 .PARAMETER SearchBase
@@ -1494,7 +1501,7 @@ Function Invoke-ADInactiveDeviceCleanup {
 
                     ## Disable inactive device
                     Disable-ADAccount -Server $Server -Identity $Identity -ErrorAction 'SilentlyContinue'
-                    #  If operation was succesfull change the property 'Enabled' to false
+                    #  If operation was successful change the property 'Enabled' to false
                     If ($?) { $InactiveDevice.Enabled = $false }
 
                     ## If a target was specified move device to target OU
@@ -1509,7 +1516,7 @@ Function Invoke-ADInactiveDeviceCleanup {
 
                         ## Move object to target OU
                         Move-ADObject -Server $Server -Identity $Identity -TargetPath $TargetPath -ErrorAction 'SilentlyContinue'
-                        #  If operation was succesfull change the property 'Operation' to 'Successful' else change it to 'Failed'
+                        #  If operation was successful change the property 'Operation' to 'Successful' else change it to 'Failed'
                         If ($?) { $InactiveDevice.Operation = 'Successful' } Else { $InactiveDevice.Operation = 'Failed' }
                     }
                 }
@@ -1544,7 +1551,10 @@ Try {
     ## Write execution to log
     Write-Log -Message "Script [$ScriptFullName] started!" -VerboseMessage -LogDebugMessage $true
 
-    ## Check if the configuratin file exists
+    ## Set run datetime
+    [string]$RunDateTime = Get-Date -Format 'yyyy-MM-dd_HH-mm-ss'
+
+    ## Check if the configuration file exists
     [boolean]$ConfigExists = Test-Path -Path $ConfigFilePath
 
     ## Create a new configuration file if specified
@@ -1558,7 +1568,7 @@ Try {
     ## Get configuration file content
     [object]$ScriptConfig = $(Get-Content -Path $ConfigFilePath | ConvertFrom-Json)
 
-    ## Set script configuration from json object and convert them to hashtables. Hashtables are declared in the script initialization.
+    ## Set script configuration from json object and convert them to hash tables. Hash tables are declared in the script initialization.
     $NewTableHeaders  = $ScriptConfig.ReportHeaderColumns | ConvertTo-HashtableFromPsCustomObject
     $HTMLReportConfig = $ScriptConfig.HTMLReportConfig    | ConvertTo-HashtableFromPsCustomObject
     $SendMailConfig   = $ScriptConfig.SendMailConfig      | ConvertTo-HashtableFromPsCustomObject
@@ -1569,9 +1579,9 @@ Try {
         $Script:LogFilePath      = $(Join-Path -Path $Script:LogFileDirectory -ChildPath $($Script:LogSource + '.log'))
     }
 
-    ## Convert the domain config to a hashtable. '$Param' is declared in the script initializtion.
+    ## Convert the domain config to a hashtable. '$Param' is declared in the script initialization.
     $Params = $ScriptConfig.MainConfig | ConvertTo-HashtableFromPsCustomObject
-    #  Splat aditional parameters
+    #  Splat additional parameters
     $Params.Add('Verbose', $VerbosePreference)
     $Params.Add('Debug', $DebugPreference)
 
@@ -1589,14 +1599,17 @@ Finally {
     If ($NewTableHeaders)      { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
     If ($InactiveDevices)      { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
 
+    ## Replace the '$DaysInactive' placeholder in the HTML report header
+    $HTMLReportConfig.ReportHeader = $HTMLReportConfig.ReportHeader.Replace('$DaysInactive', $($ScriptConfig.MainConfig.DaysInactive))
+
     ## If we found devices, convert result to CSV, else add custom message to the result
     If ($InactiveDevices) { $InactiveDevicesCSV = "`n$($InactiveDevices | ConvertTo-Csv -NoTypeInformation | Out-String)" }
-    Else { $InactiveDevices = "No devices with an inactivity threshold larger than $DaysInactive days found!" }
+    Else { $InactiveDevices = "No devices with an inactivity threshold larger than $($ScriptConfig.MainConfig.DaysInactive) days found!" }
 
     ## Write to log
     Write-Log -Message $InactiveDevicesCSV -LogType 'Legacy'
 
-    ## Formating html report
+    ## Formatting html report
     [object]$InactiveDevicesHTML = Format-HTMLReport @HTMLReportConfig
 
     ## Send mail report if specified
@@ -1619,7 +1632,7 @@ Finally {
     }
 
     ## Write html report to disk
-    [string]$HTMLFileName = -join ($ScriptName, '.html')
+    [string]$HTMLFileName = -join ($ScriptName,' - ',$RunDateTime,'.html')
     [string]$HTMLFilePath = Join-Path -Path $script:LogFileDirectory -ChildPath $HTMLFileName
     Out-File -InputObject $InactiveDevicesHTML -FilePath $HTMLFilePath -Force
 

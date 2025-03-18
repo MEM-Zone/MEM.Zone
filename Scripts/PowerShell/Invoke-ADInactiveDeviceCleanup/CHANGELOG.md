@@ -1,5 +1,13 @@
 # Invoke-ADInactiveDeviceCleanup release history
 
+## 3.0.2 - 2025-03-18
+
+* Fixed error when removing `SendMailConfig` from json configuration file
+* Added warning when `Section` is not present in json configuration file
+* Fixed `$DaysInactive` value not showing in HTML report and log file
+* Fixed HTML report not overwriting existing file by adding timestamp to filename
+* Fixed various spelling errors in the script
+
 ## 3.0.1 - 2024-01-22
 
 * Fixed `Write-Log` Overlapping Logs warning and functionality
