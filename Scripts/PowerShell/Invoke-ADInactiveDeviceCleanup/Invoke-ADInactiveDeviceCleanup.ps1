@@ -36,7 +36,7 @@
 #>
 
 ## Set script requirements for Mailkit and Mailmime
-#Requires -Version 7.0
+#Requires -Version 5.0
 
 ##*=============================================
 ##* VARIABLE DECLARATION
@@ -920,7 +920,8 @@ Function ConvertTo-HashtableFromPsCustomObject {
         ## Output the hashtable or null if empty
         If ($Output.Count -eq 0) {
             $Output = $null
-            Write-Warning -Message 'JSON Configuration Property is Empty!'
+            [string]$InvocationVariable = $MyInvocation.Line.Split('=')[0].Trim()
+            Write-Warning -Message "[$InvocationVariable] is missing from the configuration file!"
         }
         Write-Output -InputObject $Output
     }
@@ -1335,6 +1336,10 @@ Function Get-ADInactiveDevice {
     Specifies the domain or server to query.
 .PARAMETER SearchBase
     Specifies the search start location. Default is '$null'.
+.PARAMETER SearchScope
+    Specifies the search start location.
+    Accepts 'Base', 'OneLevel', 'Subtree'.
+    Default is 'Subtree'.
 .PARAMETER Filter
     Specifies the filtering options. Default is 'Enable -eq $true'.
 .PARAMETER DaysInactive
@@ -1344,6 +1349,7 @@ Function Get-ADInactiveDevice {
 .INPUTS
     None.
 .OUTPUTS
+    Null
     System.Object
 .NOTES
     Created by Ioan Popovici
@@ -1366,11 +1372,15 @@ Function Get-ADInactiveDevice {
         [ValidateNotNullorEmpty()]
         [Alias('OU')]
         [string]$SearchBase = $null,
-        [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=2)]
+        [Parameter(Mandatory=$false,HelpMessage='Specify search scope.',Position=2)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Scope')]
+        [string]$SearchScope = 'Subtree',
+        [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=3)]
         [ValidateNotNullorEmpty()]
         [Alias('FilterOption')]
         [string]$Filter = "Enabled -eq 'true'",
-        [Parameter(Mandatory=$false,HelpMessage='Specify the inactivity threshold in days.',Position=3)]
+        [Parameter(Mandatory=$false,HelpMessage='Specify the inactivity threshold in days.',Position=4)]
         [ValidateNotNullorEmpty()]
         [Alias('Inactive')]
         [int16]$DaysInactive = 365
@@ -1381,18 +1391,22 @@ Function Get-ADInactiveDevice {
         Write-Verbose -Message $PSBoundParameters.GetEnumerator()
 
         ## Set variables
-        [datetime]$CurrentDateTime = [System.DateTime]::Now
-        [datetime]$InactivityThreshold = $CurrentDateTime.AddDays(- $DaysInactive)
+        #  Get current date and time subtract the number of days from the inactivity threshold and convert it to UTC file time
+        [datetime]$CurrentDateTime = Get-Date
+        [string]$InactivityThreshold = $CurrentDateTime.AddDays(-$DaysInactive).ToFileTimeUtc()
         #  Assemble LDAP filter. Single quotes are intentionally escaped
         $Filter = -Join ("lastLogonDate -lt `'$InactivityThreshold`' -and ", $Filter)
 
-        Write-Debug -Message "LDAP Filter: $Filter"
+        ## Show LDAP filter if verbose is enabled
+        Write-Verbose -Message "LDAP Filter: $Filter"
     }
     Process {
         Try {
 
             ## Get inactive computers
-            $InactiveComputers = Get-ADComputer -Server $Server -Property 'Name', 'LastLogonDate' -Filter $Filter -SearchBase $SearchBase | Sort-Object -Property 'LastLogonDate' | Select-Object -Property 'Name', @{Name='DaysSinceLastLogon';Expression={ [int16](New-TimeSpan -Start $_.lastLogonDate -End $CurrentDateTime).Days }}, 'LastLogonDate', 'DistinguishedName', 'Enabled'
+            $InactiveComputers = Get-ADComputer -Server $Server -Property 'Name', 'LastLogonDate' -Filter $Filter -SearchBase $SearchBase -SearchScope $SearchScope | Sort-Object -Property 'LastLogonDate' | Select-Object -Property 'Name', @{Name='DaysSinceLastLogon';Expression={ [int16](New-TimeSpan -Start $_.lastLogonDate -End $CurrentDateTime).Days }}, 'LastLogonDate', 'DistinguishedName', 'Enabled'
+            # If nothing is found return $null
+            If ($InactiveComputers.Count -eq 0) { $InactiveComputers = $null }
         }
         Catch {
             $PSCmdlet.ThrowTerminatingError($PSItem)
@@ -1417,6 +1431,10 @@ Function Invoke-ADInactiveDeviceCleanup {
     Specifies the domain or server to query.
 .PARAMETER SearchBase
     Specifies the search start location. Default is '$null'.
+.PARAMETER SearchScope
+    Specifies the search start location.
+    Accepts 'Base', 'OneLevel', 'Subtree'.
+    Default is 'Subtree'.
 .PARAMETER Filter
     Specifies the filtering options. Default is 'Enable -eq $true'.
 .PARAMETER DaysInactive
@@ -1453,11 +1471,15 @@ Function Invoke-ADInactiveDeviceCleanup {
         [ValidateNotNullorEmpty()]
         [Alias('OU')]
         [string]$SearchBase = $null,
-        [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=2)]
+        [Parameter(Mandatory=$false,HelpMessage='Specify search scope.',Position=2)]
+        [ValidateNotNullorEmpty()]
+        [Alias('Scope')]
+        [string]$SearchScope = 'Subtree',
+        [Parameter(Mandatory=$false,HelpMessage='Specify filtering options.',Position=3)]
         [ValidateNotNullorEmpty()]
         [Alias('FilterOption')]
         [string]$Filter = "Enabled -eq 'true'",
-        [Parameter(Mandatory=$false,HelpMessage='Specify the inactivity threshold in days.',Position=3)]
+        [Parameter(Mandatory=$false,HelpMessage='Specify the inactivity threshold in days.',Position=4)]
         [ValidateNotNullorEmpty()]
         [Alias('LastActive')]
         [int16]$DaysInactive = 365,
@@ -1479,7 +1501,7 @@ Function Invoke-ADInactiveDeviceCleanup {
         Try {
 
             ## Get inactive devices
-            $InactiveDevices = Get-ADInactiveDevice -Server $Server -SearchBase $SearchBase -Filter $Filter -DaysInactive $DaysInactive
+            $InactiveDevices = Get-ADInactiveDevice -Server $Server -SearchBase $SearchBase -SearchScope $SearchScope -Filter $Filter -DaysInactive $DaysInactive
 
             ## Process inactive devices
             ForEach ($InactiveDevice in $InactiveDevices) {
@@ -1595,16 +1617,17 @@ Catch {
 Finally {
 
     ## Splatting Format-HTMLReport table headers
-    If (-not $InactiveDevices) { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
-    If ($NewTableHeaders)      { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
-    If ($InactiveDevices)      { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
+    If ($NewTableHeaders) { $HTMLReportConfig.Add('NewTableHeaders', $NewTableHeaders) }
+    If ($InactiveDevices) { $HTMLReportConfig.Add('ReportContent', $InactiveDevices) }
+    Else                  { $HTMLReportConfig.Add('ReportContent', 'EmptyReport') }
 
-    ## Replace the '$DaysInactive' placeholder in the HTML report header
+    ## Replace the Placeholders in the HTML report header
     $HTMLReportConfig.ReportHeader = $HTMLReportConfig.ReportHeader.Replace('$DaysInactive', $($ScriptConfig.MainConfig.DaysInactive))
+    $HTMLReportConfig.ReportHeader = $HTMLReportConfig.ReportHeader.Replace('$TotalInactiveDevices', $($InactiveDevices.Count))
 
     ## If we found devices, convert result to CSV, else add custom message to the result
     If ($InactiveDevices) { $InactiveDevicesCSV = "`n$($InactiveDevices | ConvertTo-Csv -NoTypeInformation | Out-String)" }
-    Else { $InactiveDevices = "No devices with an inactivity threshold larger than $($ScriptConfig.MainConfig.DaysInactive) days found!" }
+    Else { $InactiveDevicesCSV = "No devices with an inactivity threshold larger than $($ScriptConfig.MainConfig.DaysInactive) days found!" }
 
     ## Write to log
     Write-Log -Message $InactiveDevicesCSV -LogType 'Legacy'

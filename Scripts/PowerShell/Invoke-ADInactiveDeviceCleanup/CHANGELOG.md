@@ -1,5 +1,15 @@
 # Invoke-ADInactiveDeviceCleanup release history
 
+## 3.1.0 - 2025-03-20
+
+* Added `SectionName` in the warning when `Section` is missing from the json configuration file
+* Added `TotalInactiveDevices` in the `HTML` report
+* Added `Operation` as default in the `HTML` report.
+* Added `SearchScope` option in the json configuration file. Default is `Subtree`
+* Fixed `InactivityThreshold` format causing no devices to be found by using `FileTimeUtc` conversion
+* Fixed CSV output error thrown when no inactive devices are found
+* Changed some debug messages to verbose messages
+
 ## 3.0.2 - 2025-03-18
 
 * Fixed error when removing `SendMailConfig` from json configuration file
@@ -11,7 +21,7 @@
 ## 3.0.1 - 2024-01-22
 
 * Fixed `Write-Log` Overlapping Logs warning and functionality
-* Fixed incorrect `ScriptSection` variable for archive log file.
+* Fixed incorrect `ScriptSection` variable for archive log file
 
 ## 3.0.0 - 2022-07-20
 

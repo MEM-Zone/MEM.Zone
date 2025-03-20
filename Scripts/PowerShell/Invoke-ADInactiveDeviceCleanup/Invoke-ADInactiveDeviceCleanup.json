@@ -2,6 +2,7 @@
     "MainConfig": {
         "Server": "domain.company.com",
         "SearchBase": "OU=Disabled Computers,DC=domain,DC=company,DC=com",
+        "SearchScope": "Subtree",
         "TargetPath": "OU=Disabled Computers,DC=domain,DC=company,DC=com",
         "DaysInactive": 365,
         "Filter": "Enabled -eq 'false'",
@@ -13,11 +14,12 @@
         "Last Logon (Date)": "LastLogonDate",
         "Path (DN)": "DistinguishedName",
         "Destination (DN)": "TargetPath",
-        "Object Enabled" : "Enabled"
+        "Object Enabled" : "Enabled",
+        "Operation" : "Operation"
     },
     "HTMLReportConfig": {
         "ReportName": "Report from AD Inactive Device Maintenance",
-        "ReportHeader": "Devices with an inactivity threshold greater than <b>$DaysInactive</b> days",
+        "ReportHeader": "<b>$TotalInactiveDevices</b> Devices with an inactivity threshold greater than <b>$DaysInactive</b> days",
         "ReportFooter": "For more information write to: <i><a href = 'mailto:servicedesk@company.com'>it-servicedesk@company.com</a></i>"
     },
     "SendMailConfig": {
