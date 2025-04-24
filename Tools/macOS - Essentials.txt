@@ -1,4 +1,4 @@
-Package manager for installing non-appstore apps
+* Package manager for installing non-appstore apps
 https://brew.sh
 
 ie:
@@ -6,53 +6,73 @@ ie:
  brew install textmate
  brew uninstall textmate
  brew list
- 
- Application updater for brew (apps installed with brew)
+
+* Application updater for brew (apps installed with brew)
  https://github.com/buo/homebrew-cask-upgrade
 
-Window Manager 
-https://rectangleapp.com
-
-Torrent Manager
-https://transmissionbt.com
-
-Virtualization
-https://www.parallels.com/
-
-Password Manager
-https://1password.com/downloads/android/
-
-Text Editor
-https://macromates.com/download
-
-Callendar / Tasks
-https://apps.apple.com/us/app/fantastical-calendar/id975937182?mt=12
-
-NTFS Read/Write
-https://mounty.app
-
-HotKeys
-https://www.mediaatelier.com/CheatSheet/
-
-Cleaner / Health / Uninstaller
-https://macpaw.com/cleanmymac
-
-Meeting Reminder
-https://apps.apple.com/us/app/in-your-face/id1476964367?mt=12
-
-Search replacement, clipboard manager and limitless possibilities trough extensions
+* Search replacement, clipboard manager, git manager and limitless possibilities through extensions - MUST HAVE
 https://www.raycast.com
 
-Unlock max screen brightness
+* Screen Recorder
+https://cleanshot.com
+
+* Bettersnaptool/Raycast/Rectangle (Window Manager)
+https://rectangleapp.com
+
+* Menu bar manager
+https://www.macbartender.com
+
+Sharing files with AWS s3 and custom shortlink domain
+* https://www.sharedrop.io
+
+* Virtualization
+https://www.parallels.com/
+
+* Password Manager
+https://1password.com/downloads/android/
+
+* Text Editor
+https://macromates.com/download
+
+* Callendar / Tasks
+https://apps.apple.com/us/app/fantastical-calendar/id975937182?mt=12
+
+* Meeting Reminder
+https://apps.apple.com/us/app/in-your-face/id1476964367?mt=12
+
+* NTFS Read/Write
+https://mounty.app
+
+* Browser apps (much better implementation than chrome, safari or edge)
+https://webcatalog.io/en/desktop/windows/
+
+* Git Client
+https://www.git-tower.com/mac
+
+* Coding
+https://code.visualstudio.com
+
+* HotKeys
+https://www.mediaatelier.com/CheatSheet/
+
+* Cleaner / Health / Uninstaller
+https://macpaw.com/cleanmymac
+
+* Unlock max screen brightness
 https://github.com/waydabber/BetterDisplay
 
-Unarchive third party (RAR, etc)
+* Unarchive third party (RAR, etc)
 https://apps.apple.com/us/app/unzip-one-rar-zip-extractor/id1127253508?mt=12
 
-Video player
+* Video player
 https://www.videolan.org/vlc/
 
-Torrent Streamer
+* Torrent Streamer
 https://github.com/popcorn-official/popcorn-desktop
 https://www.stremio.com (with unofficial extension)
 
+* General app updater
+https://www.corecode.io/macupdater/
+
+* Torrent Manager
+https://transmissionbt.com
