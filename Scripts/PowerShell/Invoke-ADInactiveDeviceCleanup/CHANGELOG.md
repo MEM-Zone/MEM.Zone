@@ -1,5 +1,9 @@
 # Invoke-ADInactiveDeviceCleanup release history
 
+## 3.1.1 - 2025-04-24
+
+* Added `InactiveDevice` `Enabled` check before disabling the account
+
 ## 3.1.0 - 2025-03-20
 
 * Added `SectionName` in the warning when `Section` is missing from the json configuration file
