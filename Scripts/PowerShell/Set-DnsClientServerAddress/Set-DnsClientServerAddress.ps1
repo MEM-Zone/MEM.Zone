@@ -81,7 +81,7 @@ Param (
 
 ## !! Do not modify anything beyond this point !!
 
-## Set script paramters
+## Set script parameters
 If ($PrimaryDNSConfig.count -eq 0) {
     $PrimaryDNSConfig = @{
         'CurrentAddress' = $PrimaryDNS

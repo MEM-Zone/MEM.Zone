@@ -1522,9 +1522,11 @@ Function Invoke-ADInactiveDeviceCleanup {
                     Show-Progress -Status "Disable [$($InactiveDevice.Name)]" -Loop
 
                     ## Disable inactive device
-                    Disable-ADAccount -Server $Server -Identity $Identity -ErrorAction 'SilentlyContinue'
-                    #  If operation was successful change the property 'Enabled' to false
-                    If ($?) { $InactiveDevice.Enabled = $false }
+                    If ($InactiveDevice.Enabled) {
+                        Disable-ADAccount -Server $Server -Identity $Identity -ErrorAction 'SilentlyContinue'
+                        #  If operation was successful change the property 'Enabled' to false
+                        If ($?) { $InactiveDevice.Enabled = $false }
+                    }
 
                     ## If a target was specified move device to target OU
                     If (-not [string]::IsNullOrEmpty($TargetPath)) {
