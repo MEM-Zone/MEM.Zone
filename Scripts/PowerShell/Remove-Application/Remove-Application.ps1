@@ -86,7 +86,7 @@ param (
 ## Get script information
 [PSCustomObject]$Script = @{
     Name             = 'Remediate-BlacklistedApplications'
-    Version          = '1.1.1b'
+    Version          = '2.0.1b'
     Path             = $MyInvocation.MyCommand.Path
     Directory        = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
     LogPrefix        = 'Uninstall-BlacklistedApplications'
