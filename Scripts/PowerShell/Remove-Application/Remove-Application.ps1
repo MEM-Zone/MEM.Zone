@@ -536,7 +536,6 @@ function Get-Application {
             'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
             'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
             'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
-            #  Rare but possible
             'HKCU:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
         )
 
@@ -550,7 +549,7 @@ function Get-Application {
         try {
 
             ## Get registry application uninstall keys
-            $UninstallKeys = Get-ItemProperty -Path $UninstallPaths -ErrorAction Stop
+            $UninstallKeys = Get-ItemProperty -Path $UninstallPaths -ErrorAction SilentlyContinue
 
             ## Process items without pipeline
             foreach ($UninstallKey in $UninstallKeys) {
