@@ -2,6 +2,10 @@
 
 > This script is designed to be used in a Configuration Manager (ConfigMgr) or Intune compliance settings environment.
 
+## 2.0.1b - 2025-04-24
+
+* Fixed error in `Get-Application` when parsing a non-existing registry path
+
 ## 2.0.0b - 2025-04-24
 
 * [Breaking] Renamed `Get-InstalledApplication` to `Get-Application`
