@@ -51,7 +51,7 @@ param (
 )
 
 ## Define default application search patterns
-[string[]]$ApplicationDetectionRules = @(
+$Script:ApplicationDetectionRules = [string[]]@(
     'Dell SupportAssist*'
     '*minitool*'
     '*treesize*'
@@ -64,7 +64,7 @@ param (
 
 ## Define EXE uninstaller detection rules
 #  These rules are used to identify the type of uninstaller based on the uninstaller executable metadata
-[array]$Script:UninstallerMetadataDetectionRules = @(
+$Script:UninstallerMetadataDetectionRules = [array]@(
     @{ Pattern = '*NSIs*'                    ; SilentArgs = '/S'                                       ; Type = 'NSIs'              },
     @{ Pattern = '*Inno*'                    ; SilentArgs = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' ; Type = 'Inno Setup'        },
     @{ Pattern = '*InstallShield*'           ; SilentArgs = '/s'                                       ; Type = 'InstallShield'     },
@@ -73,7 +73,7 @@ param (
     @{ Pattern = '*Adobe*'                   ; SilentArgs = '/sAll /rs /rps'                           ; Type = 'Adobe Installer'   }
 )
 #  These rules are used to identify the type of uninstaller based on the executable name
-[array]$Script:UninstallerFileNameDetectionRules = @(
+$Script:UninstallerFileNameDetectionRules = [array]@(
     @{ Pattern = 'uninst.exe$'               ; SilentArgs = '/S'                                       ; Type = 'NSIs'              },
     @{ Pattern = 'unins\d{3}\.exe$'          ; SilentArgs = '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' ; Type = 'Inno Setup'        },
     @{ Pattern = 'setup\.exe$'               ; SilentArgs = '/s'                                       ; Type = 'InstallShield'     },
@@ -81,53 +81,28 @@ param (
     @{ Pattern = 'update\.exe$'              ; SilentArgs = '--uninstall'                              ; Type = 'Squirrel'          }
 )
 
-## Do not modify anything below this line unless you know what you're doing
+## Do not modify anything below this line unless you know what you're doing!
+## -------------------------------------------------------------------------
 
-## Get script information
-[PSCustomObject]$Script = @{
-    Name             = 'Remediate-BlacklistedApplications'
-    Version          = '2.0.1b'
-    Path             = $MyInvocation.MyCommand.Path
-    Directory        = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
-    LogPrefix        = 'Uninstall-BlacklistedApplications'
-    LogDebugMessages = $false
-    MaxLogSizeMB     = 5
-}
+## Set script variables
+$Script:Version          = '3.0.0'
+$Script:Name             = 'Remediate-BlacklistedApplications'
+$Script:LogName          = 'Uninstall-BlacklistedApplications'
+$Script:NameAndVersion   = $Script:Name + ' v' + $Script:Version
+$Script:Path             = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Path)
+$Script:FullName         = $MyInvocation.MyCommand.Path
+$Script:LogPath          = [System.IO.Path]::Combine($Env:ProgramData, 'Logs', $Script:LogName)
+$Script:LogName          = $Script:Name + '.log'
+$Script:LogFullName      = [System.IO.Path]::Combine($Script:LogPath, $Script:Name + '.log')
+$Script:LogDebugMessages = $false
+$Script:LogMaxSizeMB     = 5
+$Script:LogBuffer        = [System.Collections.ArrayList]::new()
+$Script:RunningAs        = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$Script:RunningAsAdmin   = [bool]([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+
 
 ## Set default matching applications if none provided, working around for the 'Compliant' state passed by the Discovery script
-if (-not $PSBoundParameters['SearchPatterns'] -or $PSBoundParameters['SearchPatterns'] -eq 'Compliant') { $SearchPatterns = $ApplicationDetectionRules }
-
-## Set up logging in ProgramData with a single log file
-[string]$LogDirectory = Join-Path -Path $env:ProgramData -ChildPath "Logs\$($Script.LogPrefix)"
-[string]$LogFile = Join-Path -Path $LogDirectory -ChildPath "$($Script.LogPrefix).log"
-#  Initializing Log buffer
-$LogBuffer = [System.Collections.ArrayList]::new()
-#  Ensure log directory exists
-[bool]$isLogDirectoryCreated = Test-Path -Path $LogDirectory -PathType Container
-if (-not $isLogDirectoryCreated) {
-    try {
-        $null = New-Item -Path $LogDirectory -ItemType Directory -Force -ErrorAction Stop
-    }
-    catch {
-        ## Fallback to script directory if ProgramData is inaccessible
-        [string]$LogDirectory = $Script.Directory
-        [string]$LogFile = Join-Path -Path $LogDirectory -ChildPath "$($Script.LogPrefix).log"
-    }
-}
-#  Create log file if it doesn't exist
-[bool]$isLogFileCreated = Test-Path -Path $LogFile -PathType Leaf
-if (-not $isLogFileCreated) {
-    try {
-        $null = New-Item -Path $LogFile -ItemType File -Force -ErrorAction Stop
-    }
-    catch {
-        Write-Warning -Message "Failed to create log file: $($PSItem.Exception.Message)"
-    }
-}
-
-## Set environment variables
-[string]$ScriptRunningAs = $([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
-[string]$ScriptNameAndVersion = "$($Script.Name) v$($Script.Version)"
+if (-not $PSBoundParameters['SearchPatterns'] -or $PSBoundParameters['SearchPatterns'] -eq 'Compliant') { $SearchPatterns = $Script:ApplicationDetectionRules }
 
 #endregion
 ##*=============================================
@@ -139,19 +114,20 @@ if (-not $isLogFileCreated) {
 ##*=============================================
 #region FunctionListings
 
-#region function Test-LogFileSize
-function Test-LogFileSize {
+#region function Test-LogFile
+function Test-LogFile {
 <#
 .SYNOPSIS
-    Checks if the log file exceeds the maximum size.
+    Checks if the log path exists and if the log file exceeds the maximum specified size.
 .DESCRIPTION
-    Checks if the log file exists and exceeds the maximum size, and clears it if needed.
+    Checks if the log path exists and creates the folder and file if needed
+    Checks if the log file exceeds the maximum specified size and clears it if needed.
 .PARAMETER LogFile
     Specifies the path to the log file.
 .PARAMETER MaxSizeMB
     Specifies the maximum size in MB before the log file is cleared.
 .EXAMPLE
-    Test-LogFileSize -LogFile 'C:\Logs\Application.log' -MaxSizeMB 5
+    Test-LogFile -LogFile 'C:\Logs\Application.log' -MaxSizeMB 5
 .INPUTS
     None.
 .OUTPUTS
@@ -178,6 +154,33 @@ function Test-LogFileSize {
 
     process {
         try {
+
+            ## Create log folder if it doesn't exists
+            $LogPath = [System.IO.Path]::GetDirectoryName($LogFile)
+            [bool]$LogFolderExists = Test-Path -Path $LogPath -PathType Container
+            if (-not $LogFolderExists) {
+                try {
+                    $null = New-Item -Path $LogPath -ItemType Directory -Force -ErrorAction Stop
+                }
+                catch {
+
+                    ## Fallback to script directory if ProgramData is inaccessible
+                    [string]$Script:LogPath = $Script:Path
+                    [string]$Script:LogFullName = Join-Path -Path $Script:LogPath -ChildPath $Script:LogName
+                    Write-Warning -Message "Failed to create log folder: $($PSItem.Exception.Message). Using script directory instead."
+                }
+            }
+
+            ## Create log file if it doesn't exist
+            [bool]$LogFileExists = Test-Path -Path $LogFile -PathType Leaf
+            if (-not $LogFileExists) {
+                try {
+                    $null = New-Item -Path $LogFile -ItemType File -Force -ErrorAction Stop
+                }
+                catch {
+                    Write-Warning -Message "Failed to create log file: $($PSItem.Exception.Message)"
+                }
+            }
 
             ## Get log file information
             [System.IO.FileInfo]$LogFileInfo = Get-Item -Path $LogFile -ErrorAction Stop
@@ -228,17 +231,17 @@ function Write-LogBuffer {
     param()
 
     process {
-        if ($script:LogBuffer.Count -gt 0) {
+        if ($Script:LogBuffer.Count -gt 0) {
             try {
 
                 ## Convert ArrayList to string array for Add-Content
-                [string[]]$LogEntries = $script:LogBuffer.ToArray()
+                [string[]]$LogEntries = $Script:LogBuffer.ToArray()
 
                 ## Append to log file
-                Add-Content -Path $script:LogFile -Value $LogEntries -ErrorAction Stop
+                Add-Content -Path $Script:LogFullName -Value $LogEntries -ErrorAction Stop
 
                 ## Clear buffer
-                $script:LogBuffer.Clear()
+                $Script:LogBuffer.Clear()
             }
             catch {
                 Write-Warning -Message "Failed to write to log file: [$($PSItem.Exception.Message)]"
@@ -262,7 +265,7 @@ function Write-Log {
 .PARAMETER FormatOptions
     Optional hashtable of parameters to pass to Format-Header for formatting the console and/or log output.
 .PARAMETER LogDebugMessages
-    Whether to write debug messages to the log file (default: value of $Script.LogDebugMessages).
+    Whether to write debug messages to the log file (default: value of $Script:LogDebugMessages).
 .PARAMETER SkipLogFormatting
     Whether to skip formatting for the log message.
 #>
@@ -507,7 +510,7 @@ function Get-Application {
     Get-Application
     Returns all installed applications.
 .EXAMPLE
-    Get-Application -SearchPatterns "*chrome*", "*vlc*"
+    Get-Application -SearchPatterns '*chrome*', '*vlc*'
     Returns only applications with display names matching the patterns.
 .INPUTS
     None.
@@ -542,7 +545,8 @@ function Get-Application {
         ## Initialize application lists
         $InstalledApplications = [System.Collections.ArrayList]::new()
         $FilteredApplications = [System.Collections.ArrayList]::new()
-        #  Log the start of the process
+
+        ## Log the start of the process
         Write-Log -Message 'Retrieving installed applications...' -FormatOptions @{ AddEmptyRow = 'After' }
     }
     process {
@@ -551,7 +555,7 @@ function Get-Application {
             ## Get registry application uninstall keys
             $UninstallKeys = Get-ItemProperty -Path $UninstallPaths -ErrorAction SilentlyContinue
 
-            ## Process items without pipeline
+            ## Process items registry uninstall keys
             foreach ($UninstallKey in $UninstallKeys) {
                 if (-not [string]::IsNullOrWhiteSpace($UninstallKey.DisplayName)) {
                     $Application = [PSCustomObject]@{
@@ -585,8 +589,9 @@ function Get-Application {
                 Write-Log -Message "Found [$MatchCount/$($InstalledApplications.Count)] matching application(s)" -FormatOptions @{ Mode = 'Default' }
 
                 ## Output the filtered list
-                # Get longest display name length
+                #  Get longest display name length
                 [int]$MaxNameLength = ($FilteredApplications.DisplayName | ForEach-Object { $PsItem.Length } | Measure-Object -Maximum).Maximum
+
                 #  Format and output the filtered list
                 foreach ($Application in $FilteredApplications) {
                     [string]$PaddedApplicationName = $Application.DisplayName.PadRight($MaxNameLength)
@@ -673,7 +678,7 @@ function Get-InstallerCommand {
             #  If only /SILENT or is present, set hasSilentArgs to false because it's not a fully silent argument
             if ($SilentArgs.Count -eq 1 -and $SilentArgs[0] -ceq '/SILENT') { $hasSilentArgs = $false }
 
-            # Output
+            ## Output result
             return [PSCustomObject]@{
                 Path          = $Path
                 Name          = $Name
@@ -835,7 +840,7 @@ function Test-MsiExecuteMutex {
 .DESCRIPTION
     Tests if the Windows Installer is currently in use by checking for the MSI Mutex.
 .EXAMPLE
-    Test-MsiInUse
+    Test-MsiExecuteMutex
 .INPUTS
     None.
 .OUTPUTS
@@ -982,9 +987,7 @@ function Lock-Mutex {
     begin {
 
         ## Set mutex name to global if specified
-        if ($PSBoundParameters['Global']) {
-            $Name = "Global\$Name"
-        }
+        if ($PSBoundParameters['Global']) { $Name = "Global\$Name" }
 
         ## Initialize result object early
         $Result = [PSCustomObject]@{
@@ -1014,9 +1017,11 @@ function Lock-Mutex {
             Write-Log -Severity Debug -Message "Acquiring mutex: [$Name]..."
             $Mutex = [System.Threading.Mutex]::new($false, $Name)
             if ($Mutex.WaitOne([TimeSpan]::FromSeconds($TimeoutSeconds), $false)) {
+
                 #  Set the result object
                 $Result.Success = $true
                 $Result.Mutex = $Mutex
+
                 #  Log the successful acquisition of the mutex
                 $Message = "Mutex acquired: [$Name]"
                 Write-Log -Severity Debug -Message $Message
@@ -1086,7 +1091,6 @@ function Unlock-Mutex {
     )
 
     try {
-
         Write-Log -Severity Debug -Message "Releasing mutex: [$Name]"
         $Mutex.ReleaseMutex()
         Write-Log -Severity Debug -Message "Successfully released mutex: [$Name]"
@@ -1122,7 +1126,7 @@ function Start-ProcessWithTimeout {
         -1 = Timed out, process killed
         -2 = Failed to kill process
         -3 = Failed to start process
-        0+ = Normal process exit code
+         0 = Normal process exit code
 .NOTES
     This is an internal script function and should typically not be called directly.
 .LINK
@@ -1169,16 +1173,13 @@ function Start-ProcessWithTimeout {
                 return -3
             }
 
-            Start-Sleep -Seconds 1  # wait briefly for UI to initialize
+            #  Wait briefly for UI to initialize
+            Start-Sleep -Seconds 1
 
-            if ($Process.MainWindowHandle -ne 0) {
-                Write-Log -Severity Warning -Message 'Running interactively'
-            }
-            else {
-                Write-Log -Message 'Running silently'
-            }
+            #  Check if the process is running interactively
+            if ($Process.MainWindowHandle -ne 0) { Write-Log -Severity Warning -Message 'Running interactively' } else { Write-Log -Message 'Running silently' }
 
-            ## Wait for the process to exit with timeout
+            #  Wait for the process to exit with timeout
             $ExitedNormally = $Process.WaitForExit($TimeoutSeconds * 1000)
 
             ## Kill any child processes matching post*
@@ -1269,7 +1270,7 @@ function Remove-Application {
         Write-Log -Message "==> $ApplicationName v$ApplicationVersion" -FormatOptions @{ AddEmptyRow = 'Before' }
 
         ## Set the mutex name
-        [string]$MutexName = $Script.Name + '_UninstallTask'
+        [string]$MutexName = $Script:Name + '_UninstallTask'
     }
     process {
         try {
@@ -1302,7 +1303,8 @@ function Remove-Application {
 
                     #  Set up the executable and arguments
                     [string]$FilePath = 'msiexec.exe'
-                    [string]$Arguments = "/x $ProductCode /qn /norestart"
+                    [string]$MsiLogFullName = Join-Path -Path $Script:LogPath -ChildPath $($ApplicationName + '_Uninstall.log')
+                    [string]$Arguments = "/x $ProductCode /qn /norestart /L*v `"$MsiLogFullName`""
                     [int]$ExitCode = Start-ProcessWithTimeout -FilePath $FilePath -Arguments $Arguments -TimeoutSeconds $TimeoutSeconds
                     $Result.ExitCode = $ExitCode
 
@@ -1430,11 +1432,11 @@ function Remove-Application {
 ##*=============================================
 #region ScriptBody
 
-## Check if log file exceeds size limit and clear it if needed
-Test-LogFileSize -LogFile $LogFile -MaxSizeMB $Script.MaxLogSizeMB
+## Check if log path exists or if the log file exceeds size limit
+Test-LogFile -LogFile $Script:LogFullName -MaxSizeMB $Script:LogMaxSizeMB
 
 ## Check if another instance of the script is already running and exit gracefully if so
-[string]$MutexName = $Script.Name + '_Script'
+[string]$MutexName = $Script:Name + '_Script'
 $ScriptMutex = Lock-Mutex -Name $MutexName -TimeoutSeconds 0 -Global
 if (-not $ScriptMutex.Success) {
     Write-Log -Severity Debug -Message 'Another instance of the script is already running. Exiting...' -FormatOptions { Mode = 'Default' }
@@ -1442,18 +1444,16 @@ if (-not $ScriptMutex.Success) {
 }
 
 ## Write initial log entries
-Write-Log -Message "$ScriptNameAndVersion Started" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'After' }
+Write-Log -Message "$Script:NameAndVersion Started" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'After' }
 Write-Log -Message 'ENVIRONMENT' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'After' }
-Write-Log -Message "Running as:  [$ScriptRunningAs]" -FormatOptions @{ Mode = 'Default' }
-Write-Log -Message "Script path: [$($Script.Path)]" -FormatOptions @{ Mode = 'Default' }
-Write-Log -Message "Log file:    [$LogFile]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Running elevated: [$Script:RunningAsAdmin]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Running as:       [$Script:RunningAs]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Script path:      [$Script:Path]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Log path:         [$Script:LogPath]" -FormatOptions @{ Mode = 'Default' }
 Write-Log -Message 'DISCOVERY' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'BeforeAndAfter' }
 
 ## Check for administrative privileges
-[bool]$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Write-Log -Severity Warning-Message 'Script is not running with administrative privileges. Uninstallation may fail!' -FormatOptions @{ Mode = 'AddSpace'; AddEmptyRow = 'After' }
-}
+if (-not $Script:RunningAsAdmin) { Write-Log -Severity Warning-Message 'Script is not running with administrative privileges. Uninstallation may fail!' -FormatOptions @{ Mode = 'AddSpace'; AddEmptyRow = 'After' } }
 
 try {
 
@@ -1469,9 +1469,7 @@ try {
     Write-Log -Message 'UNINSTALL' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'Before' }
 
     #  If no applications were found, log a message
-    if ($InstalledApplications.Count -eq 0) {
-        Write-Log -Message 'No applications to uninstall.' -FormatOptions @{ AddEmptyRow = 'Before' }
-    }
+    if ($InstalledApplications.Count -eq 0) { Write-Log -Message 'No applications to uninstall.' -FormatOptions @{ AddEmptyRow = 'Before' } }
     foreach ($Application in $InstalledApplications) {
         $UninstallResult = Remove-Application -Application $Application
         $null = $UninstallResults.Add($UninstallResult)
@@ -1487,9 +1485,7 @@ try {
     Write-Log -Message 'RESULTS' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'BeforeAndAfter' }
 
     #  If no applications were uninstalled, log a message
-    if ($UninstallResults.ApplicationName.Count -eq 0) {
-        Write-Log -Message 'No applications were uninstalled.'
-    }
+    if ($UninstallResults.ApplicationName.Count -eq 0) { Write-Log -Message 'No applications were uninstalled.' }
 
     #  Calculate maximum widths for padding
     [int]$MaxNameLength = ($UninstallResults | ForEach-Object { $PSItem.ApplicationName.Length } | Measure-Object -Maximum).Maximum
@@ -1497,23 +1493,25 @@ try {
 
     #  Pad the application names and versions for better readability
     foreach ($UninstallResult in $UninstallResults) {
-        $AppName = [string]$UninstallResult.ApplicationName
-        $AppVersion = [string]$UninstallResult.ApplicationVersion
+        [string]$ApplicationName = $UninstallResult.ApplicationName
+        [string]$ApplicationVersion = $UninstallResult.ApplicationVersion
 
         #  Set the status based on the success of the uninstallation
-        $Status = if ($UninstallResult.Success) { '[SUCCESSFUL]' } else { '[FAILED]' }
+        [string]$Status = if ($UninstallResult.Success) { '[SUCCESSFUL]' } else { '[FAILED]' }
 
-        $PaddedAppName = $AppName.PadRight($MaxNameLength)
-        $PaddedAppVersion = $AppVersion.PadRight($MaxVersionLength)
+        $ApplicationName = $ApplicationName.PadRight($MaxNameLength)
+        $ApplicationVersion = $ApplicationVersion.PadRight($MaxVersionLength)
+
         #  Log the results
-        Write-Log -Message "$PaddedAppName | Version: $PaddedAppVersion | Status: $Status"
+        Write-Log -Message "$ApplicationName | Version: $ApplicationVersion | Status: $Status"
     }
 
     ## Output summary
+    [string]$InstalledApplicationsCount = $InstalledApplications.DisplayName.Count
     Write-Log -Message 'SUMMARY' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'BeforeAndAfter' }
     Write-Log -Message "Successfully uninstalled:     [$SuccessCount]" -FormatOptions @{ Mode = 'Default' }
     Write-Log -Message "Failed to uninstall:          [$FailureCount]" -FormatOptions @{ Mode = 'Default' }
-    Write-Log -Message "Total applications processed: [$($InstalledApplications.DisplayName.Count)]" -FormatOptions @{ Mode = 'Default'; AddEmptyRow = 'After' }
+    Write-Log -Message "Total applications processed: [$InstalledApplicationsCount]" -FormatOptions @{ Mode = 'Default'; AddEmptyRow = 'After' }
 }
 catch {
 
@@ -1533,22 +1531,13 @@ finally {
     Write-LogBuffer
 
     ## End logging
-    Write-Log -Message "$($Script.Name) v$($Script.Version) Completed" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'Before' }
+    Write-Log -Message "$Script:NameAndVersion Completed" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'Before' }
 
     ## Ensure final flush of log buffer
     Write-LogBuffer
 
     ## Exit with appropriate code based on uninstallation results
-    if ($FailureCount -gt 0) {
-
-        #  Some uninstallation tasks failed
-        exit 2
-    }
-    else {
-
-        #  All uninstallation tasks succeeded, or no applications to uninstall
-        exit 0
-    }
+    if ($FailureCount -gt 0) { exit 2 } else { exit 0 }
 }
 
 #endregion

@@ -2,6 +2,15 @@
 
 > This script is designed to be used in a Configuration Manager (ConfigMgr) or Intune compliance settings environment.
 
+## 3.0.0 - 2025-04-29
+
+* [Breaking] Moved script variables to a standalone variables
+* [Breaking] Renamed `Test-LogFileSize` to `Test-LogFile`
+* [Breaking] Renamed some of the variables in the script
+* Added logging for `MSI` uninstall process, in the script log folder
+* Moved log folder and file creation to `Test-LogFile`
+* Code cleanup and refactoring
+
 ## 2.0.1b - 2025-04-24
 
 * Fixed error in `Get-Application` when parsing a non-existing registry path
