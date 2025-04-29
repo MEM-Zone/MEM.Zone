@@ -8,7 +8,7 @@
 .EXAMPLE
     .\Get-Application.ps1
 .EXAMPLE
-    .\Get-Application.ps1 -SearchPatterns "7-Zip*", "Adobe*"
+    .\Get-Application.ps1 -SearchPatterns '7-Zip*', 'Adobe*'
 .INPUTS
     None.
 .OUTPUTS
@@ -45,73 +45,42 @@ Param (
 )
 
 ## Define default application search patterns
-[string[]]$ApplicationDetectionRules = @(
+$Script:ApplicationDetectionRules = [string[]]@(
     'Dell SupportAssist*'
     '*minitool*'
     '*treesize*'
     '*krita*'
     '*ccleaner*'
     '*recuva*'
-    '*download manager*'
+    '*download manager*' # '_iu14D2N.tmp'
     #  Add more applications as needed
 )
 
-## Do not modify anything below this line unless you know what you're doing
+### Do not modify anything below this line unless you know what you're doing!
+## -------------------------------------------------------------------------
 
-## Get script information
-[PSCustomObject]$Script = @{
-    Name             = 'Discover-BlacklistedApplications'
-    Version          = '2.0.1b'
-    Path             = $MyInvocation.MyCommand.Path
-    Directory        = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
-    LogPrefix        = 'Uninstall-BlacklistedApplications'
-    LogDebugMessages = $false
-    MaxLogSizeMB     = 5
-}
+## Set script variables
+$Script:Version          = '3.0.0'
+$Script:Name             = 'Remediate-BlacklistedApplications'
+$Script:LogName          = 'Uninstall-BlacklistedApplications'
+$Script:NameAndVersion   = $Script:Name + ' v' + $Script:Version
+$Script:Path             = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Path)
+$Script:FullName         = $MyInvocation.MyCommand.Path
+$Script:LogPath          = [System.IO.Path]::Combine($Env:ProgramData, 'Logs', $Script:LogName)
+$Script:LogName          = $Script:Name + '.log'
+$Script:LogFullName      = [System.IO.Path]::Combine($Script:LogPath, $Script:Name + '.log')
+$Script:LogDebugMessages = $false
+$Script:LogMaxSizeMB     = 5
+$Script:LogBuffer        = [System.Collections.ArrayList]::new()
+$Script:RunningAs        = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+$Script:RunningAsAdmin   = [bool]([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 
 ## Set default matching applications if none provided, working around for the 'Compliant' state passed by the Discovery script
-if (-not $PSBoundParameters['SearchPatterns'] -or $PSBoundParameters['SearchPatterns'] -eq 'Compliant') {
-    $SearchPatterns = $ApplicationDetectionRules
-}
-
-## Set up logging in ProgramData with a single log file
-[string]$LogDirectory = Join-Path -Path $env:ProgramData -ChildPath "Logs\$($Script.LogPrefix)"
-[string]$LogFile = Join-Path -Path $LogDirectory -ChildPath "$($Script.LogPrefix).log"
-
-#  Initializing Log buffer
-$LogBuffer = [System.Collections.ArrayList]::new()
-
-#  Ensure log directory exists
-[bool]$isLogDirectoryCreated = Test-Path -Path $LogDirectory -PathType Container
-if (-not $isLogDirectoryCreated) {
-    try {
-        $null = New-Item -Path $LogDirectory -ItemType Directory -Force -ErrorAction Stop
-    }
-    catch {
-        ## Fallback to script directory if ProgramData is inaccessible
-        [string]$LogDirectory = $Script.Directory
-        [string]$LogFile = Join-Path -Path $LogDirectory -ChildPath "$($Script.LogPrefix).log"
-    }
-}
-
-#  Create log file if it doesn't exist
-[bool]$isLogFileCreated = Test-Path -Path $LogFile -PathType Leaf
-if (-not $isLogFileCreated) {
-    try {
-        $null = New-Item -Path $LogFile -ItemType File -Force -ErrorAction Stop
-    }
-    catch {
-        Write-Warning -Message "Failed to create log file: [$($PSItem.Exception.Message)]"
-    }
-}
-
-## Set environment variables
-[string]$ScriptRunningAs = $([System.Security.Principal.WindowsIdentity]::GetCurrent().Name)
-[string]$ScriptNameAndVersion = "$($Script.Name) v$($Script.Version)"
+if (-not $PSBoundParameters['SearchPatterns'] -or $PSBoundParameters['SearchPatterns'] -eq 'Compliant') { $SearchPatterns = $Script:ApplicationDetectionRules }
 
 ## Set compliance state
 [string]$ComplianceState = 'NonCompliant'
-[string]$Severity = 'Warning'
+[string]$Severity        = 'Warning'
 
 #endregion
 ##*=============================================
@@ -123,19 +92,20 @@ if (-not $isLogFileCreated) {
 ##*=============================================
 #region FunctionListings
 
-#region function Test-LogFileSize
-function Test-LogFileSize {
+#region function Test-LogFile
+function Test-LogFile {
 <#
 .SYNOPSIS
-    Checks if the log file exceeds the maximum size.
+    Checks if the log path exists and if the log file exceeds the maximum specified size.
 .DESCRIPTION
-    Checks if the log file exists and exceeds the maximum size, and clears it if needed.
+    Checks if the log path exists and creates the folder and file if needed
+    Checks if the log file exceeds the maximum specified size and clears it if needed.
 .PARAMETER LogFile
     Specifies the path to the log file.
 .PARAMETER MaxSizeMB
     Specifies the maximum size in MB before the log file is cleared.
 .EXAMPLE
-    Test-LogFileSize -LogFile 'C:\Logs\Application.log' -MaxSizeMB 5
+    Test-LogFile -LogFile 'C:\Logs\Application.log' -MaxSizeMB 5
 .INPUTS
     None.
 .OUTPUTS
@@ -162,6 +132,33 @@ function Test-LogFileSize {
 
     process {
         try {
+
+            ## Create log folder if it doesn't exists
+            $LogPath = [System.IO.Path]::GetDirectoryName($LogFile)
+            [bool]$LogFolderExists = Test-Path -Path $LogPath -PathType Container
+            if (-not $LogFolderExists) {
+                try {
+                    $null = New-Item -Path $LogPath -ItemType Directory -Force -ErrorAction Stop
+                }
+                catch {
+
+                    ## Fallback to script directory if ProgramData is inaccessible
+                    [string]$Script:LogPath = $Script:Path
+                    [string]$Script:LogFullName = Join-Path -Path $Script:LogPath -ChildPath $Script:LogName
+                    Write-Warning -Message "Failed to create log folder: $($PSItem.Exception.Message). Using script directory instead."
+                }
+            }
+
+            ## Create log file if it doesn't exist
+            [bool]$LogFileExists = Test-Path -Path $LogFile -PathType Leaf
+            if (-not $LogFileExists) {
+                try {
+                    $null = New-Item -Path $LogFile -ItemType File -Force -ErrorAction Stop
+                }
+                catch {
+                    Write-Warning -Message "Failed to create log file: $($PSItem.Exception.Message)"
+                }
+            }
 
             ## Get log file information
             [System.IO.FileInfo]$LogFileInfo = Get-Item -Path $LogFile -ErrorAction Stop
@@ -212,17 +209,17 @@ function Write-LogBuffer {
     param()
 
     process {
-        if ($script:LogBuffer.Count -gt 0) {
+        if ($Script:LogBuffer.Count -gt 0) {
             try {
 
                 ## Convert ArrayList to string array for Add-Content
-                [string[]]$LogEntries = $script:LogBuffer.ToArray()
+                [string[]]$LogEntries = $Script:LogBuffer.ToArray()
 
                 ## Append to log file
-                Add-Content -Path $script:LogFile -Value $LogEntries -ErrorAction Stop
+                Add-Content -Path $Script:LogFullName -Value $LogEntries -ErrorAction Stop
 
                 ## Clear buffer
-                $script:LogBuffer.Clear()
+                $Script:LogBuffer.Clear()
             }
             catch {
                 Write-Warning -Message "Failed to write to log file: [$($PSItem.Exception.Message)]"
@@ -246,7 +243,7 @@ function Write-Log {
 .PARAMETER FormatOptions
     Optional hashtable of parameters to pass to Format-Header for formatting the console and/or log output.
 .PARAMETER LogDebugMessages
-    Whether to write debug messages to the log file (default: value of $Script.LogDebugMessages).
+    Whether to write debug messages to the log file (default: value of $Script:LogDebugMessages).
 .PARAMETER SkipLogFormatting
     Whether to skip formatting for the log message.
 #>
@@ -491,7 +488,7 @@ function Get-Application {
     Get-Application
     Returns all installed applications.
 .EXAMPLE
-    Get-Application -SearchPatterns "*chrome*", "*vlc*"
+    Get-Application -SearchPatterns '*chrome*', '*vlc*'
     Returns only applications with display names matching the patterns.
 .INPUTS
     None.
@@ -520,14 +517,14 @@ function Get-Application {
             'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*',
             'HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
             'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*'
-            #  Rare but possible
             'HKCU:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*'
         )
 
         ## Initialize application lists
         $InstalledApplications = [System.Collections.ArrayList]::new()
         $FilteredApplications = [System.Collections.ArrayList]::new()
-        #  Log the start of the process
+
+        ## Log the start of the process
         Write-Log -Message 'Retrieving installed applications...' -FormatOptions @{ AddEmptyRow = 'After' }
     }
     process {
@@ -536,7 +533,7 @@ function Get-Application {
             ## Get registry application uninstall keys
             $UninstallKeys = Get-ItemProperty -Path $UninstallPaths -ErrorAction SilentlyContinue
 
-            ## Process items without pipeline
+            ## Process items registry uninstall keys
             foreach ($UninstallKey in $UninstallKeys) {
                 if (-not [string]::IsNullOrWhiteSpace($UninstallKey.DisplayName)) {
                     $Application = [PSCustomObject]@{
@@ -570,8 +567,9 @@ function Get-Application {
                 Write-Log -Message "Found [$MatchCount/$($InstalledApplications.Count)] matching application(s)" -FormatOptions @{ Mode = 'Default' }
 
                 ## Output the filtered list
-                # Get longest display name length
+                #  Get longest display name length
                 [int]$MaxNameLength = ($FilteredApplications.DisplayName | ForEach-Object { $PsItem.Length } | Measure-Object -Maximum).Maximum
+
                 #  Format and output the filtered list
                 foreach ($Application in $FilteredApplications) {
                     [string]$PaddedApplicationName = $Application.DisplayName.PadRight($MaxNameLength)
@@ -605,15 +603,16 @@ function Get-Application {
 ##*=============================================
 #region ScriptBody
 
-## Check if log file exceeds size limit and clear it if needed
-Test-LogFileSize -LogFile $LogFile -MaxSizeMB $Script.MaxLogSizeMB
+## Check if log path exists or if the log file exceeds size limit
+Test-LogFile -LogFile $Script:LogFullName -MaxSizeMB $Script:LogMaxSizeMB
 
 ## Write initial log entries
-Write-Log -Message "$ScriptNameAndVersion Started" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'After' }
+Write-Log -Message "$Script:NameAndVersion Started" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'After' }
 Write-Log -Message 'ENVIRONMENT' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'After' }
-Write-Log -Message "Running as:  [$ScriptRunningAs]" -FormatOptions @{ Mode = 'Default' }
-Write-Log -Message "Script path: [$($Script.Path)]" -FormatOptions @{ Mode = 'Default' }
-Write-Log -Message "Log file:    [$LogFile]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Running elevated: [$Script:RunningAsAdmin]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Running as:       [$Script:RunningAs]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Script path:      [$Script:Path]" -FormatOptions @{ Mode = 'Default' }
+Write-Log -Message "Log path:         [$Script:LogPath]" -FormatOptions @{ Mode = 'Default' }
 Write-Log -Message 'DISCOVERY' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'BeforeAndAfter' }
 
 Try {
@@ -632,7 +631,7 @@ Try {
 
     ## Log the compliance
     Write-Log -Message 'SUMMARY' -FormatOptions @{ Mode = 'InlineHeader'; AddEmptyRow = 'BeforeAndAfter' }
-    Write-Log -Message "Compliance state: [$ComplianceState] - [$MatchCount] matching applications found" -FormatOptions @{ AddEmptyRow = 'After' }
+    Write-Log -Message "Compliance state: [$ComplianceState] - [$MatchCount] matching application(s) found" -FormatOptions @{ AddEmptyRow = 'After' }
 }
 Catch {
 
@@ -646,7 +645,7 @@ Finally {
     Write-LogBuffer
 
     ## End logging
-    Write-Log -Message "$($Script.Name) v$($Script.Version) Completed" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'Before' }
+    Write-Log -Message "$Script:NameAndVersion Completed" -FormatOptions @{ Mode = 'CenteredBlock'; AddEmptyRow = 'Before' }
 
     ## Ensure final flush of log buffer
     Write-LogBuffer
