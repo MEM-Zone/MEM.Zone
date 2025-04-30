@@ -2,6 +2,11 @@
 
 > This script is designed to be used in a Configuration Manager (ConfigMgr) or Intune compliance settings environment.
 
+## 3.0.1 - 2025-04-30
+
+* Fixed logging issue, where the log file was not named correctly
+* Fixed and issue where the script names was not being logged correctly
+
 ## 3.0.0 - 2025-04-29
 
 * [Breaking] Moved script variables to a standalone variables

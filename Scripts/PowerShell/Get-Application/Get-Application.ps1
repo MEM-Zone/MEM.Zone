@@ -53,22 +53,27 @@ $Script:ApplicationDetectionRules = [string[]]@(
     '*ccleaner*'
     '*recuva*'
     '*download manager*' # '_iu14D2N.tmp'
+    #'*adobe*'
+    #'*Zip*'
+    #'*vlc*'
+    #'*firefox*'
+    #'*chrome*'
+    #'*ccleaner*'
     #  Add more applications as needed
 )
 
 ### Do not modify anything below this line unless you know what you're doing!
-## -------------------------------------------------------------------------
+## --------------------------------------------------------------------------
 
 ## Set script variables
-$Script:Version          = '3.0.0'
-$Script:Name             = 'Remediate-BlacklistedApplications'
-$Script:LogName          = 'Uninstall-BlacklistedApplications'
+$Script:Version          = '3.0.1'
+$Script:Name             = 'Discover-BlacklistedApplications'
 $Script:NameAndVersion   = $Script:Name + ' v' + $Script:Version
 $Script:Path             = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Path)
 $Script:FullName         = $MyInvocation.MyCommand.Path
+$Script:LogName          = 'Uninstall-BlacklistedApplications'
 $Script:LogPath          = [System.IO.Path]::Combine($Env:ProgramData, 'Logs', $Script:LogName)
-$Script:LogName          = $Script:Name + '.log'
-$Script:LogFullName      = [System.IO.Path]::Combine($Script:LogPath, $Script:Name + '.log')
+$Script:LogFullName      = [System.IO.Path]::Combine($Script:LogPath, $Script:LogName + '.log')
 $Script:LogDebugMessages = $false
 $Script:LogMaxSizeMB     = 5
 $Script:LogBuffer        = [System.Collections.ArrayList]::new()
