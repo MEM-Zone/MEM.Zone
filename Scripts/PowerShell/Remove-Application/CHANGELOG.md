@@ -2,6 +2,15 @@
 
 > This script is designed to be used in a Configuration Manager (ConfigMgr) or Intune compliance settings environment.
 
+## 3.2.0 - 2025-05-02
+
+* Added support for killing `*post*` install processes
+* Added support for killing `post browser` processes
+* Added `InstallerType` to the `Get-Application` function output
+* Added `InstallerType` to the uninstall process
+* Standardized some messages
+* Minor code cleanup and refactoring
+
 ## 3.0.1 - 2025-04-30
 
 * Fixed logging issue, where the log file was not named correctly

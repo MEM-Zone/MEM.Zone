@@ -52,20 +52,27 @@ param (
 
 ## Define default application search patterns
 $Script:ApplicationDetectionRules = [string[]]@(
-    'Dell SupportAssist*'
-    '*minitool*'
-    '*treesize*'
-    '*krita*'
-    '*ccleaner*'
-    '*recuva*'
-    '*download manager*' # '_iu14D2N.tmp'
+    #'Dell SupportAssist*'
+    #'*minitool*'
+    #'*treesize*'
+    #'*krita*'
+    #'*ccleaner*'
+    #'*recuva*'
+    '*download manager*'
     #'*adobe*'
-    #'*Zip*'
+    '*Zip*'
     #'*vlc*'
     #'*firefox*'
     #'*chrome*'
     #'*ccleaner*'
+
     #  Add more applications as needed
+)
+
+## Define post process to kill search patterns
+$Script:PostProcessDetectionRules = [string[]]@(
+    '_iu14D2N.tmp'
+    #  Add more process names as needed
 )
 
 ## Define EXE uninstaller detection rules
@@ -91,7 +98,7 @@ $Script:UninstallerFileNameDetectionRules = [array]@(
 ## -------------------------------------------------------------------------
 
 ## Set script variables
-$Script:Version          = '3.0.1'
+$Script:Version          = '3.2.0'
 $Script:Name             = 'Remediate-BlacklistedApplications'
 $Script:NameAndVersion   = $Script:Name + ' v' + $Script:Version
 $Script:Path             = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Path)
@@ -569,6 +576,7 @@ function Get-Application {
                         Publisher            = $UninstallKey.Publisher
                         UninstallString      = $UninstallKey.UninstallString
                         QuietUninstallString = $UninstallKey.QuietUninstallString
+                        InstallerType        = if ($UninstallKey.WindowsInstaller -eq 1) { 'MSI' } else { 'EXE' }
                         PSPath               = $UninstallKey.PSPath
                     }
                     $null = $InstalledApplications.Add($Application)
@@ -600,7 +608,7 @@ function Get-Application {
                 #  Format and output the filtered list
                 foreach ($Application in $FilteredApplications) {
                     [string]$PaddedApplicationName = $Application.DisplayName.PadRight($MaxNameLength)
-                    Write-Log -Message "$PaddedApplicationName | Version: $($Application.DisplayVersion)"
+                    Write-Log -Message "$PaddedApplicationName | Type: $($Application.InstallerType) | Version: $($Application.DisplayVersion)"
                 }
             }
         }
@@ -664,7 +672,7 @@ function Get-InstallerCommand {
                     Arguments     = ''
                     FullName      = ''
                     SilentArgs    = @()
-                    hasSilentArgs = $false
+                    HasSilentArgs = $false
                 }
             }
 
@@ -677,11 +685,11 @@ function Get-InstallerCommand {
             ## Extract silent switches
             [string[]]$SilentArgs = [regex]::Matches($Arguments, $SilentArgsPattern) | ForEach-Object { $PSItem.Value.Trim() }
 
-            ## Set hasSilentArgs flag
-            [bool]$hasSilentArgs = $SilentArgs.Count -gt 0
+            ## Set HasSilentArgs flag
+            [bool]$HasSilentArgs = $SilentArgs.Count -gt 0
 
-            #  If only /SILENT or is present, set hasSilentArgs to false because it's not a fully silent argument
-            if ($SilentArgs.Count -eq 1 -and $SilentArgs[0] -ceq '/SILENT') { $hasSilentArgs = $false }
+            #  If only /SILENT or is present, set HasSilentArgs to false because it's not a fully silent argument
+            if ($SilentArgs.Count -eq 1 -and $SilentArgs[0] -ceq '/SILENT') { $HasSilentArgs = $false }
 
             ## Output result
             return [PSCustomObject]@{
@@ -690,7 +698,7 @@ function Get-InstallerCommand {
                 Arguments     = $Arguments
                 FullName      = $FullName
                 SilentArgs    = $SilentArgs
-                hasSilentArgs = $hasSilentArgs
+                HasSilentArgs = $HasSilentArgs
             }
         }
         catch {
@@ -762,10 +770,10 @@ function Get-SilentUninstallCommand {
             [string]$ExecutableName = $UninstallParameters.Name
             [string]$ExecutableFullName = $UninstallParameters.FullName
             [string]$Arguments = $UninstallParameters.Arguments
-            [bool]$hasSilentArgs = $UninstallParameters.hasSilentArgs
+            [bool]$HasSilentArgs = $UninstallParameters.HasSilentArgs
 
             ## If we already have silent args, return early
-            If ($hasSilentArgs) {
+            If ($HasSilentArgs) {
                 Write-Log -Message 'Silent arguments already present'
                 return
             }
@@ -832,6 +840,72 @@ function Get-SilentUninstallCommand {
         }
         finally {
             Write-Output -InputObject $UninstallString
+        }
+    }
+}
+#endregion
+
+#region function Get-DefaultBrowserExecutable
+function Get-DefaultBrowser {
+<#
+.SYNOPSIS
+    Gets the executable name of the system's default web browser.
+.DESCRIPTION
+    Resolves the executable name (e.g., chrome, msedge) of the currently configured default browser
+    by querying the user's URL protocol association and resolving the open command via the registry.
+.EXAMPLE
+    Get-DefaultBrowserExecutable
+.INPUTS
+    None.
+.OUTPUTS
+    System.String
+.NOTES
+    This is an internal script function and should typically not be called directly.
+.LINK
+    https://MEM.Zone
+.LINK
+    https://MEM.Zone/GIT
+.LINK
+    https://MEM.Zone/ISSUES
+#>
+    [CmdletBinding()]
+    [OutputType([string])]
+    param ()
+
+    process {
+        try {
+
+            ## Get the ProgID for the default HTTP handler
+            $ProgId = Get-ItemPropertyValue -Path 'HKCU:\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice' -Name 'ProgId'
+
+            ## Open the open\command subkey from HKEY_CLASSES_ROOT using .NET
+            $KeyPath = "$ProgId\shell\open\command"
+            $RegKey = [Microsoft.Win32.Registry]::ClassesRoot.OpenSubKey($keyPath)
+
+            if (-not $RegKey) {
+                Write-Log -Severity Debug -Message "Registry key not found for ProgID: [$ProgId]"
+                return $null
+            }
+
+            ## Get the key value
+            $Command = $RegKey.GetValue('')
+            $RegKey.Close()
+
+            ## Extract executable name from command string
+            if ($Command -match '"?([^"\s]+\.exe)"?') {
+                $ExeName = [System.IO.Path]::GetFileNameWithoutExtension($Matches[1])
+            }
+            else {
+                Write-Log -Severity Debug -Message "Failed to parse default browser command: [$Command]"
+                return $null
+            }
+
+            Write-Log -Severity Debug -Message "Default browser executable detected: [$ExeName]"
+            return $ExeName
+        }
+        catch {
+            Write-Log -Severity Debug -Message "Failed to detect default browser executable. $($PSItem.Exception.Message)"
+            return $null
         }
     }
 }
@@ -934,7 +1008,7 @@ function  Wait-ForMsiExecuteMutex {
                 $Elapsed += $IntervalSeconds
             }
 
-            Write-Log -Message 'Windows Installer is now available...'
+            Write-Log -Message 'Windows Installer is now available!s'
             return $true
         }
         catch {
@@ -1163,6 +1237,10 @@ function Start-ProcessWithTimeout {
             ## log the start of the process
             Write-Log -Severity Debug -Message "Starting [$FilePath $Arguments] (Timeout: [$TimeoutSeconds`s])"
 
+            ## Get default browser and check if it's running
+            $DefaultBrowser = Get-DefaultBrowser
+            $IsBrowserRunning = [bool]$(Get-Process -Name $DefaultBrowser -Verbose:$false -ErrorAction SilentlyContinue)
+
             ## Create process start info
             $ProcessStartInfo = [System.Diagnostics.ProcessStartInfo]::new()
             $ProcessStartInfo.FileName = $FilePath
@@ -1182,13 +1260,26 @@ function Start-ProcessWithTimeout {
             Start-Sleep -Seconds 1
 
             #  Check if the process is running interactively
-            if ($Process.MainWindowHandle -ne 0) { Write-Log -Severity Warning -Message 'Running interactively' } else { Write-Log -Message 'Running silently' }
+            if ($Process.MainWindowHandle -ne 0) { Write-Log -Severity Warning -Message 'Uninstall may run interactive' } else { Write-Log -Message 'Uninstall is running silent' }
 
             #  Wait for the process to exit with timeout
             $ExitedNormally = $Process.WaitForExit($TimeoutSeconds * 1000)
 
+            ## Detect and kill browser if it launched during execution
+            if (-not $IsBrowserRunning) {
+                $HasBrowserStarted = [bool]$(Get-Process -Name $DefaultBrowser -Verbose:$false -ErrorAction SilentlyContinue)
+                if ($HasBrowserStarted) {
+                    Write-Log -Severity Warning -Message "Terminating post process [$DefaultBrowser]..."
+                    Stop-Process -Name $DefaultBrowser -Force -Verbose:$false -ErrorAction SilentlyContinue
+                }
+            }
+
             ## Kill any child processes matching post*
-            $null = Get-Process | Where-Object { $PSItem.Parent -eq $Process.Id -and $PSItem.ProcessName -like 'post*' } | Stop-Process -Force
+            $PostProcesses = Get-Process | Where-Object { ($PSItem.Parent -eq $Process.Id -and $PSItem.ProcessName -like 'post*') -or $PSItem.ProcessName -match $Script:PostProcessDetectionRules }
+            $PostProcesses | ForEach-Object {
+                Write-Log -Severity Warning -Message "Terminating post process [$($PSItem.ProcessName)]..."
+                Stop-Process -Id $PSItem.Id -Force -Verbose:$false -ErrorAction SilentlyContinue
+            }
 
             if (-not $ExitedNormally) {
                 try {
@@ -1255,12 +1346,13 @@ function Remove-Application {
     )
 
     begin {
-        [string]$ApplicationName = $Application.DisplayName
-        [string]$ApplicationVersion = $Application.DisplayVersion
-        [string]$UninstallString = $Application.UninstallString
+        [string]$ApplicationName      = $Application.DisplayName
+        [string]$ApplicationVersion   = $Application.DisplayVersion
+        [string]$UninstallString      = $Application.UninstallString
         [string]$QuietUninstallString = $Application.QuietUninstallString
-        [bool]$hasRegistrySilentArgs = -not [string]::IsNullOrEmpty($QuietUninstallString)
-        [int]$TimeoutSeconds = 600
+        [string]$InstallerType        = $Application.InstallerType
+        [bool]$IsQuietUninstallString = -not [string]::IsNullOrEmpty($QuietUninstallString)
+        [int]$TimeoutSeconds          = 600
 
         ## Create result object
         [PSCustomObject]$Result = [PSCustomObject]@{
@@ -1272,7 +1364,7 @@ function Remove-Application {
         }
 
         ##  Log the start of the uninstallation
-        Write-Log -Message "==> $ApplicationName v$ApplicationVersion" -FormatOptions @{ AddEmptyRow = 'Before' }
+        Write-Log -Message "==> $ApplicationName v$ApplicationVersion [$InstallerType]" -FormatOptions @{ AddEmptyRow = 'Before' }
 
         ## Set the mutex name
         [string]$MutexName = $Script:Name + '_UninstallTask'
@@ -1295,8 +1387,16 @@ function Remove-Application {
                 return
             }
 
+            ## Check if the application is already uninstalled, might happen if the main application uninstall process already removed it (e.g. Firefox uninstaller also removing Firefox Helper Service)
+            $IsInstalled = [boolean](Get-Application -SearchPatterns $ApplicationName -Verbose:$false)
+            if (-not $IsInstalled) {
+                Write-Log -Message "Application [$ApplicationName] is already uninstalled, skipping uninstallation..."
+                $Result.Success = $true
+                return
+            }
+
             ## Check if it's an MSI uninstall
-            if ($UninstallString -match 'msiexec') {
+            if ($InstallerType -eq 'MSI') {
 
                 ## Extract product code from uninstall string
                 if ($UninstallString -match '{[0-9A-Fa-f\-]{36}}') {
@@ -1304,7 +1404,7 @@ function Remove-Application {
                     Write-Log -Severity Debug -Message "Detected MSI product code: [$ProductCode]"
 
                     ## Start the uninstall process
-                    Write-Log -Message 'Starting MSI uninstall...'
+                    Write-Log -Message 'Starting uninstall (EXE)...'
 
                     #  Set up the executable and arguments
                     [string]$FilePath = 'msiexec.exe'
@@ -1349,10 +1449,10 @@ function Remove-Application {
             }
 
             ## Check if it's an EXE uninstall
-            if ($UninstallString -notmatch 'msiexec') {
+            if ($InstallerType -eq 'EXE') {
 
                 ## Use quiet uninstall string if available
-                [string]$EffectiveUninstallString = if ($hasRegistrySilentArgs) {
+                [string]$EffectiveUninstallString = if ($IsQuietUninstallString) {
                     Write-Log -Message 'Detected silent uninstall string (Registry)'
                     $QuietUninstallString
                 }
@@ -1361,11 +1461,11 @@ function Remove-Application {
                     $UninstallString
                 }
 
-                ## Always disassemble the uninstall string to get the executable and arguments, will return 'hasSilentArgs = $false' if only '/SILENT' is present
+                ## Always disassemble the uninstall string to get the executable and arguments, will return 'HasSilentArgs = $false' if only '/SILENT' is present
                 $UninstallParameters = Get-InstallerCommand -CommandString $EffectiveUninstallString
 
                 ## If it lacks silent args, try to get a silent command
-                if (-not $UninstallParameters.hasSilentArgs) {
+                if (-not $UninstallParameters.HasSilentArgs) {
 
                     ## If the uninstall string is not fully silent log a warning
                     If ($UninstallParameters.SilentArgs.Count -gt 0) {
@@ -1378,7 +1478,7 @@ function Remove-Application {
                 }
 
                 ## Start the uninstall process
-                Write-Log -Message 'Starting EXE uninstall...'
+                Write-Log -Message 'Starting uninstall (MSI)...'
 
                 #  Set up the executable and arguments
                 [string]$FilePath = $UninstallParameters.FullName
