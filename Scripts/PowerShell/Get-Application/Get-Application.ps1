@@ -66,7 +66,7 @@ $Script:ApplicationDetectionRules = [string[]]@(
 ## --------------------------------------------------------------------------
 
 ## Set script variables
-$Script:Version          = '3.0.1'
+$Script:Version          = '3.2.0'
 $Script:Name             = 'Discover-BlacklistedApplications'
 $Script:NameAndVersion   = $Script:Name + ' v' + $Script:Version
 $Script:Path             = [System.IO.Path]::GetDirectoryName($MyInvocation.MyCommand.Path)
@@ -547,6 +547,7 @@ function Get-Application {
                         Publisher            = $UninstallKey.Publisher
                         UninstallString      = $UninstallKey.UninstallString
                         QuietUninstallString = $UninstallKey.QuietUninstallString
+                        InstallerType        = if ($UninstallKey.WindowsInstaller -eq 1) { 'MSI' } else { 'EXE' }
                         PSPath               = $UninstallKey.PSPath
                     }
                     $null = $InstalledApplications.Add($Application)
@@ -578,7 +579,7 @@ function Get-Application {
                 #  Format and output the filtered list
                 foreach ($Application in $FilteredApplications) {
                     [string]$PaddedApplicationName = $Application.DisplayName.PadRight($MaxNameLength)
-                    Write-Log -Message "$PaddedApplicationName | Version: $($Application.DisplayVersion)"
+                    Write-Log -Message "$PaddedApplicationName | Type: $($Application.InstallerType) | Version: $($Application.DisplayVersion)"
                 }
             }
         }
