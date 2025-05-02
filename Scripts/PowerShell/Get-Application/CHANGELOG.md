@@ -2,6 +2,11 @@
 
 > This script is designed to be used in a Configuration Manager (ConfigMgr) or Intune compliance settings environment.
 
+## 3.2.0 - 2025-05-02
+
+* Added `InstallerType` to the `Get-Application` function output
+* Added `InstallerType` to the script verbose output
+
 ## 3.0.1 - 2025-04-30
 
 * Fixed logging issue, where the log file was not named correctly
