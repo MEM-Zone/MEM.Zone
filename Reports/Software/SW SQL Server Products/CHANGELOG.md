@@ -1,6 +1,11 @@
 # SW SQL Server Products release history
 
+## 3.1.0 - 2025-09-08
+
+* Added support for `SQL 2025` (Not tested, please report issues)
+
 ## 3.0.1 - 2023-07-14
+
 * Fixed  support for `SQL 2022`
 * Removed `Cannot decode key` for SQL Developer
 * Added `usp_PivotWithDynamicColumns.sql` to the project folder

@@ -136,7 +136,8 @@ ORDER BY
         /* Populate SQLRelease table */
         INSERT INTO @SQLRelease (FileVersion, Release)
         VALUES
-            ('2022', '2022')
+            ('2025', '2025')
+              ('2022', '2022')
             , ('2019', '2019')
             , ('2017', '2017')
             , ('2016', '2017')
@@ -151,6 +152,15 @@ ORDER BY
             , ('2005', '2005')
             , ('2000', '2000')
             , ('',     'Unknown')
+
+        /* Get SQL 2025 data */
+        INSERT INTO #SQLProducts
+        EXECUTE dbo.usp_PivotWithDynamicColumns
+            @TableName           = N'dbo.v_GS_EXT_SQL_2025_Property0'
+            , @NonPivotedColumn  = N'ResourceID'
+            , @DynamicColumn     = N'PropertyName0'
+            , @AggregationColumn = N'ISNULL(PropertyStrValue0, PropertyNumValue0)'
+          , @StaticColumnList  = @StaticColumnList;
 
         /* Get SQL 2022 data */
         INSERT INTO #SQLProducts

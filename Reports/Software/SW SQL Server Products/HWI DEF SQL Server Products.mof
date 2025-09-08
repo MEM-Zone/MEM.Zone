@@ -22,6 +22,23 @@
     https://MEM.Zone/ISSUES
 */
 
+//---------------| SQL 2025 definitions |---------------
+
+[Dynamic, Provider("MS_VIEW_INSTANCE_PROVIDER"),
+SMS_Report(true),
+SMS_Group_Name("SQL 2025 Property"),
+SMS_Class_ID("EXT|SQL_2025_PROPERTY|1.0")]
+
+Class SQL_2025_Property: SMS_Class_Template
+{
+    [SMS_Report(true), key]    uint32 PropertyIndex;
+    [SMS_Report(true), key]    string PropertyName;
+    [SMS_Report(true)     ]    uint32 PropertyNumValue;
+    [SMS_Report(true)     ]    string PropertyStrValue;
+    [SMS_Report(true), key]    string ServiceName;
+    [SMS_Report(true), key]    uint32 SqlServiceType;
+};
+
 
 //---------------| SQL 2022 definitions |---------------
 
