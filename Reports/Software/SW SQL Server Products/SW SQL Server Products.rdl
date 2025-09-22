@@ -137,7 +137,7 @@ ORDER BY
         INSERT INTO @SQLRelease (FileVersion, Release)
         VALUES
             ('2025', '2025')
-              ('2022', '2022')
+            , ('2022', '2022')
             , ('2019', '2019')
             , ('2017', '2017')
             , ('2016', '2017')
