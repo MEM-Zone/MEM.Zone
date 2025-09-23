@@ -299,7 +299,7 @@ Class SQL_ProductID
     boolean DigitalProductID[];
 };
 
-/- SQL 2025 class instance
+//- SQL 2025 class instance
 [DYNPROPS]
 Instance of SQL_ProductID
 {
